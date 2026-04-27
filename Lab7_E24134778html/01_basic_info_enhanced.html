@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>01 一、基本資料｜Lab7 Draw Bounding Box</title>
+<style>
+:root{
+  --navy:#12395f;--blue:#1f6fb2;--sky:#eaf5ff;--cyan:#4fb3ff;--green:#16a05d;--green-bg:#eafaf1;
+  --gold:#f5b942;--gold-bg:#fff7df;--red:#c62828;--ink:#1f2937;--muted:#64748b;--line:#d8e5f2;
+  --card:#ffffff;--bg1:#eef6ff;--bg2:#f8fbff;--shadow:0 16px 42px rgba(18,57,95,.13);
+}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:var(--ink);line-height:1.9;background:
+ radial-gradient(circle at top left,rgba(79,179,255,.24),transparent 34%),
+ linear-gradient(135deg,var(--bg1),var(--bg2));}
+.container{max-width:1180px;margin:34px auto;padding:0 22px 36px}.hero{position:relative;overflow:hidden;background:linear-gradient(135deg,#12395f,#1f6fb2 58%,#4fb3ff);border-radius:28px;color:white;padding:44px 46px;box-shadow:var(--shadow)}
+.hero:after{content:"";position:absolute;right:-100px;top:-90px;width:310px;height:310px;border-radius:50%;background:rgba(255,255,255,.16)}
+.hero h1{margin:0;font-size:2.25rem;letter-spacing:.04em}.subtitle{font-size:1.1rem;opacity:.95;margin-top:10px}.chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}.chip{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);padding:6px 14px;border-radius:999px;font-weight:700}.badge-pass{display:inline-flex;align-items:center;gap:8px;background:#e9fff3;color:#077444;border:1px solid #9ae6bd;border-radius:999px;padding:7px 15px;font-weight:800;margin-top:18px}.layout{display:grid;grid-template-columns:1.04fr .96fr;gap:22px;margin-top:24px}.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:24px;box-shadow:0 10px 28px rgba(15,44,71,.08)}
+h2{color:var(--navy);font-size:1.35rem;margin:0 0 14px;border-left:8px solid var(--cyan);padding-left:12px}.lead{font-size:1.05rem}.info-grid{display:grid;grid-template-columns:160px 1fr;border:1px solid var(--line);border-radius:18px;overflow:hidden}.info-grid div{padding:12px 16px;border-bottom:1px solid var(--line)}.info-grid div:nth-child(odd){background:#eef7ff;font-weight:800;color:#174b78}.info-grid div:nth-child(even){background:white}.info-grid div:nth-last-child(-n+2){border-bottom:0}.big-id{font-size:1.45rem;font-weight:900;color:#0f5e9c;letter-spacing:.04em}.status{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:18px}.stat{border-radius:18px;background:linear-gradient(180deg,#fff,#f6fbff);border:1px solid var(--line);padding:18px;text-align:center}.stat .num{font-size:1.8rem;font-weight:900;color:var(--green)}.stat .label{color:var(--muted);font-weight:700}.timeline{display:grid;gap:12px}.step{display:grid;grid-template-columns:42px 1fr;gap:12px;align-items:start}.dot{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#eaf5ff;color:#1769aa;font-weight:900;border:1px solid #b9daf5}.step-box{background:#f8fbff;border:1px solid var(--line);border-radius:16px;padding:12px 14px}.note{background:var(--gold-bg);border-left:7px solid var(--gold);padding:14px 16px;border-radius:14px}.ok{background:var(--green-bg);border-left:7px solid var(--green);padding:14px 16px;border-radius:14px}.warn{background:#fff1f1;border-left:7px solid var(--red);padding:14px 16px;border-radius:14px}.cover-preview{min-height:310px;border-radius:24px;border:1px solid #bfd9f0;background:linear-gradient(160deg,#f7fbff,#eaf5ff);display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;position:relative;overflow:hidden}.cover-preview:before{content:"VLSI CAD";position:absolute;font-size:5.4rem;font-weight:900;color:rgba(31,111,178,.07);transform:rotate(-12deg)}.cover-inner{position:relative;background:rgba(255,255,255,.78);backdrop-filter:blur(4px);border:1px solid rgba(31,111,178,.18);border-radius:20px;padding:28px;width:86%;box-shadow:0 12px 26px rgba(15,44,71,.08)}.cover-title{font-size:1.45rem;color:var(--navy);font-weight:900}.cover-sub{color:#1769aa;font-weight:800;margin-top:8px}.nav{display:flex;justify-content:space-between;gap:12px;margin-top:26px;border-top:1px solid var(--line);padding-top:18px}.nav a,.nav span{color:#174b78;text-decoration:none;font-weight:900;background:#eef7ff;border:1px solid #c7ddf1;border-radius:999px;padding:8px 16px}.watermark{text-align:center;color:var(--muted);font-size:.9rem;margin-top:22px}@media(max-width:860px){.layout{grid-template-columns:1fr}.status{grid-template-columns:repeat(2,1fr)}.hero{padding:34px 26px}.hero h1{font-size:1.75rem}.info-grid{grid-template-columns:1fr}.info-grid div:nth-child(odd){border-bottom:0}}
+</style>
+</head>
+<body>
+<div class="container">
+  <section class="hero">
+    <h1>01. 一、基本資料</h1>
+    <div class="subtitle">Lab7 Draw Bounding Box Engine｜報告封面與提交者資訊</div>
+    <div class="chips"><span class="chip">Introduction to VLSI CAD</span><span class="chip">Spring 2026</span><span class="chip">Lab Session 7</span><span class="chip">Pixel-perfect RTL</span></div>
+    <div class="badge-pass">✓ P1 ~ P4 RTL Simulation PASS｜Total Errors = 0</div>
+  </section>
+
+  <div class="layout">
+    <section class="card">
+      <h2>題目說明</h2>
+      <p class="lead">本頁作為整份 Lab7 報告的第一頁，用來清楚標示課程名稱、Lab 主題、學生姓名、學號、分數欄位與模擬狀態。基本資料頁雖然不涉及演算法推導，但它是助教辨識提交者、確認檔名與核對報告內容的第一個檢查點，因此格式需要正式、清楚且與後續各頁一致。</p>
+      <div class="ok">建議將此頁放在 HTML 報告最前面，並確認姓名、學號與提交檔案名稱一致，例如 <code>Lab7_E24134778.tar</code>、<code>E24134778.pdf</code>。</div>
+      <h2>基本資料表</h2>
+      <div class="info-grid">
+        <div>Course</div><div>Introduction to VLSI CAD (Spring 2026)</div>
+        <div>Lab Session</div><div>Lab Session 7</div>
+        <div>Title</div><div>Design of Draw Bounding Box Engine</div>
+        <div>Name</div><div>彭靖凱</div>
+        <div>Student ID</div><div class="big-id">E24134778</div>
+        <div>Practical</div><div>Lab 7</div>
+        <div>Points</div><div>100</div>
+        <div>Notes</div><div>All P1~P4 patterns passed with 0 errors in RTL simulation. Pixel-perfect implementation achieved.</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>封面視覺預覽</h2>
+      <div class="cover-preview">
+        <div class="cover-inner">
+          <div class="cover-title">Lab7: Draw Bounding Box</div>
+          <div class="cover-sub">Design of Draw Bounding Box Engine</div>
+          <p>姓名：彭靖凱<br>學號：E24134778<br>課程：Introduction to VLSI CAD</p>
+          <div class="badge-pass">✓ RTL PASS</div>
+        </div>
+      </div>
+      <div class="status">
+        <div class="stat"><div class="num">4/4</div><div class="label">Patterns</div></div>
+        <div class="stat"><div class="num">0</div><div class="label">Total Error</div></div>
+        <div class="stat"><div class="num">100</div><div class="label">Points</div></div>
+        <div class="stat"><div class="num">RTL</div><div class="label">Verified</div></div>
+      </div>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:22px">
+    <h2>報告首頁撰寫重點</h2>
+    <div class="timeline">
+      <div class="step"><div class="dot">1</div><div class="step-box"><b>身份資訊完整</b>：姓名、學號、課程與 Lab 名稱需完整填寫，避免助教批改時無法快速對應檔案。</div></div>
+      <div class="step"><div class="dot">2</div><div class="step-box"><b>主題清楚</b>：標題需明確指出本作業為 Draw Bounding Box Engine，內容包含影像讀取、前處理、CCL、BBox 與 overlay。</div></div>
+      <div class="step"><div class="dot">3</div><div class="step-box"><b>結果先行</b>：首頁可簡短標示 P1~P4 RTL 全部通過與 total errors = 0，讓讀者一開始就掌握實作成果。</div></div>
+      <div class="step"><div class="dot">4</div><div class="step-box"><b>避免過度填寫</b>：尚未產生的 synthesis area、gate-level result 或 SuperLint coverage 不應自行填入，應保留至 Summary 或 synthesis 頁面補齊。</div></div>
+    </div>
+  </section>
+
+  <section class="card" style="margin-top:22px">
+    <h2>可直接放入報告的說明文字</h2>
+    <p>本報告為 Introduction to VLSI CAD 課程之 Lab7：Draw Bounding Box Engine。作業目標為設計一個可於硬體中執行之影像處理流程，將 256×256 RGB 輸入影像經由灰階轉換、濾波、門檻分割、Connected Component Labeling 與 Bounding Box 計算後，輸出含有綠色邊界框之結果影像。本設計目前已於 ModelSim RTL simulation 中完成 P1 至 P4 四組測試，所有 pattern 之 error 數皆為 0，表示輸出結果與 golden result 在 pixel-level 上完全一致。</p>
+    <div class="note">本頁不放完整 Verilog source code，只作為報告首頁與基本資料頁；詳細演算法、I/O、FSM 與驗證結果放在後續章節。</div>
+  </section>
+
+  <div class="nav"><span></span><a href="index_enhanced.html">回索引</a><a href="02_summary_enhanced.html">下一題 →</a></div>
+  <div class="watermark">Lab7 Draw Bounding Box Engine｜彭靖凱｜E24134778</div>
+</div>
+</body>
+</html>

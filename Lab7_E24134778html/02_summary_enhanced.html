@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>02 二、Summary 實驗結果摘要｜Enhanced</title>
+<style>
+:root{
+  --navy:#123b63;--blue:#1f6fae;--cyan:#3aa6d8;--green:#16a06b;--mint:#eafaf4;
+  --orange:#f59e0b;--red:#d14343;--bg:#f2f7fd;--ink:#1d2939;--muted:#667085;
+  --card:#ffffff;--line:#d6e6f5;--soft:#eef7ff;--shadow:0 14px 38px rgba(31,95,144,.13);
+}
+*{box-sizing:border-box} body{margin:0;font-family:"Microsoft JhengHei",Arial,sans-serif;background:linear-gradient(135deg,#edf6ff 0%,#f8fbff 45%,#eefaf5 100%);color:var(--ink);line-height:1.9}
+.hero{max-width:1180px;margin:28px auto 18px;padding:36px 44px;border-radius:28px;background:linear-gradient(135deg,#123b63,#1f6fae 62%,#28a7c8);color:white;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.hero:before{content:"";position:absolute;right:-80px;top:-80px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.14)}
+.hero h1{margin:0 0 8px;text-align:left;font-size:2.15rem;letter-spacing:.02em}.hero p{max-width:900px;margin:8px 0 0;color:#e8f5ff}.chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.chip{border:1px solid rgba(255,255,255,.42);background:rgba(255,255,255,.15);padding:5px 12px;border-radius:999px;font-size:.92rem}
+.container{max-width:1180px;margin:0 auto 34px;background:rgba(255,255,255,.88);backdrop-filter:blur(8px);padding:34px 42px;border-radius:24px;box-shadow:var(--shadow);border:1px solid rgba(214,230,245,.8)}
+h2{color:var(--navy);border-left:8px solid var(--cyan);padding-left:13px;margin:34px 0 16px;font-size:1.48rem}h3{color:#17634b;margin:22px 0 8px}.lead{font-size:1.06rem;background:#f8fbff;border:1px solid var(--line);border-radius:18px;padding:18px 20px}.tag{display:inline-block;background:#eaf4ff;color:#174b78;border:1px solid #9dc4e8;padding:3px 10px;border-radius:999px;font-size:.88em;margin-right:6px}
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:20px 0}.metric{position:relative;overflow:hidden;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px 18px;box-shadow:0 8px 24px rgba(31,95,144,.08)}.metric:after{content:"";position:absolute;right:-30px;bottom:-30px;width:90px;height:90px;border-radius:50%;background:#eaf6ff}.metric .label{color:var(--muted);font-weight:700}.metric .value{font-size:1.8rem;color:var(--navy);font-weight:900}.metric.pass .value{color:var(--green)}.metric.warn .value{color:var(--orange)}.metric small{color:var(--muted)}
+table{width:100%;border-collapse:separate;border-spacing:0;margin:16px 0;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 8px 22px rgba(31,95,144,.06)}th,td{padding:13px 14px;vertical-align:top;border-bottom:1px solid #e6eef7}th{background:linear-gradient(180deg,#eaf5ff,#dceeff);color:#174b78;text-align:left}tr:last-child td{border-bottom:none}td:nth-child(2){font-weight:700}.pass-badge{display:inline-block;color:#057a55;background:#e9fbf3;border:1px solid #a7efc5;border-radius:999px;padding:2px 10px}.pending-badge{display:inline-block;color:#9a5b00;background:#fff7e6;border:1px solid #ffd28a;border-radius:999px;padding:2px 10px}.zero{font-weight:900;color:#057a55}
+.note,.ok,.warn{border-radius:16px;padding:16px 18px;margin:16px 0}.note{background:#fff8e8;border-left:7px solid #f0b429}.ok{background:#eafaf4;border-left:7px solid var(--green)}.warn{background:#fff1f1;border-left:7px solid var(--red)}
+.pipeline{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:18px 0}.step{background:linear-gradient(180deg,#ffffff,#f5fbff);border:1px solid var(--line);border-radius:16px;padding:14px;text-align:center}.step b{display:block;color:var(--navy);font-size:1.02rem}.step span{font-size:.9rem;color:var(--muted)}
+.gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;margin:18px 0}.fig{background:#fff;border:1px solid var(--line);border-radius:20px;padding:12px;box-shadow:0 8px 24px rgba(31,95,144,.08);text-align:center}.fig img{width:100%;image-rendering:auto;border-radius:14px;border:1px solid #c9dff2;background:#f8fbff}.caption{font-size:.92rem;color:#52606d;margin-top:8px}.figure-wide{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px;margin:18px 0;text-align:center;box-shadow:0 8px 24px rgba(31,95,144,.08)}.figure-wide img{max-width:100%;border-radius:14px}
+.codebox{font-family:Consolas,"Courier New",monospace;background:#0b1f33;color:#e8f5ff;border-radius:18px;padding:18px;overflow:auto;border:1px solid #143a60}.codebox .green{color:#8cffc1}.codebox .yellow{color:#ffe08a}.codebox .cyan{color:#91e8ff}
+.checklist{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.check{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px}.check b{color:var(--navy)}.check:before{content:"✓";display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#e9fbf3;color:#057a55;margin-right:8px;font-weight:bold}
+.nav{display:flex;justify-content:space-between;gap:12px;margin-top:34px;border-top:1px solid #d8e2ef;padding-top:18px}.nav a{color:#174b78;text-decoration:none;font-weight:bold;background:#eef7ff;border:1px solid #cbe3f8;padding:8px 13px;border-radius:999px}.watermark{font-size:.86em;color:#697386;text-align:center;margin-top:24px}
+@media(max-width:720px){.hero,.container{margin:14px;padding:24px 20px}.hero h1{font-size:1.62rem}.nav{flex-direction:column;text-align:center}}
+</style>
+</head>
+<body>
+<section class="hero">
+  <h1>02. 二、Summary 實驗結果摘要</h1>
+  <p>本頁彙整 Lab7 Draw Bounding Box 的最終驗證狀態、Pattern 1～4 錯誤數、模擬時間、RTL PASS 證據，以及 synthesis / area 欄位的待補資料。此頁可作為整份報告的總覽頁，讓助教快速確認目前設計已達到 pixel-perfect 的 RTL 驗證結果。</p>
+  <div class="chips"><span class="chip">256×256 RGB Image</span><span class="chip">P1~P4 RTL PASS</span><span class="chip">Total Error = 0</span><span class="chip">Bounding Box Overlay</span></div>
+</section>
+<main class="container">
+<h2>一、題目說明與本頁目的</h2>
+<p class="lead">Summary 表格的用途不是重新解釋所有演算法，而是把整份 Lab7 最重要的驗證結果集中整理。對本設計而言，Summary 需要清楚呈現：RTL simulation 是否全數通過、每一個 pattern 的錯誤數、總錯誤數、P4 模擬時間、目前是否完成 synthesis / gate-level simulation，以及還有哪些欄位需等待 Design Compiler 報告補上。</p>
+
+<div class="summary-grid">
+  <div class="metric pass"><div class="label">RTL Simulation</div><div class="value">PASS</div><small>P1、P2、P3、P4 全部通過</small></div>
+  <div class="metric pass"><div class="label">Total Errors</div><div class="value">0</div><small>與 golden result pixel-level 完全一致</small></div>
+  <div class="metric"><div class="label">P4 Finish Time</div><div class="value">24011725 ns</div><small>ModelSim log 紀錄之結束時間</small></div>
+  <div class="metric warn"><div class="label">SYN / Area</div><div class="value">待補</div><small>需由 DC 產生 syn.v / sdf / area report</small></div>
+</div>
+
+<h2>二、實驗結果總表</h2>
+<table>
+<tr><th>項目</th><th>結果</th><th>詳細說明</th></tr>
+<tr><td>RTL All Pass</td><td><span class="pass-badge">✓ PASS</span></td><td>Pattern 1 至 Pattern 4 皆已在 ModelSim RTL simulation 通過，表示目前 RTL 行為與 testbench golden 比對結果一致。</td></tr>
+<tr><td>SYN All Pass</td><td><span class="pending-badge">待補</span></td><td>目前尚未提供 <code>drawBbox_syn.v</code> 與 <code>drawBbox_syn.sdf</code>，因此 gate-level simulation 不能自行填 PASS，應等 Design Compiler 合成後補上。</td></tr>
+<tr><td>Pattern 1 Error</td><td class="zero">0</td><td>P1 Simulation PASS，輸出圖檔為 <code>drawBbox_result_p1.bmp</code>，可作為第一組測資之視覺證據。</td></tr>
+<tr><td>Pattern 2 Error</td><td class="zero">0</td><td>P2 Simulation PASS，代表第二組測資在 bounding box 位置與 pixel 顏色上皆符合 golden result。</td></tr>
+<tr><td>Pattern 3 Error</td><td class="zero">0</td><td>P3 Simulation PASS，表示多物件或較複雜物件情境下，CCL 與 BBox 結果仍正確。</td></tr>
+<tr><td>Pattern 4 Error</td><td class="zero">0</td><td>P4 Simulation PASS，為最終綜合測試結果之一，並成功產生 <code>drawBbox_result_p4.bmp</code>。</td></tr>
+<tr><td>Total Error</td><td class="zero">0</td><td>全部 pattern 的錯誤總數為 0，代表輸出與 golden answer 在 pixel-level 完全一致。</td></tr>
+<tr><td>Grade Class</td><td>A / Pixel-perfect</td><td>以目前 RTL 驗證資料判斷，P1~P4 皆 error = 0，因此可歸類為 pixel-perfect 的 RTL 結果。</td></tr>
+<tr><td>P4 Simulation Time</td><td>24011725 ns</td><td>ModelSim log 中紀錄最後 <code>$finish</code> 時間為 24011725 ns，可放入 Summary 表格。</td></tr>
+<tr><td>Total Cell Area</td><td><span class="pending-badge">待補</span></td><td>需由 <code>area_rpt.txt</code> 或 Design Compiler report 讀取 <code>Total cell area</code> 後填入，不建議自行估計。</td></tr>
+</table>
+
+<div class="ok"><b>目前可確認：</b>RTL simulation 的 P1、P2、P3、P4 全部 PASS，且每一組 pattern 的 error 數皆為 0。這代表本設計的輸出影像與 golden answer 在 RTL 模擬階段已達到完全一致。</div>
+<div class="warn"><b>誠實註記：</b>若尚未取得 <code>drawBbox_syn.v</code>、<code>drawBbox_syn.sdf</code>、<code>area_rpt.txt</code>，Summary 裡的 SYN All Pass 與 Total Cell Area 應保留為「待補」，避免報告填入未驗證資料。</div>
+
+<h2>三、P1～P4 Pattern 結果視覺化</h2>
+<p>下方以卡片方式呈現四組 pattern 的輸出結果。這種排版比單純列檔名更容易讓讀者理解：每個測資都已完成 bounding box overlay，並對應到 ModelSim log 中的 PASS 結果。</p>
+<div class="gallery">
+  <div class="fig"><img src="assets/drawBbox_result_p1_enhanced.png" alt="Pattern 1 output"><div class="caption"><b>Pattern 1</b><br>RTL PASS｜Error = 0</div></div>
+  <div class="fig"><img src="assets/drawBbox_result_p2_enhanced.png" alt="Pattern 2 output"><div class="caption"><b>Pattern 2</b><br>RTL PASS｜Error = 0</div></div>
+  <div class="fig"><img src="assets/drawBbox_result_p3_enhanced.png" alt="Pattern 3 output"><div class="caption"><b>Pattern 3</b><br>RTL PASS｜Error = 0</div></div>
+  <div class="fig"><img src="assets/drawBbox_result_p4_enhanced.png" alt="Pattern 4 output"><div class="caption"><b>Pattern 4</b><br>RTL PASS｜Error = 0</div></div>
+</div>
+
+<h2>四、驗證流程與結果關係</h2>
+<div class="pipeline">
+  <div class="step"><b>1. Compile</b><span>vlog 編譯 RTL、TB 與設定檔</span></div>
+  <div class="step"><b>2. Simulate</b><span>vsim 執行 P1~P4</span></div>
+  <div class="step"><b>3. Compare</b><span>AnsSRAM 與 golden 比對</span></div>
+  <div class="step"><b>4. Plot BMP</b><span>產生輸出結果影像</span></div>
+  <div class="step"><b>5. Summary</b><span>統計每組 error 數</span></div>
+</div>
+<p>驗證流程中最重要的是 Compare 階段。testbench 會將 DUT 寫入 AnsSRAM 的結果與 golden answer 逐 pixel 比對，只要任一 pixel 的 32-bit RGB 值不同，就會被列為 error。因此 <b>Total Error = 0</b> 代表不只是 bounding box 大致位置正確，而是最終輸出影像的每個像素皆與標準答案相同。</p>
+
+<h2>五、ModelSim Log 摘要</h2>
+<div class="codebox">
+<span class="cyan">P1 Simulation PASS!!</span><br>
+<span class="cyan">P2 Simulation PASS!!</span><br>
+<span class="cyan">P3 Simulation PASS!!</span><br>
+<span class="cyan">P4 Simulation PASS!!</span><br><br>
+P1 errors = <span class="green">0</span><br>
+P2 errors = <span class="green">0</span><br>
+P3 errors = <span class="green">0</span><br>
+P4 errors = <span class="green">0</span><br>
+TOTAL errors = <span class="green">0</span><br><br>
+<span class="yellow">ALL P1~P4 PASS!!</span><br>
+Finish Time = 24011725 ns
+</div>
+
+<h2>六、Summary 表格填寫建議</h2>
+<div class="checklist">
+  <div class="check"><b>RTL All Pass：</b>可填 Yes / PASS，因為 P1~P4 已通過。</div>
+  <div class="check"><b>Error Count：</b>P1~P4 與 Total Error 皆可填 0。</div>
+  <div class="check"><b>P4 Simulation Time：</b>可填 24011725 ns。</div>
+  <div class="check"><b>SYN Result：</b>若尚未跑 DC，請填 Pending 或待補。</div>
+  <div class="check"><b>Area：</b>需從 area report 複製，不應自行推測。</div>
+  <div class="check"><b>Coverage：</b>SuperLint coverage 需另由工具輸出補上。</div>
+</div>
+
+<h2>七、報告可直接使用文字</h2>
+<p>本設計已於 ModelSim RTL simulation 中完成 Pattern 1 至 Pattern 4 的驗證。根據模擬結果，四組測資皆顯示 Simulation PASS，且 P1、P2、P3、P4 的錯誤數皆為 0，總錯誤數亦為 0。此結果表示本設計輸出的 bounding box overlay 影像與 golden result 在 pixel-level 上完全一致。P4 模擬結束時間為 24011725 ns。後續 synthesis 相關欄位，例如 gate-level simulation result、Total Cell Area 與 timing report，需以 Design Compiler 產生之 <code>drawBbox_syn.v</code>、<code>drawBbox_syn.sdf</code> 與 report 檔案為準，待合成完成後再補入最終報告。</p>
+
+<div class="nav"><a href="01_basic_info.html">← 上一題</a><a href="index_enhanced.html">回索引</a><a href="03_deliverables_enhanced.html">下一題 →</a></div>
+<div class="watermark">Lab7 Draw Bounding Box Engine｜彭靖凱｜E24134778</div>
+</main>
+</body>
+</html>

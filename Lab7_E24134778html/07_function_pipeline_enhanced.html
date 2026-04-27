@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>07 七、Understanding the Function｜Lab7 Draw Bounding Box</title>
+<style>
+:root{--bg:#f3f7fb;--paper:#fff;--ink:#1f2937;--muted:#607080;--blue:#185a8d;--blue2:#2b7bbb;--green:#20a463;--green2:#e9fbf1;--orange:#fff4df;--red:#b3261e;--line:#d7e4ef;--soft:#f7fbff;--shadow:0 18px 50px rgba(22,55,92,.12)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{font-family:"Microsoft JhengHei",Arial,sans-serif;background:radial-gradient(circle at top left,#e7f4ff 0,#f3f7fb 36%,#f6f9fc 100%);color:var(--ink);margin:0;line-height:1.9}.container{max-width:1180px;margin:28px auto;background:rgba(255,255,255,.96);padding:42px 52px;border-radius:28px;box-shadow:var(--shadow);border:1px solid rgba(199,219,237,.75)}
+.hero{position:relative;overflow:hidden;border-radius:26px;padding:34px 34px 28px;background:linear-gradient(135deg,#134b75,#1d7fb4 52%,#26a464);color:white;box-shadow:0 16px 42px rgba(31,95,144,.28)}.hero:after{content:"";position:absolute;right:-90px;top:-90px;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,.14)}h1{position:relative;margin:0;font-size:2.25rem;letter-spacing:.5px}.subtitle{position:relative;max-width:850px;margin:12px 0 0;color:#eaf7ff;font-size:1.08rem}.meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);padding:7px 12px;border-radius:999px;font-weight:700;color:white}
+.toc{margin:26px 0;padding:18px;border-radius:18px;background:#f8fcff;border:1px solid var(--line)}.toc a{display:inline-block;margin:5px 8px 5px 0;padding:6px 11px;border-radius:999px;background:white;color:#185a8d;text-decoration:none;border:1px solid #cce0f0;font-weight:700}.toc a:hover{background:#eaf5ff}
+h2{color:var(--blue);border-left:8px solid #5aa0df;padding-left:14px;margin-top:36px;font-size:1.55rem}h3{color:#236742;margin:24px 0 8px;font-size:1.18rem}.lead{font-size:1.06rem;background:linear-gradient(90deg,#f7fbff,#fff);border:1px solid var(--line);border-radius:16px;padding:18px 20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:16px}.card{border:1px solid var(--line);border-radius:18px;padding:18px;background:linear-gradient(180deg,#fff,#f9fcff);box-shadow:0 8px 22px rgba(30,70,110,.06)}.card b{color:#174b78}.num{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#eaf6ff;color:#185a8d;font-weight:900;margin-right:7px}.mini{font-size:.93rem;color:var(--muted)}
+.note,.ok,.warn{padding:15px 18px;margin:18px 0;border-radius:14px;border-left:7px solid}.note{background:#fff8e8;border-color:#f0b429}.ok{background:#eaf9ef;border-color:#37a45b}.warn{background:#fff0f0;border-color:#d33}.formula{background:#f8fbff;border:1px dashed #8fb8dc;border-radius:14px;padding:13px;margin:12px 0;text-align:center;font-weight:800;color:#174b78;font-family:Consolas,"Courier New",monospace}
+table{width:100%;border-collapse:separate;border-spacing:0;margin:18px 0;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}th,td{border-bottom:1px solid var(--line);padding:12px 14px;vertical-align:top}tr:last-child td{border-bottom:0}th{background:#e9f3fc;color:#174b78;text-align:left}.badge{display:inline-block;background:#eaf4ff;color:#174b78;border:1px solid #9dc4e8;padding:3px 9px;border-radius:999px;font-size:.88em;font-weight:800}
+.figure{margin:26px 0;text-align:center}.figure img{max-width:100%;border-radius:18px;border:1px solid #bdd4e8;background:white;box-shadow:0 14px 34px rgba(29,72,116,.14)}.caption{font-size:.94em;color:#556676;margin-top:8px}.image-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px}.img-card{background:#fbfdff;border:1px solid var(--line);border-radius:20px;padding:14px;box-shadow:0 10px 26px rgba(30,70,110,.08)}.img-card img{width:100%;border-radius:14px;border:1px solid #cfe0ee}.img-card h4{margin:8px 0 4px;color:#174b78}
+.timeline{position:relative;margin-left:8px}.step{position:relative;margin:0 0 16px 24px;padding:16px 18px;background:white;border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 22px rgba(30,70,110,.06)}.step:before{content:"";position:absolute;left:-25px;top:22px;width:13px;height:13px;background:#20a463;border:4px solid #dff8ec;border-radius:50%}.step:after{content:"";position:absolute;left:-16px;top:40px;bottom:-24px;width:2px;background:#d7e4ef}.step:last-child:after{display:none}
+code{font-family:Consolas,"Courier New",monospace;background:#eef4fb;border:1px solid #d9e6f2;border-radius:6px;padding:2px 6px}pre{font-family:Consolas,"Courier New",monospace;background:#142033;color:#d9f7ff;border-radius:16px;padding:16px;white-space:pre-wrap;overflow:auto;border:1px solid #263c5a}.green-code{color:#079447;font-weight:900}.nav{display:flex;justify-content:space-between;gap:12px;margin-top:38px;border-top:1px solid #d8e2ef;padding-top:18px}.nav a{color:#174b78;text-decoration:none;font-weight:bold}.watermark{font-size:.9em;color:#697386;text-align:center;margin-top:24px}
+@media print{body{background:white}.container{box-shadow:none;margin:0;max-width:none}.toc,.nav{display:none}.hero{print-color-adjust:exact;-webkit-print-color-adjust:exact}.card,.step,.img-card{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="container">
+<section class="hero">
+<h1>07. 七、Understanding the Function</h1>
+<p class="subtitle">本頁將原本的功能流程說明擴充為「可直接放入 Lab7 報告」的詳細版本，包含影像處理 pipeline、硬體 FSM 對應、記憶體 I/O、驗證結果與美化後圖片。</p>
+<div class="meta"><span class="pill">Lab7 Draw Bounding Box</span><span class="pill">256×256 RGB</span><span class="pill">Otsu + 8-connected CCL</span><span class="pill">E24134778</span></div>
+</section>
+<nav class="toc"><a href="#topic">題目說明</a><a href="#overview">整體流程</a><a href="#details">逐步詳解</a><a href="#hardware">硬體對應</a><a href="#images">結果圖片</a><a href="#check">驗證與重點</a></nav>
+
+<h2 id="topic">一、題目說明</h2>
+<p class="lead">本題 <b>Understanding the Function</b> 要求說明系統在初始化後，如何從輸入影像一路完成灰階化、濾波、二值化、連通元件標記、Bounding Box 計算與 Overlay 輸出。重點不是只列出模組名稱，而是要說清楚每一步的輸入、處理目的、輸出資料，以及它在硬體流程中扮演的角色。</p>
+<div class="note"><b>報告撰寫重點：</b>Lab7 的核心是將 256×256 RGB 影像轉成可辨識物件位置的結果。最後輸出不是純 mask，而是保留原圖，並在偵測到的物件外框畫上綠色 bounding box。</div>
+
+<h2 id="overview">二、整體 Function Pipeline</h2>
+<p>系統可視為一條由影像前處理、物件分割、幾何分析與結果輸出組成的硬體 pipeline。輸入資料由 <code>ImgROM</code> 提供，處理後結果寫入 <code>AnsSRAM</code>。整體流程如下：</p>
+<div class="figure"><img src="assets/pipeline_beautified.svg" alt="Beautified Function Pipeline"><div class="caption">圖 1：美化後的 Lab7 Function Pipeline。流程由 RGB 讀取開始，最後輸出綠色 Bounding Box Overlay 影像。</div></div>
+<div class="grid">
+<div class="card"><span class="num">1</span><b>Read Original Image</b><p class="mini">依 row-major order 從 ImgROM 讀取 256×256、32-bit RGB pixel。</p></div>
+<div class="card"><span class="num">2</span><b>RGB to Grayscale</b><p class="mini">把 RGB 三通道轉成單一亮度值，方便後續統計與 threshold。</p></div>
+<div class="card"><span class="num">3</span><b>3×3 Gaussian Filter</b><p class="mini">降低雜訊與孤立亮點，使二值化結果更穩定。</p></div>
+<div class="card"><span class="num">4</span><b>Otsu Threshold</b><p class="mini">根據 histogram 自動尋找最佳門檻值，不需手動指定 threshold。</p></div>
+<div class="card"><span class="num">5</span><b>Mask + Polarity</b><p class="mini">產生 binary mask，並依前景比例修正黑白顛倒問題。</p></div>
+<div class="card"><span class="num">6</span><b>CCL + BBox</b><p class="mini">以 8-connectivity 分群，計算每個物件的 Xmin、Xmax、Ymin、Ymax。</p></div>
+</div>
+
+<h2 id="details">三、完整解答：逐步功能詳解</h2>
+<div class="timeline">
+<div class="step"><h3>Step 1 — Read and Convert</h3><p>系統啟動後，先從 testbench 的 <code>ImgROM</code> 讀取原始 RGB pixels。影像大小為 <b>256×256</b>，總共有 <b>65536 pixels</b>。位址採用 row-major mapping：</p><div class="formula">addr = row × 256 + col</div><p>每個 pixel 為 32-bit 格式，主要使用其中的 R、G、B 三個 8-bit channel。讀入後，系統將 RGB 轉成灰階值，目的是把三通道資料壓縮成單一亮度資訊，使 threshold 與 histogram 統計可以用一個 intensity value 完成。</p><div class="formula">Gray ≈ 0.299R + 0.587G + 0.114B</div></div>
+<div class="step"><h3>Step 2 — Filter Noise</h3><p>灰階影像經過 <b>3×3 Gaussian blur filter</b>。此步驟會把中心 pixel 與周圍 8 個鄰居做加權平均，讓局部亮度變化更平滑。對硬體影像處理來說，這能減少雜訊造成的孤立前景點，避免 CCL 後產生太多假物件。</p><div class="formula">Kernel = (1/16) × [[1,2,1],[2,4,2],[1,2,1]]</div><p>在邊界位置，因為 3×3 window 會超出影像範圍，因此需搭配邊界處理策略，例如 Reflect101 padding，讓最外圈 pixel 也能得到合理的濾波結果。</p></div>
+<div class="step"><h3>Step 3 — Binarization by Otsu Threshold</h3><p>Gaussian-filtered grayscale image 會被拿來建立 0~255 的 histogram。Otsu 方法會掃描所有可能 threshold，尋找能讓前景與背景分離最明顯的門檻。其核心概念是最大化類間變異數：</p><div class="formula">σ<sub>B</sub><sup>2</sup> = W<sub>b</sub>W<sub>f</sub>(μ<sub>b</sub> − μ<sub>f</sub>)<sup>2</sup></div><p>找到 threshold <code>T</code> 後，系統使用下列規則產生 binary mask：</p><div class="formula">mask(x,y) = 1 if gray(x,y) &gt; T, else 0</div></div>
+<div class="step"><h3>Step 4 — Auto-Polarity Correction</h3><p>不同測試圖片中，物件可能比背景亮，也可能比背景暗。若直接用 <code>gray &gt; T</code> 判斷，有些 pattern 會出現前景與背景顛倒的情況。因此系統會統計高於 threshold 的 pixel 數量，若比例不合理，就進行 polarity correction：</p><div class="formula">mask'(x,y) = 1 − mask(x,y)</div><p>這個步驟確保後續 CCL 所看到的 <code>1</code> 代表真正需要分析的 foreground object。</p></div>
+<div class="step"><h3>Step 5 — CCL and Bounding Box Extraction</h3><p>系統使用 <b>8-connected CCL</b> 將相連之前景 pixels 分成不同 connected components。掃描時只需要看已經掃描過的鄰居，也就是 <code>NW</code>、<code>N</code>、<code>NE</code>、<code>W</code>。若鄰居 label 不同，則透過 union-find 建立等價關係。</p><div class="formula">Neighbor set = {NW, N, NE, W}</div><p>完成 label 分群後，系統對每個 component 計算最小與最大座標：</p><div class="formula">Xmin, Xmax, Ymin, Ymax</div><p>這四個值決定了 Bounding Box 的左、右、上、下邊界。</p></div>
+<div class="step"><h3>Step 6 — Overlay and Draw</h3><p>最後階段不是輸出二值圖，而是把 bounding box 疊回原本的 RGB 影像。若目前 pixel 位於任一有效 bounding box 的邊界上，則寫入綠色；否則保留原始 RGB pixel。</p><div class="formula"><span class="green-code">GREEN = 32'h0000_FF00</span></div><p>若多個 bounding box 的邊界剛好落在同一 pixel，該 pixel 仍只需寫入一次綠色。這種 overlap 不需要重複計算顏色，因為最終輸出只檢查該 pixel 是否為 bounding box 邊界。</p></div>
+<div class="step"><h3>Step 7 — Finish</h3><p>當所有 pixel 都已寫入 <code>AnsSRAM</code> 後，系統將 <code>done</code> 拉高，通知 testbench 可以開始比對輸出影像。若每個 pixel 都與 golden result 一致，該 pattern 即通過。</p></div>
+</div>
+
+<h2 id="hardware">四、硬體 FSM 與模組對應</h2>
+<p>從 <code>drawBbox.v</code> 的狀態命名可以看出，功能流程與硬體 FSM 是一一對應的。下表可直接放入報告，用來說明「演算法步驟」如何落實成 RTL 狀態。</p>
+<table><thead><tr><th>功能階段</th><th>對應狀態 / 訊號</th><th>硬體意義</th></tr></thead><tbody>
+<tr><td>等待啟動</td><td><code>S_IDLE</code>, <code>enable</code></td><td>reset 後等待 testbench 給 enable，開始整張圖處理。</td></tr>
+<tr><td>讀取原圖</td><td><code>S_LOAD</code>, <code>Img_CEN</code>, <code>Img_A</code>, <code>Img_Q</code></td><td>依 row-major address 從 ImgROM 讀入 32-bit RGB pixel。</td></tr>
+<tr><td>灰階化</td><td><code>S_GRAY</code></td><td>將 RGB channel 轉為 8-bit grayscale，降低後續處理複雜度。</td></tr>
+<tr><td>Gaussian + Histogram</td><td><code>S_HIST_CLEAR</code>, <code>S_GAUSS_HIST</code></td><td>清除 histogram 後進行 Gaussian filter，並累積灰階分布。</td></tr>
+<tr><td>Threshold</td><td><code>S_OTSU_INIT</code>, <code>S_OTSU_SCAN</code></td><td>掃描 0~255 threshold，選出最佳 Otsu threshold。</td></tr>
+<tr><td>Mask / Polarity</td><td><code>S_COUNT_HI</code>, <code>S_POLARITY</code>, <code>S_MASK_WRITE</code></td><td>產生 binary mask，必要時反轉前景背景，並寫入暫存 SRAM。</td></tr>
+<tr><td>CCL</td><td><code>S_PARENT_INIT</code>, <code>S_CCL_SCAN</code></td><td>初始化 union-find，進行 8-connected label assignment。</td></tr>
+<tr><td>BBox</td><td><code>S_BBOX_INIT</code>, <code>S_BBOX_SCAN</code></td><td>掃描 label map，更新每個 component 的座標範圍。</td></tr>
+<tr><td>Overlay</td><td><code>S_BOXMAP_CLEAR</code>, <code>S_BOXMAP_GEN</code>, <code>S_DRAW_WRITE</code></td><td>建立 box map，將綠色邊界寫回 AnsSRAM。</td></tr>
+<tr><td>完成</td><td><code>S_DONE</code>, <code>done = 1</code></td><td>所有輸出完成，交由 testbench 比對結果。</td></tr>
+</tbody></table>
+<div class="ok"><b>硬體設計亮點：</b>本設計將影像處理演算法拆成明確 FSM 階段，避免一次塞入過大的 combinational logic；同時利用 SRAM 暫存中間結果，使 Gaussian、mask、label、bbox 與 overlay 能依序完成。</div>
+
+<h2 id="images">五、圖片結果與視覺化說明</h2>
+<p>以下圖片由附件中的輸入資料與模擬輸出結果整理而成。左側為原始 RGB 輸入，右側為畫上綠色 bounding box 後的輸出結果。圖片已放大並加上圓角、陰影與說明，方便報告閱讀。</p>
+<div class="image-grid">
+<div class="img-card"><h4>Pattern 1 — Original Input</h4><img src="assets/input_rgb1.png" alt="Pattern 1 Original"><p class="mini">由 <code>input_rgb1.txt</code> 轉成圖片。此圖為系統處理前的原始 RGB 影像。</p></div>
+<div class="img-card"><h4>Pattern 1 — Bounding Box Output</h4><img src="assets/drawBbox_result_p1.png" alt="Pattern 1 Output"><p class="mini">由 <code>drawBbox_result_p1.bmp</code> 轉成圖片。綠色線條為偵測出的 bounding box 邊界。</p></div>
+<div class="img-card"><h4>Pattern 2 — Original Input</h4><img src="assets/input_rgb2.png" alt="Pattern 2 Original"><p class="mini">由 <code>input_rgb2.txt</code> 轉成圖片。背景與前景亮度分布不同，因此需要自動 threshold。</p></div>
+<div class="img-card"><h4>Pattern 2 — Bounding Box Output</h4><img src="assets/drawBbox_result_p2.png" alt="Pattern 2 Output"><p class="mini">由 <code>drawBbox_result_p2.bmp</code> 轉成圖片。輸出保留原圖，只覆蓋綠色 bbox 邊界。</p></div>
+</div>
+
+<h2 id="check">六、驗證結果與報告可用結論</h2>
+<table><thead><tr><th>驗證項目</th><th>結果說明</th><th>報告用語</th></tr></thead><tbody>
+<tr><td>RTL Compilation</td><td>ModelSim 編譯無 error。</td><td>所有 Verilog/SystemVerilog 檔案可成功編譯。</td></tr>
+<tr><td>Pattern 1</td><td>P1 Simulation PASS，errors = 0。</td><td>Pattern 1 輸出與 golden result 完全一致。</td></tr>
+<tr><td>Pattern 2</td><td>P2 Simulation PASS，errors = 0。</td><td>Pattern 2 輸出與 golden result 完全一致。</td></tr>
+<tr><td>Pattern 3</td><td>P3 Simulation PASS，errors = 0。</td><td>Pattern 3 輸出與 golden result 完全一致。</td></tr>
+<tr><td>Pattern 4</td><td>P4 Simulation PASS，errors = 0。</td><td>Pattern 4 輸出與 golden result 完全一致。</td></tr>
+<tr><td>All Pattern Summary</td><td>TOTAL errors = 0。</td><td>本設計達成 pixel-perfect verification。</td></tr>
+</tbody></table>
+<pre>ModelSim Summary:
+P1 errors = 0
+P2 errors = 0
+P3 errors = 0
+P4 errors = 0
+TOTAL errors = 0
+ALL P1~P4 PASS!!</pre>
+<div class="ok"><b>最終結論：</b>本系統完成從 RGB 影像讀取、灰階轉換、Gaussian 濾波、Otsu threshold、auto-polarity correction、8-connected CCL、Bounding Box 座標計算到綠色 overlay 輸出的完整硬體流程。模擬結果顯示 P1~P4 皆為 0 error，代表輸出影像與 golden answer 在 pixel level 完全一致。</div>
+
+<h2>七、可直接放入報告的精簡版答案</h2>
+<p>After initialization, the system reads the 256×256 RGB image from ImgROM in row-major order and converts each 32-bit RGB pixel into grayscale intensity. The grayscale image is then processed by a 3×3 Gaussian filter to reduce noise and stabilize the following segmentation stage. Next, an Otsu threshold is calculated from the gray-level histogram, and a binary mask is generated. If the foreground and background polarity is reversed, the mask is automatically corrected. The system then performs 8-connected component labeling by checking NW, N, NE, and W neighbors and groups connected foreground pixels into components. For each valid component, the minimum and maximum x/y coordinates are recorded to form a bounding box. Finally, the original RGB image is written to AnsSRAM, while the pixels located on bounding box boundaries are replaced with green color <code>32'h0000_FF00</code>. When all pixels are written, <code>done</code> is asserted to indicate completion.</p>
+
+<div class="nav"><a href="06_system_block_io_enhanced.html">← 上一題</a><a href="index_enhanced.html">回索引</a><a href="08_basic_design_rules_enhanced.html">下一題 →</a></div>
+<div class="watermark">Lab7 Draw Bounding Box Engine｜彭靖凱｜E24134778</div>
+</div>
+</body>
+</html>

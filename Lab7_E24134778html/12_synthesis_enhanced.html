@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>12 十二、Synthesis Constraint 與結果｜Enhanced</title>
+<style>
+:root{
+  --blue:#174b78; --blue2:#2f75b5; --sky:#eaf4ff; --green:#1b7f45; --greenbg:#eaf8ee;
+  --orange:#f29f05; --orangebg:#fff7df; --red:#b3261e; --redbg:#fff0f0; --ink:#1f2937; --muted:#64748b;
+}
+*{box-sizing:border-box}
+body{font-family:"Microsoft JhengHei",Arial,sans-serif;margin:0;background:
+radial-gradient(circle at 12% 8%,rgba(91,160,223,.22),transparent 30%),
+linear-gradient(135deg,#f5f9ff,#eef4f8 45%,#f9fbfd);color:var(--ink);line-height:1.85}
+.container{max-width:1180px;margin:32px auto;background:rgba(255,255,255,.96);padding:42px 52px;border-radius:24px;box-shadow:0 14px 42px rgba(23,75,120,.14);border:1px solid #d7e7f5}
+.hero{padding:24px 28px;border-radius:22px;background:linear-gradient(135deg,#eaf4ff,#fff);border:1px solid #c9dff2;margin-bottom:28px}
+h1{color:var(--blue);text-align:center;margin:.2em 0 .35em;font-size:2.15rem;letter-spacing:.02em}
+.subtitle{text-align:center;color:var(--muted);font-weight:600}
+h2{color:var(--blue);border-left:8px solid #5aa0df;padding-left:14px;margin-top:34px;font-size:1.45rem}
+h3{color:#22613c;margin-top:24px}
+p{font-size:1.05rem}
+.badges{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:18px}
+.badge{display:inline-block;padding:7px 12px;border-radius:999px;background:#eef7ff;color:#174b78;border:1px solid #a8cce9;font-weight:700}
+table{width:100%;border-collapse:separate;border-spacing:0;margin:18px 0;overflow:hidden;border:1px solid #c8d6e3;border-radius:14px;background:white}
+th,td{padding:12px 14px;border-bottom:1px solid #d8e3ef;border-right:1px solid #d8e3ef;vertical-align:top}
+tr:last-child td{border-bottom:none} th:last-child,td:last-child{border-right:none}
+th{background:linear-gradient(135deg,#e7f2fb,#d8ebfb);color:#174b78;text-align:left}
+.note,.ok,.warn{border-radius:14px;padding:15px 18px;margin:18px 0}
+.note{background:var(--orangebg);border-left:7px solid #f0b429}
+.ok{background:var(--greenbg);border-left:7px solid #3a9a55}
+.warn{background:var(--redbg);border-left:7px solid #d33}
+pre{background:#0f172a;color:#e2e8f0;border-radius:16px;padding:18px;white-space:pre-wrap;overflow:auto;border:1px solid #1e293b;box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
+code{font-family:Consolas,"Courier New",monospace;background:#eef3f8;color:#123e61;border-radius:6px;padding:2px 6px}
+pre code{background:transparent;color:inherit;padding:0}
+.figure{text-align:center;margin:28px 0}
+.figure img{max-width:98%;border:1px solid #b9cfe3;border-radius:18px;background:white;box-shadow:0 8px 26px rgba(23,75,120,.12)}
+.caption{font-size:.96em;color:#52606d;margin-top:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+.card{border:1px solid #d6e2ee;border-radius:18px;padding:18px;background:linear-gradient(180deg,#fbfdff,#fff);box-shadow:0 5px 18px rgba(23,75,120,.06)}
+.kpi{font-size:1.55rem;font-weight:900;color:#174b78}
+.formula{background:#f8fbff;border:1px dashed #9bbad6;border-radius:14px;padding:14px;margin:14px 0;text-align:center;font-weight:800}
+.nav{display:flex;justify-content:space-between;gap:12px;margin-top:36px;border-top:1px solid #d8e2ef;padding-top:20px}
+.nav a{color:#174b78;text-decoration:none;font-weight:800}
+.watermark{text-align:center;color:#697386;font-size:.9rem;margin-top:24px}
+.small{font-size:.94rem;color:#64748b}
+</style>
+</head>
+<body>
+<div class="container">
+<section class="hero">
+<h1>12. 十二、Synthesis Constraint 與結果</h1>
+<div class="subtitle">Lab7 Draw Bounding Box Engine｜彭靖凱｜E24134778</div>
+<div class="badges">
+<span class="badge">Design Compiler</span>
+<span class="badge">10 ns Clock Constraint</span>
+<span class="badge">Area / Timing / SDF</span>
+<span class="badge">Gate-Level Simulation</span>
+</div>
+</section>
+
+<h2>一、題目說明</h2>
+<p>
+本題要求將已完成的 <code>drawBbox.v</code> 進行 synthesis，也就是把 RTL Verilog 轉換成標準元件庫可實作的 gate-level netlist。
+作業指定的重點包含：clock period 不得超過 <b>10.0 ns</b>、不可動到 clock network、使用指定 wire load model，
+並輸出 <code>drawBbox_syn.v</code> 與 <code>drawBbox_syn.sdf</code>，供後續 post-synthesis simulation 使用。
+</p>
+<p>
+這一題不是單純「跑工具」，而是要證明設計除了 RTL 功能正確之外，也能通過合成、產生面積報告、產生 timing report，
+並可用 SDF 檔案進行 gate-level timing simulation。
+</p>
+
+<div class="figure"><img src="assets/synthesis_flow_enhanced.svg" alt="Fig.12-1 Design Compiler synthesis flow：RTL → constraints → compile → reports / netlist / SDF"><div class="caption">Fig.12-1 Design Compiler synthesis flow：RTL → constraints → compile → reports / netlist / SDF</div></div>
+
+<h2>二、Synthesis Constraints 完整說明</h2>
+<table>
+<tr><th>項目</th><th>設定值</th><th>詳細說明</th></tr>
+<tr>
+<td>Clock period</td>
+<td><b>10.0 ns</b></td>
+<td>設計必須在 10 ns 週期內完成每個 clock cycle 的 combinational delay。若 critical path 超過 10 ns，就會產生 setup violation。</td>
+</tr>
+<tr>
+<td>Don’t touch network</td>
+<td><code>clk</code></td>
+<td>clock network 不應被工具任意最佳化或重命名，以避免後續 gate-level simulation 與 SDF annotation 出現連接問題。</td>
+</tr>
+<tr>
+<td>Wire load model</td>
+<td><code>N16ADFP_StdCellss0p72vm40c</code></td>
+<td>用來估計未實際 layout 前的 wire delay 與 loading，影響 timing report 的結果。</td>
+</tr>
+<tr>
+<td>Synthesized Verilog</td>
+<td><code>drawBbox_syn.v</code></td>
+<td>Design Compiler 產生的 gate-level netlist，之後要用它取代 RTL 做 post-synthesis simulation。</td>
+</tr>
+<tr>
+<td>Timing SDF</td>
+<td><code>drawBbox_syn.sdf</code></td>
+<td>Standard Delay Format，記錄 gate-level delay，用於 timing annotation。</td>
+</tr>
+<tr>
+<td>Area report</td>
+<td><code>area_rpt.txt</code></td>
+<td>報告 Summary 裡的 Area 應填入此檔案中的 <b>Total cell area</b>。</td>
+</tr>
+</table>
+
+<h2>三、synthesis.tcl 指令逐行解釋</h2>
+<p>以下為本 Lab 使用的 synthesis script。每一行都對應到合成流程中的一個必要步驟。</p>
+<pre><code>read_file -format verilog {./drawBbox.v}
+
+current_design drawBbox
+link
+
+set_host_options -max_core 8
+source ./DC.sdc
+check_design
+uniquify
+set_fix_multiple_port_nets -all -buffer_constants [get_designs *]
+set_max_area 0
+
+compile -map_effort high -area_effort high
+
+report_timing -path full -delay max -nworst 1 -max_paths 1 -significant_digits 4 -sort_by group > ./timing_max_rpt.txt
+report_timing -path full -delay min -nworst 1 -max_paths 1 -significant_digits 4 -sort_by group > ./timing_min_rpt.txt
+report_area -nosplit > ./area_rpt.txt
+report_power -analysis_effort low > ./power_rpt.txt
+
+write -hierarchy -format verilog -output {./drawBbox_syn.v}
+write_sdf -version 3.0 -context verilog {./drawBbox_syn.sdf}</code></pre>
+
+<table>
+<tr><th>指令</th><th>用途</th><th>報告中可說明的重點</th></tr>
+<tr>
+<td><code>read_file</code></td>
+<td>讀入 RTL Verilog</td>
+<td>指定 top RTL 來源為 <code>drawBbox.v</code>。</td>
+</tr>
+<tr>
+<td><code>current_design drawBbox</code></td>
+<td>設定目前 top module</td>
+<td>告訴 DC 主要合成目標是 drawBbox。</td>
+</tr>
+<tr>
+<td><code>link</code></td>
+<td>連結設計與 library</td>
+<td>確認 module 與 standard cell library 可以被正確解析。</td>
+</tr>
+<tr>
+<td><code>source ./DC.sdc</code></td>
+<td>載入 timing constraint</td>
+<td>clock period、input/output delay 或其他 constraint 由 SDC 檔案提供。</td>
+</tr>
+<tr>
+<td><code>check_design</code></td>
+<td>檢查設計合法性</td>
+<td>可檢查未連接 port、多重驅動、結構錯誤等問題。</td>
+</tr>
+<tr>
+<td><code>uniquify</code></td>
+<td>階層模組唯一化</td>
+<td>避免多個 instance 共用同一設計造成命名衝突。</td>
+</tr>
+<tr>
+<td><code>set_fix_multiple_port_nets</code></td>
+<td>修正 multiple-port nets</td>
+<td>避免直接 assign 或多 port net 在 gate-level netlist 中造成問題。</td>
+</tr>
+<tr>
+<td><code>compile -map_effort high -area_effort high</code></td>
+<td>執行高強度合成</td>
+<td>要求工具同時進行 mapping 與 area optimization。</td>
+</tr>
+<tr>
+<td><code>report_timing -delay max</code></td>
+<td>產生 setup timing report</td>
+<td>用來檢查 critical path 是否滿足 10 ns constraint。</td>
+</tr>
+<tr>
+<td><code>report_timing -delay min</code></td>
+<td>產生 hold timing report</td>
+<td>用來檢查 hold path 是否有過短問題。</td>
+</tr>
+<tr>
+<td><code>report_area</code></td>
+<td>產生 area report</td>
+<td>Summary 表格的 Area 應填 <b>Total cell area</b>。</td>
+</tr>
+<tr>
+<td><code>write</code> / <code>write_sdf</code></td>
+<td>輸出 netlist 與 SDF</td>
+<td>產生後續 post-synthesis simulation 所需檔案。</td>
+</tr>
+</table>
+
+<div class="figure"><img src="assets/timing_area_formula.svg" alt="Fig.12-2 Summary 表格應填欄位：Clock、Area、P4 time、Area × Time"><div class="caption">Fig.12-2 Summary 表格應填欄位：Clock、Area、P4 time、Area × Time</div></div>
+
+<h2>四、目前實驗資料與可填結果</h2>
+<div class="ok">
+根據已提供的 ModelSim 結果，RTL simulation 已經完成 P1～P4 全部測試，且每個 pattern 的 error count 皆為 0。
+P4 模擬結束時間為 <b>24011725 ns</b>。
+</div>
+
+<table>
+<tr><th>欄位</th><th>目前可填內容</th><th>來源與說明</th></tr>
+<tr>
+<td>Clock Period</td>
+<td><b>10.0 ns</b></td>
+<td>由題目與 <code>DC.sdc</code> constraint 指定。</td>
+</tr>
+<tr>
+<td>P4 Simulation Time</td>
+<td><b>24011725 ns</b></td>
+<td>ModelSim log 中 <code>Time: 24011725 ns</code>。</td>
+</tr>
+<tr>
+<td>Total Cell Area</td>
+<td><b>待補</b></td>
+<td>需於 Design Compiler 成功執行後，從 <code>area_rpt.txt</code> 找 <code>Total cell area</code>。</td>
+</tr>
+<tr>
+<td>Area × P4 Simulation Time</td>
+<td><b>待補</b></td>
+<td>公式為 <code>Total cell area × P4 Simulation Time</code>，Area 未取得前不可亂填。</td>
+</tr>
+<tr>
+<td>Max Timing Report</td>
+<td><b>待補</b></td>
+<td>需從 <code>timing_max_rpt.txt</code> 讀取 worst path 與 slack。</td>
+</tr>
+</table>
+
+<div class="warn">
+目前附件中尚未包含 <code>area_rpt.txt</code>、<code>timing_max_rpt.txt</code>、<code>drawBbox_syn.v</code>、<code>drawBbox_syn.sdf</code>。
+因此本頁已將這些欄位標示為「待補」。這樣寫比自行填假數字更安全，也符合報告誠實性。
+</div>
+
+<h2>五、如何產生 area_rpt.txt 與 synthesis output</h2>
+<p>
+Windows PowerShell 無法直接執行 <code>dc_shell</code>，因為 Design Compiler 通常安裝在學校 Linux / EDA server。
+因此 synthesis 需要在 Linux server 上執行。
+</p>
+
+<div class="figure"><img src="assets/dc_shell_steps.svg" alt="Fig.12-3 Linux / EDA server synthesis command flow"><div class="caption">Fig.12-3 Linux / EDA server synthesis command flow</div></div>
+
+<h3>建議操作指令</h3>
+<pre><code># 1. 進入專案資料夾
+cd ~/Lab7_E24134778
+
+# 2. 進入 Design Compiler
+dc_shell
+
+# 3. 執行 synthesis script
+source synthesis.tcl
+
+# 4. 離開 DC
+exit
+
+# 5. 檢查產生檔案
+ls area_rpt.txt timing_max_rpt.txt timing_min_rpt.txt power_rpt.txt drawBbox_syn.v drawBbox_syn.sdf
+
+# 6. 查看 area
+cat area_rpt.txt</code></pre>
+
+<h2>六、area_rpt.txt 要看哪一行？</h2>
+<p>打開 <code>area_rpt.txt</code> 後，不要填 Combinational area 或 Noncombinational area，Summary 表格的 Area 應填：</p>
+<div class="formula">Total cell area</div>
+<pre><code>------------------------------------------
+Design area summary
+------------------------------------------
+Combinational area:        xxxxx.xxx
+Noncombinational area:     xxxxx.xxx
+Total cell area:           yyyyy.yyy   ← Summary 的 Area 填這個
+------------------------------------------</code></pre>
+
+<h2>七、Post-Synthesis Simulation 檢查</h2>
+<p>
+合成後需使用 <code>drawBbox_syn.v</code> 與 <code>drawBbox_syn.sdf</code> 進行 gate-level simulation。
+此步驟可確認合成後的邏輯行為與 RTL 一致，並加入實際 cell delay。
+</p>
+<table>
+<tr><th>檔案</th><th>用途</th></tr>
+<tr><td><code>drawBbox_syn.v</code></td><td>合成後 gate-level Verilog netlist。</td></tr>
+<tr><td><code>drawBbox_syn.sdf</code></td><td>標準延遲檔，用於 timing annotation。</td></tr>
+<tr><td><code>timing_max_rpt.txt</code></td><td>setup timing report，檢查 worst setup path。</td></tr>
+<tr><td><code>timing_min_rpt.txt</code></td><td>hold timing report，檢查 hold path。</td></tr>
+<tr><td><code>area_rpt.txt</code></td><td>cell area report，填入 Summary 的 Area 欄位。</td></tr>
+</table>
+
+<h2>八、如果 synthesis 遇到問題，如何最佳化？</h2>
+<div class="grid">
+<div class="card">
+<div class="kpi">1</div>
+<h3>切 FSM stage</h3>
+<p>將 Gray、Gaussian、Otsu、CCL、BBox、Draw 分段處理，避免單一 state 同時做過多運算。</p>
+</div>
+<div class="card">
+<div class="kpi">2</div>
+<h3>加入 pipeline register</h3>
+<p>在長 combinational datapath 中加入 register，可縮短 critical path，提高 timing closure 機率。</p>
+</div>
+<div class="card">
+<div class="kpi">3</div>
+<h3>Shift 取代除法</h3>
+<p>Gaussian kernel 權重總和為 16，可用 <code>&gt;&gt; 4</code> 取代除法，降低 area 與 delay。</p>
+</div>
+<div class="card">
+<div class="kpi">4</div>
+<h3>Resource sharing</h3>
+<p>Otsu threshold 使用同一組 accumulator 反覆掃描 0~255，不為每個 threshold 建獨立硬體。</p>
+</div>
+</div>
+
+<h2>九、報告可直接貼上的正式答案</h2>
+<p>
+本設計使用 Synopsys Design Compiler 對 <code>drawBbox.v</code> 進行 synthesis。合成流程首先讀入 RTL 檔案，
+並將目前設計指定為 <code>drawBbox</code>，接著透過 <code>link</code> 與 standard cell library 連結。
+之後載入 <code>DC.sdc</code> 中的 timing constraints，其中 clock period 設為 10.0 ns，並指定不可修改 clock network。
+完成 design check 與 uniquify 後，使用 <code>compile -map_effort high -area_effort high</code> 進行高強度合成與面積最佳化。
+</p>
+<p>
+合成完成後，工具會產生 <code>timing_max_rpt.txt</code>、<code>timing_min_rpt.txt</code>、<code>area_rpt.txt</code> 與
+<code>power_rpt.txt</code>，分別用於檢查 setup timing、hold timing、cell area 與 power。
+其中 Summary 表格的 Area 欄位應填入 <code>area_rpt.txt</code> 中的 <b>Total cell area</b>。
+此外，Design Compiler 會輸出 <code>drawBbox_syn.v</code> 與 <code>drawBbox_syn.sdf</code>，
+作為 post-synthesis gate-level simulation 的輸入檔案。
+</p>
+<p>
+目前 RTL simulation 已通過 P1～P4 全部 patterns，且總錯誤數為 0。P4 模擬時間為 24011725 ns。
+後續需於學校 Linux / EDA server 執行 Design Compiler，補上 area report、max timing report 與 gate-level simulation 結果。
+</p>
+
+<div class="nav"><a href="11_compile_verification_enhanced.html">← 上一題</a><a href="index_enhanced.html">回索引</a><a href="13_results_waveform_superlint_enhanced.html">下一題 →</a></div>
+<div class="watermark">Lab7 Draw Bounding Box Engine｜彭靖凱｜E24134778</div>
+</div>
+</body>
+</html>

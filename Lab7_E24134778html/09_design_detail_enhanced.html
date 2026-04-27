@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>09 九、Detailed Design / Internal Architecture｜Enhanced</title>
+<style>
+:root{
+  --blue:#174b78; --blue2:#2f75b5; --sky:#eaf4ff; --green:#1b7f45; --greenbg:#eaf8ee;
+  --orange:#f29f05; --orangebg:#fff7df; --red:#b3261e; --redbg:#fff0f0; --ink:#1f2937; --muted:#64748b;
+}
+*{box-sizing:border-box}
+body{font-family:"Microsoft JhengHei",Arial,sans-serif;margin:0;background:
+radial-gradient(circle at 12% 8%,rgba(91,160,223,.22),transparent 30%),
+linear-gradient(135deg,#f5f9ff,#eef4f8 45%,#f9fbfd);color:var(--ink);line-height:1.85}
+.container{max-width:1180px;margin:32px auto;background:rgba(255,255,255,.96);padding:42px 52px;border-radius:24px;box-shadow:0 14px 42px rgba(23,75,120,.14);border:1px solid #d7e7f5}
+.hero{padding:24px 28px;border-radius:22px;background:linear-gradient(135deg,#eaf4ff,#fff);border:1px solid #c9dff2;margin-bottom:28px}
+h1{color:var(--blue);text-align:center;margin:.2em 0 .35em;font-size:2.15rem;letter-spacing:.02em}
+.subtitle{text-align:center;color:var(--muted);font-weight:600}
+h2{color:var(--blue);border-left:8px solid #5aa0df;padding-left:14px;margin-top:34px;font-size:1.45rem}
+h3{color:#22613c;margin-top:24px}
+p{font-size:1.05rem}
+.badges{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:18px}
+.badge{display:inline-block;padding:7px 12px;border-radius:999px;background:#eef7ff;color:#174b78;border:1px solid #a8cce9;font-weight:700}
+table{width:100%;border-collapse:separate;border-spacing:0;margin:18px 0;overflow:hidden;border:1px solid #c8d6e3;border-radius:14px;background:white}
+th,td{padding:12px 14px;border-bottom:1px solid #d8e3ef;border-right:1px solid #d8e3ef;vertical-align:top}
+tr:last-child td{border-bottom:none} th:last-child,td:last-child{border-right:none}
+th{background:linear-gradient(135deg,#e7f2fb,#d8ebfb);color:#174b78;text-align:left}
+.note,.ok,.warn{border-radius:14px;padding:15px 18px;margin:18px 0}
+.note{background:var(--orangebg);border-left:7px solid #f0b429}
+.ok{background:var(--greenbg);border-left:7px solid #3a9a55}
+.warn{background:var(--redbg);border-left:7px solid #d33}
+pre{background:#0f172a;color:#e2e8f0;border-radius:16px;padding:18px;white-space:pre-wrap;overflow:auto;border:1px solid #1e293b;box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
+code{font-family:Consolas,"Courier New",monospace;background:#eef3f8;color:#123e61;border-radius:6px;padding:2px 6px}
+pre code{background:transparent;color:inherit;padding:0}
+.figure{text-align:center;margin:28px 0}
+.figure img{max-width:98%;border:1px solid #b9cfe3;border-radius:18px;background:white;box-shadow:0 8px 26px rgba(23,75,120,.12)}
+.caption{font-size:.96em;color:#52606d;margin-top:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:18px}
+.card{border:1px solid #d6e2ee;border-radius:18px;padding:18px;background:linear-gradient(180deg,#fbfdff,#fff);box-shadow:0 5px 18px rgba(23,75,120,.06)}
+.kpi{font-size:1.55rem;font-weight:900;color:#174b78}
+.nav{display:flex;justify-content:space-between;gap:12px;margin-top:36px;border-top:1px solid #d8e2ef;padding-top:20px}
+.nav a{color:#174b78;text-decoration:none;font-weight:800}
+.watermark{text-align:center;color:#697386;font-size:.9rem;margin-top:24px}
+.small{font-size:.94rem;color:#64748b}
+</style>
+</head>
+<body>
+<div class="container">
+<section class="hero">
+<h1>09. 九、Detailed Design / Internal Architecture</h1>
+<div class="subtitle">Lab7 Draw Bounding Box Engine｜彭靖凱｜E24134778</div>
+<div class="badges">
+<span class="badge">Internal Architecture</span>
+<span class="badge">Memory Dataflow</span>
+<span class="badge">Image Pipeline</span>
+<span class="badge">CCL + BBox</span>
+</div>
+</section>
+
+<h2>一、題目說明</h2>
+<p>
+本題要求詳細描述自己的設計，可以使用內部架構圖、block diagram 或文字說明。
+對 Lab7 而言，<code>drawBbox</code> 不只是單一模組，而是一個整合式影像處理硬體系統。
+它需要控制 ImgROM 讀取原圖、儲存中間結果、執行灰階轉換與 Gaussian filter、計算 Otsu threshold、
+產生 binary mask、執行 8-connected CCL、計算 bounding box，最後將綠色邊界框 overlay 回原始 RGB 圖並寫入 AnsSRAM。
+</p>
+
+<div class="ok">
+本頁重點在於說明 drawBbox 內部如何以 FSM 搭配 internal memory / register arrays 將完整影像處理 pipeline 串接起來。
+</div>
+
+<div class="figure"><img src="assets/internal_architecture_enhanced.svg" alt="Fig.9-1 美化版 drawBbox internal architecture"><div class="caption">Fig.9-1 美化版 drawBbox internal architecture</div></div>
+
+<h2>二、整體設計概念</h2>
+<p>
+本設計採用 <b>FSM-controlled multi-stage architecture</b>。也就是說，所有影像處理階段都由 controller FSM 依序啟動，
+每一階段只負責一個主要功能。此方式可避免在單一 clock cycle 中串接過長的 combinational logic，也能讓各階段中間資料被保存在對應 memory 中，方便 waveform 觀察與 debug。
+</p>
+<p>
+整體資料路徑可整理為：
+</p>
+<pre><code>ImgROM
+  → rgb_mem
+  → gray_mem
+  → gauss_mem + histogram
+  → Otsu threshold
+  → mask_mem
+  → label_mem + parent[]
+  → bbox arrays
+  → box_map
+  → Overlay selector
+  → AnsSRAM</code></pre>
+
+<div class="figure"><img src="assets/memory_dataflow_enhanced.svg" alt="Fig.9-2 internal memory / register array dataflow"><div class="caption">Fig.9-2 internal memory / register array dataflow</div></div>
+
+<h2>三、主要資料結構與用途</h2>
+<table>
+<tr><th>模組 / 資料結構</th><th>用途</th><th>在報告中的說明重點</th></tr>
+<tr><td><code>rgb_mem</code></td><td>儲存原始 RGB pixel，最後 overlay 時保留原圖使用。</td><td>已在 drawBbox.v 中使用/對應</td></tr>
+<tr><td><code>gray_mem</code></td><td>儲存 RGB to grayscale 後之灰階影像。</td><td>已在 drawBbox.v 中使用/對應</td></tr>
+<tr><td><code>gauss_mem</code></td><td>儲存 Gaussian filter 處理後的平滑灰階影像。</td><td>已在 drawBbox.v 中使用/對應</td></tr>
+<tr><td><code>histogram</code></td><td>統計 0~255 灰階分佈，用於 Otsu threshold。</td><td>已在 drawBbox.v 中使用/對應</td></tr>
+<tr><td><code>mask_mem</code></td><td>儲存 binary mask，1 代表 foreground，0 代表 background。</td><td>已在 drawBbox.v 中使用/對應</td></tr>
+<tr><td><code>label_mem</code></td><td>儲存 CCL provisional/final label。</td><td>已在 drawBbox.v 中使用/對應</td></tr>
+<tr><td><code>parent</code></td><td>Union-Find parent table，用於 label equivalence 合併。</td><td>已在 drawBbox.v 中使用/對應</td></tr>
+<tr><td><code>box_map</code></td><td>標記哪些 pixel 需要畫綠色 bounding box 邊界。</td><td>已在 drawBbox.v 中使用/對應</td></tr>
+<tr><td><code>bbox</code></td><td>記錄每個 label 的 xmin、xmax、ymin、ymax。</td><td>已在 drawBbox.v 中使用/對應</td></tr>
+</table>
+
+<h2>四、硬體演算法 Pipeline</h2>
+<p>
+此設計將投影片要求的軟體式影像流程轉成硬體可控制的 pipeline。每個 stage 並非一定是獨立 Verilog module；
+在本設計中，許多功能是整合於 <code>drawBbox.v</code> 內，透過不同 FSM state 與暫存陣列完成。
+</p>
+
+<div class="figure"><img src="assets/algorithm_pipeline_enhanced.svg" alt="Fig.9-3 Algorithm pipeline implemented inside drawBbox"><div class="caption">Fig.9-3 Algorithm pipeline implemented inside drawBbox</div></div>
+
+<table>
+<tr><th>Pipeline 階段</th><th>硬體處理方式</th><th>輸出資料</th></tr>
+<tr>
+<td>Read Original Image</td>
+<td>FSM 控制 <code>Img_CEN</code> 與 <code>Img_A</code>，由 <code>Img_Q</code> 讀取 32-bit RGB。</td>
+<td><code>rgb_mem</code></td>
+</tr>
+<tr>
+<td>RGB to Grayscale</td>
+<td>依照灰階公式將 RGB 加權轉成單一灰階值。</td>
+<td><code>gray_mem</code></td>
+</tr>
+<tr>
+<td>Gaussian Filter</td>
+<td>對每個 pixel 取 3×3 鄰域，使用 kernel 1-2-1 / 2-4-2 / 1-2-1 做加權平均。</td>
+<td><code>gauss_mem</code></td>
+</tr>
+<tr>
+<td>Histogram / Otsu</td>
+<td>統計 0~255 灰階分佈，掃描 threshold 找最大類間變異數。</td>
+<td><code>threshold</code></td>
+</tr>
+<tr>
+<td>Mask + Polarity</td>
+<td>根據 threshold 產生 foreground/background，必要時執行 auto-polarity correction。</td>
+<td><code>mask_mem</code></td>
+</tr>
+<tr>
+<td>8-connected CCL</td>
+<td>檢查 NW、N、NE、W 鄰居，分配 label 並使用 union-find 合併等價 label。</td>
+<td><code>label_mem</code>, <code>parent[]</code></td>
+</tr>
+<tr>
+<td>Bounding Box</td>
+<td>掃描 label map，更新每個 component 的 Xmin/Xmax/Ymin/Ymax。</td>
+<td><code>bbox arrays</code></td>
+</tr>
+<tr>
+<td>Overlay / Draw</td>
+<td>根據 box_map 選擇輸出原始 RGB 或綠色 <code>32'h0000_FF00</code>。</td>
+<td><code>AnsSRAM</code></td>
+</tr>
+</table>
+
+<h2>五、Memory Interface 架構</h2>
+<p>
+本設計與 testbench 的溝通主要透過三個 memory interface：ImgROM、UrSRAM、AnsSRAM。
+ImgROM 是只讀 memory，負責提供原始 RGB pixel；UrSRAM 可用於中間資料；AnsSRAM 是最後輸出 memory。
+</p>
+
+<div class="figure"><img src="assets/memory_interface_enhanced.svg" alt="Fig.9-4 Memory interface design and row-major mapping"><div class="caption">Fig.9-4 Memory interface design and row-major mapping</div></div>
+
+<div class="note">
+影像位址採用 row-major mapping：<code>addr = row × 256 + col</code>。由於影像大小為 256×256，因此 address 範圍為 0～65535，需要 16-bit address。
+</div>
+
+<h2>六、CCL 與 Bounding Box 架構說明</h2>
+<p>
+CCL 是本設計中最重要且最容易出錯的部分。Lab7 要求使用 8-connectivity，而不是前一個 Lab 常見的 4-connectivity。
+在 raster scan 的 pass1 中，只能檢查已掃描過的鄰居，因此本設計檢查 <code>NW</code>、<code>N</code>、<code>NE</code>、<code>W</code>。
+若四個鄰居都沒有 label，則分配新 label；若只有一個 label，則沿用；若有多個不同 label，則建立 equivalence relation，並透過 union-find 的 <code>parent[]</code> 進行合併。
+</p>
+<p>
+完成 CCL 後，系統掃描 <code>label_mem</code>，對每個 label 更新 <code>Xmin</code>、<code>Xmax</code>、<code>Ymin</code>、<code>Ymax</code>。
+若物件接觸影像邊界，依 Lab7 規則不畫 bounding box；若物件有效，則依座標產生 <code>box_map</code>。
+最後 overlay 階段讀取 <code>box_map</code>，在邊界位置輸出綠色，其餘位置輸出原始 RGB。
+</p>
+
+<h2>七、Architecture-Oriented Debug 方法</h2>
+<p>
+此設計將中間結果分別存入不同 memory，使 debug 可以逐階段進行。
+如果直接觀察最後 BMP，很難知道錯誤來自 threshold、mask、CCL 還是 bbox。
+因此本設計可依照 internal architecture 對每一階段進行檢查。
+</p>
+
+<div class="figure"><img src="assets/architecture_debug_enhanced.svg" alt="Fig.9-5 Architecture-oriented debug flow"><div class="caption">Fig.9-5 Architecture-oriented debug flow</div></div>
+
+<table>
+<tr><th>問題現象</th><th>優先檢查區塊</th><th>可能原因</th></tr>
+<tr>
+<td>整張輸出偏移</td>
+<td>ImgROM interface / AnsSRAM interface</td>
+<td>address counter 或 SRAM timing 多一拍/少一拍。</td>
+</tr>
+<tr>
+<td>前景背景相反</td>
+<td>Otsu threshold / polarity</td>
+<td>threshold 正確但 polarity 沒反轉，或 foreground 判斷方向錯誤。</td>
+</tr>
+<tr>
+<td>物件被分成多個框</td>
+<td>CCL / union-find</td>
+<td>8-connectivity 未完整檢查 NW、N、NE、W，或 equivalence resolve 不完整。</td>
+</tr>
+<tr>
+<td>框線少一格或多一格</td>
+<td>BBox arrays / box_map</td>
+<td>Xmin/Xmax/Ymin/Ymax 更新條件錯誤，或邊界繪製條件 off-by-one。</td>
+</tr>
+<tr>
+<td>有邊界物件卻被畫框</td>
+<td>BBox valid filter</td>
+<td>未檢查 x=0、x=255、y=0、y=255 接觸邊界情況。</td>
+</tr>
+</table>
+
+<h2>八、設計優點</h2>
+<div class="grid">
+<div class="card">
+<div class="kpi">1</div>
+<h3>階段清楚</h3>
+<p>每個影像處理步驟都有對應資料結構，流程從 ImgROM 到 AnsSRAM 一目了然。</p>
+</div>
+<div class="card">
+<div class="kpi">2</div>
+<h3>容易除錯</h3>
+<p>gray、gauss、mask、label、bbox 皆可個別檢查，快速定位錯誤來源。</p>
+</div>
+<div class="card">
+<div class="kpi">3</div>
+<h3>降低 critical path</h3>
+<p>透過 FSM 分段處理，避免將 Gaussian、Otsu、CCL 與 Draw 串在同一 cycle。</p>
+</div>
+<div class="card">
+<div class="kpi">4</div>
+<h3>結果可重現</h3>
+<p>所有輸出由固定 memory 與 deterministic FSM 產生，利於 P1~P4 pixel-perfect verification。</p>
+</div>
+</div>
+
+<h2>九、報告可直接貼上的正式答案</h2>
+<p>
+本設計以 <code>drawBbox</code> 作為 top module，內部採用 FSM 控制整體影像處理流程，並搭配多組 internal memory / register arrays 儲存各階段中間結果。
+系統首先透過 ImgROM interface 讀取 256×256 RGB 影像，並將原始 pixel 暫存在 <code>rgb_mem</code>，供最後 overlay 階段使用。
+接著將 RGB 轉為 grayscale，存入 <code>gray_mem</code>；再執行 3×3 Gaussian filter，結果存入 <code>gauss_mem</code>，同時建立 histogram 供 Otsu threshold 使用。
+</p>
+<p>
+完成 threshold 計算後，系統依據 threshold 產生 binary mask，並透過 auto-polarity correction 確保 foreground 表示目標物件。
+接著 CCL 階段使用 8-connected labeling，檢查 NW、N、NE、W 四個已掃描鄰居，並利用 union-find 的 <code>parent[]</code> 記錄與合併 label equivalence。
+CCL 完成後，系統掃描 <code>label_mem</code>，對每個 connected component 計算 <code>Xmin</code>、<code>Xmax</code>、<code>Ymin</code> 與 <code>Ymax</code>，
+形成 bounding box。
+</p>
+<p>
+最後，系統根據 bounding box 座標產生 <code>box_map</code>，若目前 pixel 位於 box 邊界則輸出綠色 <code>32'h0000_FF00</code>，
+否則輸出原始 RGB pixel，並將最終影像寫入 AnsSRAM。此架構使每個演算法階段都具有明確輸入與輸出，方便 waveform 觀察與 pixel-level debug，
+也能避免過長 combinational path，有利於後續 synthesis timing closure。
+</p>
+
+<div class="nav"><a href="08_basic_design_rules_enhanced.html">← 上一題</a><a href="index_enhanced.html">回索引</a><a href="10_controller_fsm_enhanced.html">下一題 →</a></div>
+<div class="watermark">Lab7 Draw Bounding Box Engine｜彭靖凱｜E24134778</div>
+</div>
+</body>
+</html>

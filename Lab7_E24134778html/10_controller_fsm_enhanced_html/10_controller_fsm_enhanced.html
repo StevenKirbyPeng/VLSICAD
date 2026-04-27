@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>10 十、Controller FSM｜Enhanced</title>
+<style>
+:root{
+  --blue:#174b78; --blue2:#2f75b5; --sky:#eaf4ff; --green:#1b7f45; --greenbg:#eaf8ee;
+  --orange:#f29f05; --orangebg:#fff7df; --red:#b3261e; --redbg:#fff0f0; --ink:#1f2937; --muted:#64748b;
+}
+*{box-sizing:border-box}
+body{font-family:"Microsoft JhengHei",Arial,sans-serif;margin:0;background:
+radial-gradient(circle at 12% 8%,rgba(91,160,223,.22),transparent 30%),
+linear-gradient(135deg,#f5f9ff,#eef4f8 45%,#f9fbfd);color:var(--ink);line-height:1.85}
+.container{max-width:1180px;margin:32px auto;background:rgba(255,255,255,.96);padding:42px 52px;border-radius:24px;box-shadow:0 14px 42px rgba(23,75,120,.14);border:1px solid #d7e7f5}
+.hero{padding:24px 28px;border-radius:22px;background:linear-gradient(135deg,#eaf4ff,#fff);border:1px solid #c9dff2;margin-bottom:28px}
+h1{color:var(--blue);text-align:center;margin:.2em 0 .35em;font-size:2.15rem;letter-spacing:.02em}
+.subtitle{text-align:center;color:var(--muted);font-weight:600}
+h2{color:var(--blue);border-left:8px solid #5aa0df;padding-left:14px;margin-top:34px;font-size:1.45rem}
+h3{color:#22613c;margin-top:24px}
+p{font-size:1.05rem}
+.badges{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:18px}
+.badge{display:inline-block;padding:7px 12px;border-radius:999px;background:#eef7ff;color:#174b78;border:1px solid #a8cce9;font-weight:700}
+table{width:100%;border-collapse:separate;border-spacing:0;margin:18px 0;overflow:hidden;border:1px solid #c8d6e3;border-radius:14px;background:white}
+th,td{padding:12px 14px;border-bottom:1px solid #d8e3ef;border-right:1px solid #d8e3ef;vertical-align:top}
+tr:last-child td{border-bottom:none} th:last-child,td:last-child{border-right:none}
+th{background:linear-gradient(135deg,#e7f2fb,#d8ebfb);color:#174b78;text-align:left}
+.note,.ok,.warn{border-radius:14px;padding:15px 18px;margin:18px 0}
+.note{background:var(--orangebg);border-left:7px solid #f0b429}
+.ok{background:var(--greenbg);border-left:7px solid #3a9a55}
+.warn{background:var(--redbg);border-left:7px solid #d33}
+pre{background:#0f172a;color:#e2e8f0;border-radius:16px;padding:18px;white-space:pre-wrap;overflow:auto;border:1px solid #1e293b;box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
+code{font-family:Consolas,"Courier New",monospace;background:#eef3f8;color:#123e61;border-radius:6px;padding:2px 6px}
+pre code{background:transparent;color:inherit;padding:0}
+.figure{text-align:center;margin:28px 0}
+.figure img{max-width:98%;border:1px solid #b9cfe3;border-radius:18px;background:white;box-shadow:0 8px 26px rgba(23,75,120,.12)}
+.caption{font-size:.96em;color:#52606d;margin-top:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:18px}
+.card{border:1px solid #d6e2ee;border-radius:18px;padding:18px;background:linear-gradient(180deg,#fbfdff,#fff);box-shadow:0 5px 18px rgba(23,75,120,.06)}
+.kpi{font-size:1.55rem;font-weight:900;color:#174b78}
+.nav{display:flex;justify-content:space-between;gap:12px;margin-top:36px;border-top:1px solid #d8e2ef;padding-top:20px}
+.nav a{color:#174b78;text-decoration:none;font-weight:800}
+.watermark{text-align:center;color:#697386;font-size:.9rem;margin-top:24px}
+.small{font-size:.94rem;color:#64748b}
+.phase-title{font-weight:900;color:#174b78}
+</style>
+</head>
+<body>
+<div class="container">
+<section class="hero">
+<h1>10. 十、Controller FSM</h1>
+<div class="subtitle">Lab7 Draw Bounding Box Engine｜彭靖凱｜E24134778</div>
+<div class="badges">
+<span class="badge">18 Main States</span>
+<span class="badge">Memory-Control FSM</span>
+<span class="badge">Image Pipeline</span>
+<span class="badge">Debug-Friendly Design</span>
+</div>
+</section>
+
+<h2>一、題目說明</h2>
+<p>
+本題要求畫出 controller 的 state diagram，並解釋每一個 state 的功能。Lab7 的 <code>drawBbox</code> 並不是單一運算電路，
+而是一個需要控制 ImgROM、UrSRAM、AnsSRAM 與多個影像處理階段的完整硬體系統。因此 controller FSM 是整個設計的核心。
+</p>
+<p>
+FSM 的主要任務是依序啟動「讀圖、灰階、Gaussian、Otsu、Mask、CCL、BBox、Overlay、寫入」等階段，同時管理 address counter、
+memory enable、write enable、threshold counter、label counter 與 done signal。若 FSM 狀態切換或 counter reset 出錯，最終輸出會出現
+pixel shift、mask mismatch、bounding box off-by-one 或 timeout。
+</p>
+
+<div class="ok">
+本設計採用分段式 FSM，將每個複雜功能拆成獨立 state，可降低 critical path，也方便 waveform debug。
+</div>
+
+<div class="figure"><img src="assets/fsm_controller_enhanced.svg" alt="Fig.10-1 美化版 Controller FSM State Diagram"><div class="caption">Fig.10-1 美化版 Controller FSM State Diagram</div></div>
+
+<h2>二、FSM 與影像處理資料流的關係</h2>
+<p>
+FSM 狀態並非只是一串流程名稱，而是對應到實際硬體 datapath。從 ImgROM 讀入 RGB 資料後，
+依序進入 Gray、Gaussian、Otsu、Mask、CCL、BBox 與 Draw 階段。每個階段使用不同 counter 與 memory control signal。
+</p>
+
+<div class="figure"><img src="assets/fsm_datapath_relation.svg" alt="Fig.10-2 FSM state 與 datapath processing stage 的對應關係"><div class="caption">Fig.10-2 FSM state 與 datapath processing stage 的對應關係</div></div>
+
+<h2>三、State 說明表</h2>
+<table>
+<tr><th>State</th><th>分類</th><th>主要功能</th><th>轉移條件 / 下一步</th></tr>
+<tr><td><code>S_IDLE</code></td><td>Control</td><td>等待 <code>enable</code>。reset 後保持輸出不動，<code>done=0</code>，所有 memory control signal 回到安全狀態。</td><td>當 <code>enable=1</code> 時進入 <code>S_LOAD</code>。</td></tr>
+<tr><td><code>S_LOAD</code></td><td>Memory Read</td><td>由 ImgROM 讀取 256×256 原始 RGB 影像，控制 <code>Img_CEN</code> 與 <code>Img_A</code>，並將 <code>Img_Q</code> 暫存到內部 RGB memory。</td><td>當 address counter 掃完整張圖後進入 <code>S_GRAY</code>。</td></tr>
+<tr><td><code>S_GRAY</code></td><td>Pre-processing</td><td>逐 pixel 將 RGB 轉成灰階，概念為 <code>Gray ≈ 0.299R + 0.587G + 0.114B</code>。</td><td>灰階 memory 寫完後進入 <code>S_HIST_CLEAR</code>。</td></tr>
+<tr><td><code>S_HIST_CLEAR</code></td><td>Init</td><td>清除 0~255 histogram bins，避免上一張圖或 reset 前資料污染 Otsu 計算。</td><td>histogram 清零完成後進入 <code>S_GAUSS_HIST</code>。</td></tr>
+<tr><td><code>S_GAUSS_HIST</code></td><td>Filter + Histogram</td><td>執行 3×3 Gaussian filter，同時建立 Gaussian 後灰階影像的 histogram。</td><td>65536 pixels 處理完後進入 <code>S_OTSU_INIT</code>。</td></tr>
+<tr><td><code>S_OTSU_INIT</code></td><td>Threshold Init</td><td>初始化 Otsu 累加器，例如 total sum、background weight、foreground weight、最大類間變異數等。</td><td>完成初始化後進入 <code>S_OTSU_SCAN</code>。</td></tr>
+<tr><td><code>S_OTSU_SCAN</code></td><td>Threshold Scan</td><td>掃描 threshold 0~255，計算 between-class variance，找出最佳 threshold。</td><td>threshold loop 完成後進入 <code>S_COUNT_HI</code>。</td></tr>
+<tr><td><code>S_COUNT_HI</code></td><td>Mask Statistics</td><td>統計大於 threshold 的 pixel 數量，供 auto-polarity 判斷使用。</td><td>統計完成後進入 <code>S_POLARITY</code>。</td></tr>
+<tr><td><code>S_POLARITY</code></td><td>Mask Decision</td><td>判斷 foreground/background 是否需要反轉，避免把背景當成物件。</td><td>設定 invert flag 後進入 <code>S_MASK_WRITE</code>。</td></tr>
+<tr><td><code>S_MASK_WRITE</code></td><td>Mask Write</td><td>根據 threshold 與 polarity 產生 binary mask，並寫入 working memory / mask memory。</td><td>mask 寫完後進入 <code>S_PARENT_INIT</code>。</td></tr>
+<tr><td><code>S_PARENT_INIT</code></td><td>CCL Init</td><td>初始化 union-find parent table、label counter 與 bounding box tracking 暫存器。</td><td>初始化完成後進入 <code>S_CCL_SCAN</code>。</td></tr>
+<tr><td><code>S_CCL_SCAN</code></td><td>8-connected CCL</td><td>掃描 mask，檢查 NW、N、NE、W 四個鄰居，建立 label 與 equivalence relation。</td><td>整張 mask 掃描完成後進入 <code>S_BBOX_INIT</code>。</td></tr>
+<tr><td><code>S_BBOX_INIT</code></td><td>BBox Init</td><td>初始化每個 label 的 xmin/xmax/ymin/ymax，並準備掃描 label map。</td><td>完成初始化後進入 <code>S_BBOX_SCAN</code>。</td></tr>
+<tr><td><code>S_BBOX_SCAN</code></td><td>BBox Update</td><td>逐 pixel 掃描 label map，根據 label 更新該物件的最小與最大座標。</td><td>bbox 統計完成後進入 <code>S_BOXMAP_CLEAR</code>。</td></tr>
+<tr><td><code>S_BOXMAP_CLEAR</code></td><td>Draw Init</td><td>清除 box_map，確保只畫本次有效 bounding box。</td><td>清除完成後進入 <code>S_BOXMAP_GEN</code>。</td></tr>
+<tr><td><code>S_BOXMAP_GEN</code></td><td>Boundary Map</td><td>根據每個有效 bbox 的四條邊產生 box_map，標出需要畫綠框的位置。</td><td>所有 bbox 產生完成後進入 <code>S_DRAW_WRITE</code>。</td></tr>
+<tr><td><code>S_DRAW_WRITE</code></td><td>Output Write</td><td>逐 pixel 寫入 AnsSRAM；若 box_map=1 則寫入綠色，否則寫入原始 RGB pixel。</td><td>65536 pixels 寫入完成後進入 <code>S_DONE</code>。</td></tr>
+<tr><td><code>S_DONE</code></td><td>Finish</td><td>拉高 <code>done</code> 通知 testbench 結束，AnsSRAM 內已為最終輸出影像。</td><td>等待下一次 reset 或模擬結束。</td></tr>
+</table>
+
+<h2>四、Counter 與 State Transition 控制邏輯</h2>
+<p>
+Lab7 輸入影像大小為 256×256，因此完整掃描一張圖需要 65536 個 pixel。多數 state 會使用同一類型的 address counter
+由 0 掃描至 65535，並依據目前 state 決定該 address 對應的是 RGB memory、gray memory、gauss memory、mask memory、
+label memory 或 AnsSRAM。
+</p>
+
+<div class="figure"><img src="assets/counter_control.svg" alt="Fig.10-3 Counter、stage_done 與 next_state 的控制概念"><div class="caption">Fig.10-3 Counter、stage_done 與 next_state 的控制概念</div></div>
+
+<table>
+<tr><th>控制項</th><th>作用</th><th>錯誤時可能造成的問題</th></tr>
+<tr>
+<td><code>addr_cnt</code></td>
+<td>掃描 256×256 image。</td>
+<td>地址少一拍或多一拍會造成整張圖偏移。</td>
+</tr>
+<tr>
+<td><code>row / col</code></td>
+<td>由 address 推出座標，用於 Gaussian、CCL、BBox。</td>
+<td>row/col 對應錯誤會造成 bbox 座標錯誤。</td>
+</tr>
+<tr>
+<td><code>threshold counter</code></td>
+<td>Otsu 掃描 0~255 gray level。</td>
+<td>threshold 可能偏差，導致 mask 錯誤。</td>
+</tr>
+<tr>
+<td><code>label counter</code></td>
+<td>CCL 分配新 label。</td>
+<td>label 重複或溢位會使 connected component 合併錯誤。</td>
+</tr>
+<tr>
+<td><code>stage_done</code></td>
+<td>判斷目前階段是否完成。</td>
+<td>太早切 state 會資料未完成；太晚切 state 可能 timeout。</td>
+</tr>
+</table>
+
+<h2>五、FSM 重要設計細節</h2>
+<div class="grid">
+<div class="card">
+<div class="kpi">1</div>
+<h3>Reset 狀態要完整</h3>
+<p>在 <code>S_IDLE</code> 或 reset 中，所有 counter、done、CEN/WEN 與暫存器需初始化，避免上一階段資料影響下一次模擬。</p>
+</div>
+<div class="card">
+<div class="kpi">2</div>
+<h3>Memory control 要同步</h3>
+<p><code>Img_CEN</code>、<code>Ans_CEN</code>、<code>Ur_CEN</code> 為 active low；write 時 WEN=0，read 時 WEN=1。FSM 需明確控制每個 state 的讀寫方向。</p>
+</div>
+<div class="card">
+<div class="kpi">3</div>
+<h3>Otsu 與 mask 分開</h3>
+<p>先完成 histogram 與 threshold 計算，再產生 mask，可避免 threshold 尚未穩定時就開始二值化。</p>
+</div>
+<div class="card">
+<div class="kpi">4</div>
+<h3>CCL 後才算 bbox</h3>
+<p>若 label equivalence 尚未 resolve 就開始算 bbox，可能會讓同一物件被分成多個 box。</p>
+</div>
+</div>
+
+<h2>六、FSM Debug 方法</h2>
+<p>
+當最終 BMP 錯誤時，不應只看輸出圖，而要依照 FSM 階段逐步觀察 waveform。
+例如輸出整體偏移，優先檢查 <code>S_LOAD</code> 與 <code>S_DRAW_WRITE</code> 的 address timing；
+若物件區域整片錯誤，檢查 <code>S_OTSU_SCAN</code>、<code>S_POLARITY</code> 與 <code>S_MASK_WRITE</code>；
+若框線位置不對，則檢查 <code>S_BBOX_SCAN</code> 與 <code>S_BOXMAP_GEN</code>。
+</p>
+
+<div class="figure"><img src="assets/fsm_debug_strategy.svg" alt="Fig.10-4 依照 FSM state 進行 debug 的策略"><div class="caption">Fig.10-4 依照 FSM state 進行 debug 的策略</div></div>
+
+<h2>七、可觀察的 Waveform Signals</h2>
+<table>
+<tr><th>Signal</th><th>觀察目的</th></tr>
+<tr><td><code>state</code> / <code>next_state</code></td><td>確認 FSM 是否依序轉移且沒有卡住。</td></tr>
+<tr><td><code>addr_cnt</code> / <code>Img_A</code> / <code>Ans_A</code></td><td>確認 image address 是否由 0 到 65535 正確掃描。</td></tr>
+<tr><td><code>Img_CEN</code> / <code>Ans_CEN</code> / <code>Ans_WEN</code></td><td>確認 memory read/write 時序。</td></tr>
+<tr><td><code>threshold</code></td><td>確認 Otsu threshold 是否在 <code>S_OTSU_SCAN</code> 後穩定。</td></tr>
+<tr><td><code>mask</code> / <code>polarity</code></td><td>確認 binary mask 與 auto-polarity 是否正確。</td></tr>
+<tr><td><code>label</code> / <code>parent</code></td><td>確認 CCL label 與 union-find equivalence 是否正確。</td></tr>
+<tr><td><code>bbox_xmin/xmax/ymin/ymax</code></td><td>確認 bounding box 座標是否符合物件邊界。</td></tr>
+<tr><td><code>done</code></td><td>確認最後是否正常完成並通知 testbench。</td></tr>
+</table>
+
+<h2>八、設計優點</h2>
+<ul>
+<li><b>降低 critical path：</b>每個 state 僅處理單一主要功能，避免 Gray、Gaussian、Otsu、CCL 在同一 cycle 串接。</li>
+<li><b>提升可讀性：</b>FSM 流程與影像 pipeline 對應清楚，報告與 demo 時容易說明。</li>
+<li><b>方便 debug：</b>若出現 mismatch，可依 state 對應檢查中間資料。</li>
+<li><b>利於 synthesis：</b>分階段控制可降低 combinational delay，較容易滿足 10 ns clock constraint。</li>
+<li><b>支援完整驗證：</b>從 <code>S_LOAD</code> 到 <code>S_DONE</code> 覆蓋 P1~P4 所需完整影像流程。</li>
+</ul>
+
+<h2>九、報告可直接貼上的正式答案</h2>
+<p>
+本設計之 controller 採用 FSM 架構控制完整影像處理流程。系統在 <code>S_IDLE</code> 等待 enable 訊號，
+啟動後進入 <code>S_LOAD</code> 從 ImgROM 讀入 256×256 RGB 影像。接著 <code>S_GRAY</code> 將 RGB pixel 轉換為灰階，
+<code>S_HIST_CLEAR</code> 清除 histogram，<code>S_GAUSS_HIST</code> 執行 3×3 Gaussian filter 並建立灰階分佈。
+完成前處理後，FSM 進入 <code>S_OTSU_INIT</code> 與 <code>S_OTSU_SCAN</code> 計算最佳 Otsu threshold，
+並透過 <code>S_COUNT_HI</code> 與 <code>S_POLARITY</code> 判斷 foreground/background 是否需要反轉。
+</p>
+<p>
+完成 threshold 與 polarity 判斷後，<code>S_MASK_WRITE</code> 產生 binary mask。
+接著 <code>S_PARENT_INIT</code> 初始化 union-find 與 label 相關資料，<code>S_CCL_SCAN</code> 執行 8-connected connected component labeling。
+之後，<code>S_BBOX_INIT</code> 與 <code>S_BBOX_SCAN</code> 掃描 label map 並計算每個物件之 <code>Xmin</code>、<code>Xmax</code>、<code>Ymin</code>、<code>Ymax</code>。
+最後，<code>S_BOXMAP_CLEAR</code> 與 <code>S_BOXMAP_GEN</code> 產生需要畫綠色邊界的位置，
+<code>S_DRAW_WRITE</code> 將原始 RGB 或綠色 bounding box pixel 寫入 AnsSRAM，所有 pixel 完成後進入 <code>S_DONE</code> 並拉高 done。
+</p>
+<p>
+此 FSM 設計將複雜影像演算法拆成多個可控制階段，使記憶體讀寫、門檻計算、CCL 標記與最終繪圖皆能獨立驗證。
+因此本設計具有清楚的資料流、較短的 critical path 與良好的除錯能力。
+</p>
+
+<div class="nav"><a href="09_design_detail.html">← 上一題</a><a href="index.html">回索引</a><a href="11_compile_verification.html">下一題 →</a></div>
+<div class="watermark">Lab7 Draw Bounding Box Engine｜彭靖凱｜E24134778</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>06 六、系統方塊圖與 I/O Port 說明｜Enhanced</title>
+<style>
+:root{
+  --bg:#eef4fb;--card:#ffffff;--ink:#1f2937;--muted:#64748b;
+  --blue:#1f5f90;--blue2:#3b82f6;--cyan:#0ea5e9;--green:#16a34a;--orange:#f59e0b;--red:#dc2626;
+  --line:#cbd5e1;--soft:#f8fbff;--soft2:#eef7ff;--shadow:0 14px 38px rgba(15,23,42,.12);
+}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;background:radial-gradient(circle at top left,#dbeafe 0,#eef4fb 34%,#f8fafc 100%);color:var(--ink);line-height:1.9}
+.container{max-width:1180px;margin:28px auto;background:rgba(255,255,255,.95);padding:42px 52px;border-radius:24px;box-shadow:var(--shadow);border:1px solid rgba(148,163,184,.28)}
+.hero{position:relative;overflow:hidden;border-radius:22px;padding:34px 34px 28px;background:linear-gradient(135deg,#0f4c81,#1f77b4 48%,#10b981);color:white;margin-bottom:28px}
+.hero:after{content:"";position:absolute;right:-70px;top:-80px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.14)}
+h1{margin:0;font-size:2.15rem;letter-spacing:.03em}.subtitle{font-size:1.05rem;opacity:.94;margin-top:8px}.badge-row{margin-top:18px;display:flex;gap:10px;flex-wrap:wrap}.badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);font-weight:700}
+h2{color:#174b78;border-left:8px solid #60a5fa;padding-left:14px;margin-top:36px;font-size:1.55rem;background:linear-gradient(90deg,#eff6ff,transparent);border-radius:8px;padding-top:3px;padding-bottom:3px}
+h3{color:#1f6f46;margin-top:24px;font-size:1.18rem}.lead{font-size:1.08rem;background:#f8fbff;border:1px solid #dbeafe;border-radius:16px;padding:18px 20px}.muted{color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:18px;margin:18px 0}.card{background:var(--card);border:1px solid #dbe4ef;border-radius:18px;padding:18px;box-shadow:0 7px 22px rgba(15,23,42,.06)}.card h3{margin-top:0}.card strong{color:#174b78}.mini{font-size:.92rem;color:#475569}
+.note,.ok,.warn{border-radius:14px;padding:14px 18px;margin:16px 0;border-left:7px solid}.note{background:#fff7ed;border-color:#f59e0b}.ok{background:#ecfdf5;border-color:#22c55e}.warn{background:#fef2f2;border-color:#ef4444}
+code{font-family:Consolas,"Courier New",monospace;background:#eef2f7;color:#0f172a;padding:2px 6px;border-radius:6px}pre{font-family:Consolas,"Courier New",monospace;background:#0f172a;color:#dbeafe;padding:18px;border-radius:16px;overflow:auto;white-space:pre-wrap;border:1px solid #334155}
+table{width:100%;border-collapse:separate;border-spacing:0;margin:18px 0;background:white;border:1px solid #cbd5e1;border-radius:14px;overflow:hidden}th,td{padding:12px 14px;border-bottom:1px solid #e2e8f0;vertical-align:top}th{background:#eaf4ff;color:#174b78;text-align:left;font-weight:800}tr:last-child td{border-bottom:0}tbody tr:nth-child(even){background:#fbfdff}.signal{font-weight:800;color:#0f4c81}.active-low{color:#dc2626;font-weight:800}.active-high{color:#16a34a;font-weight:800}
+.figure{margin:26px 0;text-align:center}.figure-box{background:linear-gradient(180deg,#ffffff,#f8fbff);border:1px solid #dbe4ef;border-radius:20px;padding:18px;box-shadow:0 8px 24px rgba(15,23,42,.07)}.figure img{max-width:100%;border-radius:14px;border:1px solid #cbd5e1;background:white}.caption{font-size:.94rem;color:#52606d;margin-top:9px}.svg-wrap{width:100%;overflow:auto}.svg-wrap svg{max-width:100%;height:auto;min-width:760px}.pill{display:inline-block;border-radius:999px;padding:2px 9px;background:#e0f2fe;color:#075985;font-weight:700;font-size:.88rem}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin:18px 0}.flow div{background:#eff6ff;border:1px solid #bfdbfe;padding:12px;border-radius:14px;text-align:center;font-weight:800;color:#174b78}.flow div:nth-child(odd){background:#ecfdf5;border-color:#bbf7d0;color:#166534}
+.img-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.img-card{background:#fff;border:1px solid #dbe4ef;border-radius:16px;padding:12px;box-shadow:0 8px 22px rgba(15,23,42,.06)}.img-card img{width:100%;image-rendering:pixelated;border-radius:12px;border:1px solid #cbd5e1}.img-card h4{margin:6px 0 4px;color:#174b78;text-align:center}.compare{display:grid;grid-template-columns:1fr 1fr;gap:10px}.compare img{width:100%}
+.nav{display:flex;justify-content:space-between;gap:12px;margin-top:36px;border-top:1px solid #d8e2ef;padding-top:18px}.nav a{color:#174b78;text-decoration:none;font-weight:800;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:8px 12px}.watermark{text-align:center;color:#64748b;margin-top:24px;font-size:.9rem}
+@media(max-width:720px){.container{padding:24px 18px;margin:12px}.hero{padding:24px 20px}h1{font-size:1.65rem}.compare{grid-template-columns:1fr}.svg-wrap svg{min-width:680px}}
+</style>
+</head>
+<body>
+<div class="container">
+<section class="hero">
+  <h1>06. 六、系統方塊圖與 I/O Port 說明</h1>
+  <div class="subtitle">Lab7 Draw Bounding Box Engine｜Testbench、DUT、ImgROM、UrSRAM、AnsSRAM 連接關係完整解說</div>
+  <div class="badge-row"><span class="badge">256×256 RGB</span><span class="badge">32-bit Pixel</span><span class="badge">Active-low Memory Control</span><span class="badge">Pixel-level Verification</span></div>
+</section>
+
+<h2>一、題目說明與本題重點</h2>
+<p class="lead">本題要求說明 <strong>testbench-DUT 系統架構</strong>，也就是測試平台如何透過固定 I/O port 連接學生設計的 <code>drawBbox</code> 模組。整體架構可分成上方的 testbench memory system 與下方的 DUT。Testbench 負責提供原始影像、接收輸出影像並與 golden answer 比對；DUT 則負責讀取 ImgROM、執行影像處理 pipeline，最後將 overlay 結果寫入 AnsSRAM。</p>
+
+<div class="ok"><strong>核心觀念：</strong>本 Lab 不是只寫影像演算法，而是要讓演算法符合硬體記憶體介面、時脈同步、啟動與完成訊號規範。因此，<code>drawBbox</code> 的 port 名稱、方向、bit width 與讀寫時序都不能任意更改。</div>
+
+<h2>二、重新美化後的 Testbench-DUT 系統架構圖</h2>
+<div class="figure figure-box">
+<div class="svg-wrap">
+<svg viewBox="0 0 1160 640" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Draw Bounding Box testbench DUT block diagram">
+  <defs>
+    <linearGradient id="gBlue" x1="0" x2="1"><stop offset="0" stop-color="#1e40af"/><stop offset="1" stop-color="#38bdf8"/></linearGradient>
+    <linearGradient id="gGreen" x1="0" x2="1"><stop offset="0" stop-color="#15803d"/><stop offset="1" stop-color="#4ade80"/></linearGradient>
+    <linearGradient id="gOrange" x1="0" x2="1"><stop offset="0" stop-color="#c2410c"/><stop offset="1" stop-color="#fbbf24"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#0f172a" flood-opacity="0.18"/></filter>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#334155"/></marker>
+    <marker id="arrowB" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#2563eb"/></marker>
+    <marker id="arrowG" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#16a34a"/></marker>
+  </defs>
+  <rect x="20" y="20" width="1120" height="600" rx="24" fill="#f8fbff" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="580" y="58" text-anchor="middle" font-size="28" font-weight="800" fill="#174b78">Fig.2 Testbench-DUT Architecture</text>
+  <rect x="70" y="90" width="1020" height="220" rx="22" fill="#eef6ff" stroke="#93c5fd" stroke-width="2"/>
+  <text x="100" y="126" font-size="22" font-weight="800" fill="#1e3a8a">Testbench Memory System</text>
+  <rect x="105" y="155" width="250" height="110" rx="16" fill="url(#gBlue)" filter="url(#shadow)"/>
+  <text x="230" y="195" text-anchor="middle" font-size="24" font-weight="800" fill="#fff">ImgROM</text>
+  <text x="230" y="224" text-anchor="middle" font-size="15" fill="#dbeafe">原始 256×256 RGB 影像</text>
+  <text x="230" y="247" text-anchor="middle" font-size="15" fill="#dbeafe">Read-only / 32-bit Q</text>
+  <rect x="455" y="155" width="250" height="110" rx="16" fill="url(#gOrange)" filter="url(#shadow)"/>
+  <text x="580" y="195" text-anchor="middle" font-size="24" font-weight="800" fill="#fff">UrSRAM</text>
+  <text x="580" y="224" text-anchor="middle" font-size="15" fill="#fff7ed">中間資料暫存</text>
+  <text x="580" y="247" text-anchor="middle" font-size="15" fill="#fff7ed">Mask / Label / Tracking</text>
+  <rect x="805" y="155" width="250" height="110" rx="16" fill="url(#gGreen)" filter="url(#shadow)"/>
+  <text x="930" y="195" text-anchor="middle" font-size="24" font-weight="800" fill="#fff">AnsSRAM</text>
+  <text x="930" y="224" text-anchor="middle" font-size="15" fill="#dcfce7">最終 Overlay 輸出影像</text>
+  <text x="930" y="247" text-anchor="middle" font-size="15" fill="#dcfce7">Write / Read / Compare</text>
+  <rect x="220" y="390" width="720" height="160" rx="24" fill="#ffffff" stroke="#60a5fa" stroke-width="3" filter="url(#shadow)"/>
+  <text x="580" y="430" text-anchor="middle" font-size="28" font-weight="900" fill="#174b78">drawBbox.v（DUT）</text>
+  <text x="580" y="462" text-anchor="middle" font-size="17" fill="#334155">RGB → Grayscale → Gaussian → Otsu Threshold → Mask → 8-connected CCL → BBox → Overlay</text>
+  <rect x="260" y="488" width="150" height="34" rx="17" fill="#eff6ff" stroke="#bfdbfe"/><text x="335" y="511" text-anchor="middle" font-size="14" font-weight="800" fill="#1e40af">Memory Control</text>
+  <rect x="430" y="488" width="150" height="34" rx="17" fill="#ecfdf5" stroke="#bbf7d0"/><text x="505" y="511" text-anchor="middle" font-size="14" font-weight="800" fill="#166534">FSM</text>
+  <rect x="600" y="488" width="150" height="34" rx="17" fill="#fff7ed" stroke="#fed7aa"/><text x="675" y="511" text-anchor="middle" font-size="14" font-weight="800" fill="#9a3412">CCL Engine</text>
+  <rect x="770" y="488" width="130" height="34" rx="17" fill="#fef2f2" stroke="#fecaca"/><text x="835" y="511" text-anchor="middle" font-size="14" font-weight="800" fill="#991b1b">BBox Draw</text>
+  <path d="M230 265 C230 315, 330 330, 330 390" fill="none" stroke="#2563eb" stroke-width="4" marker-end="url(#arrowB)"/>
+  <text x="165" y="342" font-size="15" font-weight="700" fill="#1d4ed8">Img_Q[31:0]</text>
+  <path d="M360 390 C355 330, 255 315, 255 265" fill="none" stroke="#334155" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="285" y="344" font-size="15" fill="#334155">Img_CEN, Img_A</text>
+  <path d="M580 265 L580 390" fill="none" stroke="#f59e0b" stroke-width="4" marker-end="url(#arrow)"/>
+  <path d="M620 390 L620 265" fill="none" stroke="#f59e0b" stroke-width="4" marker-end="url(#arrow)"/>
+  <text x="635" y="335" font-size="15" font-weight="700" fill="#b45309">Ur_CEN/WEN/A/D/Q</text>
+  <path d="M900 390 C900 330, 930 315, 930 265" fill="none" stroke="#16a34a" stroke-width="4" marker-end="url(#arrowG)"/>
+  <path d="M960 265 C960 325, 960 335, 930 390" fill="none" stroke="#334155" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="956" y="342" font-size="15" font-weight="700" fill="#15803d">Ans_D write</text>
+  <text x="948" y="365" font-size="15" fill="#334155">Ans_Q read</text>
+  <text x="580" y="595" text-anchor="middle" font-size="16" fill="#64748b">所有控制訊號由 drawBbox 輸出；testbench 依照 memory protocol 回傳 Q 或檢查 D。</text>
+</svg>
+</div>
+<div class="caption">美化版系統方塊圖：清楚分離 Testbench memory system 與 drawBbox DUT，並標出三組 memory bus 的資料方向。</div>
+</div>
+
+<h2>三、各區塊功能與資料流說明</h2>
+<div class="grid">
+  <div class="card"><h3>1. ImgROM</h3><p>ImgROM 儲存原始 RGB 影像，屬於唯讀記憶體。DUT 透過 <code>Img_A</code> 指定位址，並以 <code>Img_CEN=0</code> 啟動讀取，資料由 <code>Img_Q[31:0]</code> 回傳。</p><p class="mini">用途：提供原始 pixel 給灰階、濾波、二值化與 overlay 參考。</p></div>
+  <div class="card"><h3>2. UrSRAM</h3><p>UrSRAM 是使用者可控制的中間暫存 SRAM，可用來保存 mask、label map、暫時影像或 CCL 過程資料。此區塊需要同時支援 read/write。</p><p class="mini">用途：降低內部 register array 壓力，協助多階段 pipeline 存取資料。</p></div>
+  <div class="card"><h3>3. AnsSRAM</h3><p>AnsSRAM 儲存最後輸出影像。當 bounding box 位置成立時，DUT 寫入綠色框線；其他位置則保留原圖 RGB，形成最終 overlay 結果。</p><p class="mini">用途：testbench 讀取後與 <code>bbox_golden*.txt</code> 做 pixel-by-pixel 比對。</p></div>
+  <div class="card"><h3>4. drawBbox DUT</h3><p>DUT 是本作業主要設計內容，負責控制 memory timing、掃描 pixel、執行 image processing pipeline、產生 bounding box 並寫回結果。</p><p class="mini">用途：完成從輸入影像到輸出標框影像的完整硬體流程。</p></div>
+</div>
+
+<h2>四、Port List 詳細說明</h2>
+<table>
+<thead><tr><th>Port</th><th>方向 / 位元</th><th>角色</th><th>詳細說明</th></tr></thead>
+<tbody>
+<tr><td class="signal"><code>clk</code></td><td>input / 1 bit</td><td>系統時脈</td><td>所有暫存器、FSM 狀態轉移、address counter 與 memory 控制訊號皆建議在 <code>posedge clk</code> 更新。</td></tr>
+<tr><td class="signal"><code>rst</code></td><td>input / 1 bit</td><td>同步或非同步初始化依設計</td><td>Reset 時需清除 FSM、counter、done、memory enable、write enable、bbox 暫存值與 label tracking 狀態。</td></tr>
+<tr><td class="signal"><code>enable</code></td><td>input / 1 bit</td><td>開始訊號</td><td>當 testbench 拉高 <code>enable</code> 後，DUT 才能開始讀取 ImgROM 並進入影像處理流程。</td></tr>
+<tr><td class="signal"><code>done</code></td><td>output / 1 bit</td><td>完成訊號</td><td>所有 pixel 都寫入 AnsSRAM 並完成輸出後拉高。Testbench 會根據此訊號開始檢查結果。</td></tr>
+<tr><td class="signal"><code>Img_CEN</code></td><td>output / 1 bit</td><td>ImgROM enable</td><td><span class="active-low">Active low</span>。讀取原始影像時需設為 0；不讀時可設為 1 以避免不必要存取。</td></tr>
+<tr><td class="signal"><code>Img_A</code></td><td>output / 16 bits</td><td>ImgROM address</td><td>256×256 共有 65536 pixels，因此 16-bit address 足夠表示 <code>0~65535</code>。</td></tr>
+<tr><td class="signal"><code>Img_Q</code></td><td>input / 32 bits</td><td>ImgROM data</td><td>回傳 32-bit RGB pixel，通常格式可視為 <code>00_RR_GG_BB</code>，其中低 24 bits 為 RGB。</td></tr>
+<tr><td class="signal"><code>Ur_CEN</code></td><td>output / 1 bit</td><td>UrSRAM chip enable</td><td><span class="active-low">Active low</span>。UrSRAM 讀或寫都必須先讓 CEN=0。</td></tr>
+<tr><td class="signal"><code>Ur_WEN</code></td><td>output / 1 bit</td><td>UrSRAM read/write</td><td><code>0</code> 代表 write，<code>1</code> 代表 read。此規則與 AnsSRAM 相同。</td></tr>
+<tr><td class="signal"><code>Ur_A</code></td><td>output / 16 bits</td><td>UrSRAM address</td><td>可對應 pixel address、label map address 或其他中間資料位置。</td></tr>
+<tr><td class="signal"><code>Ur_D</code></td><td>output / 32 bits</td><td>UrSRAM write data</td><td>寫入中間資料，例如 mask 值、label 值、灰階值或其他 debug/temporary data。</td></tr>
+<tr><td class="signal"><code>Ur_Q</code></td><td>input / 32 bits</td><td>UrSRAM read data</td><td>DUT 從 UrSRAM 讀回中間資料，常用於後續 pass 或 overlay 階段。</td></tr>
+<tr><td class="signal"><code>Ans_CEN</code></td><td>output / 1 bit</td><td>AnsSRAM chip enable</td><td><span class="active-low">Active low</span>。輸出最終結果時必須讓 CEN=0。</td></tr>
+<tr><td class="signal"><code>Ans_WEN</code></td><td>output / 1 bit</td><td>AnsSRAM read/write</td><td><code>0</code> 為 write，<code>1</code> 為 read。DUT 寫結果時使用 write mode。</td></tr>
+<tr><td class="signal"><code>Ans_A</code></td><td>output / 16 bits</td><td>AnsSRAM address</td><td>輸出影像採 row-major address，與輸入影像對齊，方便 testbench 比對。</td></tr>
+<tr><td class="signal"><code>Ans_D</code></td><td>output / 32 bits</td><td>AnsSRAM write data</td><td>寫入最後 pixel。若該 pixel 在 bounding box 邊界上，寫入 <code>32'h0000_FF00</code>；否則寫入原圖色彩。</td></tr>
+<tr><td class="signal"><code>Ans_Q</code></td><td>input / 32 bits</td><td>AnsSRAM read data</td><td>通常由 testbench 或需要 read-modify-write 的設計流程使用。</td></tr>
+</tbody>
+</table>
+
+<h2>五、Memory Control 規則整理</h2>
+<div class="flow"><div>ImgROM Read<br><code>CEN=0</code></div><div>SRAM Write<br><code>CEN=0,WEN=0</code></div><div>SRAM Read<br><code>CEN=0,WEN=1</code></div><div>Idle<br><code>CEN=1</code></div></div>
+<table>
+<thead><tr><th>操作</th><th>CEN</th><th>WEN</th><th>Address</th><th>Data</th><th>說明</th></tr></thead>
+<tbody>
+<tr><td>ImgROM 讀取</td><td><span class="active-low">0</span></td><td>無</td><td><code>Img_A</code></td><td><code>Img_Q</code></td><td>ImgROM 是唯讀，沒有 WEN；DUT 只需控制 CEN 與 address。</td></tr>
+<tr><td>UrSRAM 寫入</td><td><span class="active-low">0</span></td><td><span class="active-low">0</span></td><td><code>Ur_A</code></td><td><code>Ur_D</code></td><td>用於儲存中間影像、mask、label 或 pass result。</td></tr>
+<tr><td>UrSRAM 讀取</td><td><span class="active-low">0</span></td><td><span class="active-high">1</span></td><td><code>Ur_A</code></td><td><code>Ur_Q</code></td><td>用於下一階段 pipeline 取回中間資料。</td></tr>
+<tr><td>AnsSRAM 寫入</td><td><span class="active-low">0</span></td><td><span class="active-low">0</span></td><td><code>Ans_A</code></td><td><code>Ans_D</code></td><td>寫入最終 overlay pixel。</td></tr>
+<tr><td>AnsSRAM 讀取</td><td><span class="active-low">0</span></td><td><span class="active-high">1</span></td><td><code>Ans_A</code></td><td><code>Ans_Q</code></td><td>通常由 testbench 比對或設計需要讀回時使用。</td></tr>
+</tbody>
+</table>
+
+<div class="warn"><strong>容易出錯的地方：</strong><code>CEN</code> 是 active-low，很多同學會誤以為 1 才是 enable；另外 <code>WEN=0</code> 才是 write，<code>WEN=1</code> 是 read。若這兩個規則寫反，通常會造成輸出全黑、全白、維持舊值或 golden mismatch。</div>
+
+<h2>六、Row-major Address Mapping</h2>
+<p>本 Lab 的輸入與輸出影像大小皆為 <strong>256×256</strong>，每一個 pixel 對應一個 16-bit address。掃描順序採 row-major，也就是先掃完第 0 列的 256 個 pixel，再進入第 1 列。</p>
+<div class="figure figure-box">
+<div class="svg-wrap">
+<svg viewBox="0 0 1040 300" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="arr2" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M1,1 L9,5 L1,9 Z" fill="#2563eb"/></marker></defs>
+  <rect x="20" y="20" width="1000" height="260" rx="20" fill="#f8fbff" stroke="#cbd5e1"/>
+  <text x="520" y="55" text-anchor="middle" font-size="25" font-weight="900" fill="#174b78">Row-major Mapping：addr = row × 256 + col</text>
+  <g transform="translate(95,90)">
+    <rect x="0" y="0" width="360" height="120" fill="#fff" stroke="#94a3b8"/>
+    <g stroke="#cbd5e1">
+      <line x1="60" y1="0" x2="60" y2="120"/><line x1="120" y1="0" x2="120" y2="120"/><line x1="180" y1="0" x2="180" y2="120"/><line x1="240" y1="0" x2="240" y2="120"/><line x1="300" y1="0" x2="300" y2="120"/>
+      <line x1="0" y1="40" x2="360" y2="40"/><line x1="0" y1="80" x2="360" y2="80"/>
+    </g>
+    <rect x="0" y="0" width="60" height="40" fill="#dbeafe"/><text x="30" y="25" text-anchor="middle" font-size="13" font-weight="800">0</text>
+    <rect x="60" y="0" width="60" height="40" fill="#dbeafe"/><text x="90" y="25" text-anchor="middle" font-size="13" font-weight="800">1</text>
+    <rect x="120" y="0" width="60" height="40" fill="#dbeafe"/><text x="150" y="25" text-anchor="middle" font-size="13" font-weight="800">2</text>
+    <text x="210" y="25" text-anchor="middle" font-size="13" fill="#64748b">...</text><text x="330" y="25" text-anchor="middle" font-size="13" font-weight="800">255</text>
+    <rect x="0" y="40" width="60" height="40" fill="#dcfce7"/><text x="30" y="65" text-anchor="middle" font-size="13" font-weight="800">256</text>
+    <rect x="60" y="40" width="60" height="40" fill="#dcfce7"/><text x="90" y="65" text-anchor="middle" font-size="13" font-weight="800">257</text>
+    <text x="210" y="65" text-anchor="middle" font-size="13" fill="#64748b">...</text><text x="330" y="65" text-anchor="middle" font-size="13" font-weight="800">511</text>
+    <text x="30" y="105" text-anchor="middle" font-size="13" fill="#64748b">...</text><text x="330" y="105" text-anchor="middle" font-size="13" font-weight="800">65535</text>
+    <path d="M20 145 C120 175, 260 175, 340 145" fill="none" stroke="#2563eb" stroke-width="4" marker-end="url(#arr2)"/>
+    <text x="180" y="195" text-anchor="middle" font-size="15" font-weight="700" fill="#1d4ed8">col 由左到右，row 由上到下</text>
+  </g>
+  <g transform="translate(555,105)">
+    <rect x="0" y="0" width="390" height="120" rx="16" fill="#ffffff" stroke="#bfdbfe"/>
+    <text x="25" y="35" font-size="18" font-weight="800" fill="#174b78">位址公式</text>
+    <text x="25" y="72" font-size="22" font-family="Consolas" fill="#0f172a">addr = row * 256 + col</text>
+    <text x="25" y="105" font-size="16" fill="#475569">例如 row=10, col=20 → addr=2580</text>
+  </g>
+</svg>
+</div>
+<div class="caption">Row-major mapping 示意：16-bit address 剛好覆蓋 65536 個 pixels。</div>
+</div>
+
+<h2>七、DUT 內部 Pipeline 與 I/O 關係</h2>
+<p>雖然本題重點是 I/O port，但完整報告中最好把 port 和內部功能串起來說明，讓讀者理解每個 memory interface 在 pipeline 中的用途。</p>
+<table>
+<thead><tr><th>Pipeline 階段</th><th>主要輸入</th><th>主要輸出</th><th>使用到的 I/O / Memory</th></tr></thead>
+<tbody>
+<tr><td>Read Original Image</td><td>ImgROM 原圖</td><td>RGB pixel</td><td><code>Img_CEN</code>, <code>Img_A</code>, <code>Img_Q</code></td></tr>
+<tr><td>RGB to Grayscale</td><td>RGB pixel</td><td>Gray value</td><td>內部 register / 可寫入 UrSRAM</td></tr>
+<tr><td>Gaussian Filter</td><td>鄰近 gray pixels</td><td>平滑後 gray</td><td>UrSRAM 或內部 buffer</td></tr>
+<tr><td>Threshold / Mask</td><td>Filtered gray</td><td>binary mask</td><td>UrSRAM 可保存 mask</td></tr>
+<tr><td>8-connected CCL</td><td>mask 與鄰居 label</td><td>component label</td><td>UrSRAM / label array / union data</td></tr>
+<tr><td>BBox Extraction</td><td>label coordinates</td><td>Xmin/Xmax/Ymin/Ymax</td><td>內部 bbox register table</td></tr>
+<tr><td>Overlay Output</td><td>原圖 RGB + bbox boundary</td><td>final pixel</td><td><code>Ans_CEN</code>, <code>Ans_WEN</code>, <code>Ans_A</code>, <code>Ans_D</code></td></tr>
+</tbody>
+</table>
+
+<h2>八、模擬輸出影像展示</h2>
+<p>以下將輸入影像與輸出結果放在同一區塊，方便報告閱讀者理解 AnsSRAM 最終內容。綠色線條代表 bounding box overlay，表示 DUT 已將計算出的物件邊界寫回輸出記憶體。</p>
+<div class="img-grid">
+  <div class="img-card"><h4>Pattern 1</h4><div class="compare"><img src="assets/input_rgb1.png" alt="P1 input"><img src="assets/drawBbox_result_p1.png" alt="P1 output"></div><p class="mini">左：Input RGB；右：AnsSRAM output。</p></div>
+  <div class="img-card"><h4>Pattern 2</h4><div class="compare"><img src="assets/input_rgb2.png" alt="P2 input"><img src="assets/drawBbox_result_p2.png" alt="P2 output"></div><p class="mini">Pattern 2 顯示多物件或複雜背景下的框線結果。</p></div>
+  <div class="img-card"><h4>Pattern 3</h4><div class="compare"><img src="input_rgb3.txt" alt="P3 input placeholder" onerror="this.style.display='none'"><img src="drawBbox_result_p3.bmp" alt="P3 output"></div><p class="mini">Pattern 3 輸出 BMP 結果直接嵌入展示。</p></div>
+  <div class="img-card"><h4>Pattern 4</h4><div class="compare"><img src="input_rgb4.txt" alt="P4 input placeholder" onerror="this.style.display='none'"><img src="drawBbox_result_p4.bmp" alt="P4 output"></div><p class="mini">Pattern 4 用於確認更高干擾條件下的輸出穩定性。</p></div>
+</div>
+
+<h2>九、報告可直接使用的解答文字</h2>
+<p>Fig.2 顯示本 Lab 的 testbed-DUT 架構。上方 testbench 包含 ImgROM、UrSRAM 與 AnsSRAM 三個記憶體區塊；下方則是學生實作的 <code>drawBbox</code> 模組。ImgROM 負責提供 256×256 的 32-bit RGB 原始影像，DUT 透過 <code>Img_CEN</code> 與 <code>Img_A</code> 送出讀取控制與位址，並由 <code>Img_Q</code> 接收 pixel data。UrSRAM 可作為中間資料儲存區，保存灰階、mask、label 或 CCL 過程資料。AnsSRAM 則用來儲存最後 overlay 後的影像結果，也就是保留原圖並在 bounding box 邊界寫入綠色 pixel。</p>
+<p>在控制規則上，ImgROM、UrSRAM 與 AnsSRAM 的 <code>CEN</code> 皆為 active-low，因此要存取記憶體時必須設為 0。對 SRAM 而言，<code>WEN=0</code> 表示寫入，<code>WEN=1</code> 表示讀取。整體設計必須遵守同步式硬體設計原則，利用 <code>clk</code> 驅動 FSM 與 address counter，在 <code>enable</code> 啟動後開始處理影像，並在所有輸出 pixel 寫入完成後將 <code>done</code> 拉高，通知 testbench 進行 golden comparison。由於 testbench 會依固定 port 連接 DUT，因此 <code>drawBbox</code> 的 I/O port 名稱、方向與位元寬度皆不可修改。</p>
+
+<div class="note"><strong>滿分報告補強重點：</strong>說明 I/O port 時不要只列表，還要交代每個 port 在 pipeline 中何時被使用、資料方向為何、active-low/active-high 規則，以及最後如何觸發 <code>done</code> 讓 testbench 比對 AnsSRAM。</div>
+
+<div class="nav"><a href="05_development_acceptance_enhanced.html">← 上一題</a><a href="index_enhanced.html">回索引</a><a href="07_function_pipeline_enhanced.html">下一題 →</a></div>
+<div class="watermark">Lab7 Draw Bounding Box Engine｜彭靖凱｜E24134778</div>
+</div>
+</body>
+</html>

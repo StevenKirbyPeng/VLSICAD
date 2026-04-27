@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>05 五、開發流程需求與驗收標準｜Enhanced</title>
+<style>
+:root{
+  --navy:#12395f;--blue:#1f6fb2;--sky:#eaf5ff;--cyan:#e7fbff;--green:#eaf8ee;--green2:#2f9e55;
+  --orange:#fff3df;--orange2:#f08c00;--red:#c92a2a;--gray:#f6f8fb;--ink:#1f2937;--muted:#64748b;
+  --line:#cbddec;--card:#ffffff;--shadow:0 12px 34px rgba(18,57,95,.12);
+}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:var(--ink);line-height:1.88;background:
+  radial-gradient(circle at 10% 0%,rgba(70,155,220,.18),transparent 30%),
+  radial-gradient(circle at 88% 12%,rgba(47,158,85,.12),transparent 26%),#f4f7fb;}
+.container{max-width:1180px;margin:32px auto 48px;background:rgba(255,255,255,.96);padding:42px 52px;border-radius:24px;box-shadow:var(--shadow);border:1px solid rgba(203,221,236,.9)}
+.hero{position:relative;overflow:hidden;border-radius:24px;padding:36px 36px 30px;color:#fff;background:linear-gradient(135deg,#12395f 0%,#1f6fb2 58%,#2f9e55 100%);box-shadow:0 14px 30px rgba(31,111,178,.2)}
+.hero:after{content:"";position:absolute;right:-55px;top:-55px;width:230px;height:230px;border-radius:50%;background:rgba(255,255,255,.13)}
+.hero h1{margin:0 0 12px;font-size:2.05rem;letter-spacing:.03em}.hero p{max-width:850px;margin:0;font-size:1.04rem;color:#eaf5ff}.badges{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.badge{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.32);font-weight:700;color:#fff;font-size:.92rem}
+h2{display:flex;align-items:center;gap:10px;color:var(--navy);font-size:1.45rem;margin:34px 0 14px;padding-left:14px;border-left:7px solid #5aa0df}h3{color:#23613b;margin:22px 0 10px;font-size:1.13rem}p{margin:10px 0}.lead{font-size:1.03rem;color:#334155}.muted{color:var(--muted)}
+.toc{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:22px 0}.toc a{text-decoration:none;color:var(--navy);font-weight:700;background:#f8fbff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;transition:.2s}.toc a:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(18,57,95,.09);background:#eef7ff}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}.card{background:linear-gradient(180deg,#fff,#fbfdff);border:1px solid #d6e2ee;border-radius:18px;padding:18px;box-shadow:0 7px 18px rgba(18,57,95,.06)}.card strong{color:var(--navy)}.metric{font-size:1.7rem;font-weight:900;color:var(--blue);line-height:1.15}.small{font-size:.93rem;color:var(--muted)}
+table{width:100%;border-collapse:separate;border-spacing:0;margin:16px 0;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 8px 22px rgba(18,57,95,.05)}th,td{padding:12px 14px;border-bottom:1px solid #e4edf5;vertical-align:top}tr:last-child td{border-bottom:0}th{background:linear-gradient(180deg,#e9f3fc,#dff0ff);color:#174b78;text-align:left}.step{font-weight:900;color:#fff;background:#1f6fb2;border-radius:999px;padding:3px 9px;display:inline-block}.pass{color:#087f5b;font-weight:900}.warntext{color:#b35c00;font-weight:900}.fail{color:var(--red);font-weight:900}
+.note,.ok,.warn{padding:15px 18px;border-radius:14px;margin:16px 0;border-left:7px solid}.note{background:#fff8e6;border-color:#f0b429}.ok{background:#eaf8ee;border-color:#3a9a55}.warn{background:#fff0f0;border-color:#d33}code{font-family:Consolas,"Courier New",monospace;background:#f1f4f8;border-radius:6px;padding:2px 6px}pre{font-family:Consolas,"Courier New",monospace;background:#0f172a;color:#e5eefc;border-radius:16px;padding:16px;white-space:pre-wrap;overflow:auto;border:1px solid #243047;line-height:1.55}
+.figure{margin:24px 0;text-align:center}.figure img{max-width:100%;border-radius:18px;border:1px solid #cbddec;background:#fff;box-shadow:0 12px 28px rgba(18,57,95,.12)}.caption{font-size:.92rem;color:#52606d;margin-top:8px}.img-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}.img-card{border-radius:18px;background:#fff;border:1px solid #d6e2ee;padding:12px;box-shadow:0 8px 20px rgba(18,57,95,.08)}.img-card img{width:100%;border-radius:12px;border:1px solid #e0e9f2;image-rendering:auto}.tag{display:inline-block;background:#eaf4ff;color:#174b78;border:1px solid #9dc4e8;padding:3px 9px;border-radius:999px;font-size:.86em;font-weight:700}.formula{background:#f8fbff;border:1px dashed #9bbad6;border-radius:14px;padding:12px;margin:12px 0;text-align:center;font-weight:800;color:#12395f}
+.flow-svg{width:100%;max-width:1040px;margin:auto;display:block}.checklist li{margin:8px 0}.timeline{position:relative;margin-left:8px;padding-left:24px}.timeline:before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:4px;background:linear-gradient(#1f6fb2,#2f9e55);border-radius:99px}.timeline-item{position:relative;margin:16px 0;padding:14px 16px;background:#fbfdff;border:1px solid #d6e2ee;border-radius:14px}.timeline-item:before{content:"";position:absolute;left:-32px;top:20px;width:14px;height:14px;background:#fff;border:4px solid #1f6fb2;border-radius:50%}.nav{display:flex;justify-content:space-between;gap:12px;margin-top:34px;border-top:1px solid #d8e2ef;padding-top:18px}.nav a{color:#174b78;text-decoration:none;font-weight:bold;background:#f8fbff;border:1px solid #d6e2ee;border-radius:12px;padding:9px 12px}.watermark{font-size:.86em;color:#697386;text-align:center;margin-top:24px}
+@media print{body{background:#fff}.container{box-shadow:none;margin:0;max-width:none}.nav{display:none}.hero{break-inside:avoid}.card,table,.timeline-item{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="container">
+<section class="hero">
+  <h1>05. 五、開發流程需求與驗收標準</h1>
+  <p>本頁將原本的「流程表＋驗收條列」擴充為可直接放入 Lab7 報告的完整說明，包含開發階段、各模組驗證重點、RTL/Gate-level/ SuperLint 標準、常見扣分風險與最終提交前檢查表。</p>
+  <div class="badges"><span class="badge">Draw Bounding Box</span><span class="badge">P1~P4 Pattern</span><span class="badge">Pixel-level Correctness</span><span class="badge">RTL / Synthesis</span></div>
+</section>
+
+<nav class="toc">
+  <a href="#goal">一、題目目標</a><a href="#flow">二、開發流程總覽</a><a href="#stage">三、逐階段驗證</a><a href="#accept">四、驗收標準</a><a href="#results">五、結果佐證</a><a href="#risk">六、常見風險</a><a href="#final">七、提交檢查表</a>
+</nav>
+
+<section id="goal">
+<h2>一、題目說明與開發目標</h2>
+<p class="lead">Lab7 的核心目標是完成一個可合成的影像處理硬體模組 <code>drawBbox</code>。系統需讀取 256×256 RGB 影像，依序完成灰階轉換、Gaussian 平滑、Otsu threshold、binary mask、auto-polarity correction、8-connected CCL、Bounding Box 計算與綠色框線 overlay，最後將結果寫入 <code>AnsSRAM</code>。</p>
+<div class="grid">
+  <div class="card"><div class="metric">256×256</div><strong>固定影像大小</strong><p class="small">所有 address、row、col 與 SRAM 寫入位置都必須對應到 65536 個 pixels。</p></div>
+  <div class="card"><div class="metric">32-bit</div><strong>RGB / SRAM 資料寬度</strong><p class="small">輸入與輸出皆以 32-bit unsigned data 表示，需避免 port width mismatch。</p></div>
+  <div class="card"><div class="metric">8-Conn</div><strong>連通元件標記</strong><p class="small">CCL pass1 需考慮 NW、N、NE、W，使斜向接觸仍可被視為同一物件。</p></div>
+  <div class="card"><div class="metric">0 Errors</div><strong>滿分驗證目標</strong><p class="small">P1~P4 與 golden output 比對時，每個 pixel 都需完全一致。</p></div>
+</div>
+</section>
+
+<section id="flow">
+<h2>二、開發流程總覽圖</h2>
+<p>整體開發建議採用「先單元、再整合、最後驗證」策略。每個階段完成後都先用小型測試或輸出檔案確認資料正確，再接到下一個 stage，避免最後才發現錯誤難以追蹤。</p>
+<div class="figure">
+<svg class="flow-svg" viewBox="0 0 1180 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Lab7 development flow">
+  <defs>
+    <linearGradient id="g1" x1="0" x2="1"><stop offset="0" stop-color="#1f6fb2"/><stop offset="1" stop-color="#2f9e55"/></linearGradient>
+    <filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#12395f" flood-opacity=".18"/></filter>
+  </defs>
+  <rect x="10" y="20" width="1160" height="205" rx="26" fill="#f8fbff" stroke="#cbddec"/>
+  <g filter="url(#sh)" font-family="Microsoft JhengHei, Arial" font-size="17" font-weight="700" text-anchor="middle">
+    <g transform="translate(80,95)"><rect width="110" height="70" rx="18" fill="#eaf5ff" stroke="#88bde8"/><text x="55" y="30" fill="#12395f">ImgROM</text><text x="55" y="54" fill="#64748b" font-size="13">Read RGB</text></g>
+    <g transform="translate(215,95)"><rect width="110" height="70" rx="18" fill="#eaf5ff" stroke="#88bde8"/><text x="55" y="30" fill="#12395f">Gray</text><text x="55" y="54" fill="#64748b" font-size="13">R/G/B weighted</text></g>
+    <g transform="translate(350,95)"><rect width="120" height="70" rx="18" fill="#e7fbff" stroke="#83c5d7"/><text x="60" y="30" fill="#12395f">Gaussian</text><text x="60" y="54" fill="#64748b" font-size="13">3×3 filter</text></g>
+    <g transform="translate(500,95)"><rect width="125" height="70" rx="18" fill="#fff8e6" stroke="#f0b429"/><text x="62" y="30" fill="#12395f">Otsu</text><text x="62" y="54" fill="#64748b" font-size="13">Threshold</text></g>
+    <g transform="translate(655,95)"><rect width="125" height="70" rx="18" fill="#fff8e6" stroke="#f0b429"/><text x="62" y="30" fill="#12395f">Mask</text><text x="62" y="54" fill="#64748b" font-size="13">Polarity</text></g>
+    <g transform="translate(810,95)"><rect width="125" height="70" rx="18" fill="#eaf8ee" stroke="#74c69d"/><text x="62" y="30" fill="#12395f">8-CCL</text><text x="62" y="54" fill="#64748b" font-size="13">Label merge</text></g>
+    <g transform="translate(965,95)"><rect width="135" height="70" rx="18" fill="#eaf8ee" stroke="#74c69d"/><text x="67" y="30" fill="#12395f">BBox Overlay</text><text x="67" y="54" fill="#64748b" font-size="13">Green frame</text></g>
+  </g>
+  <g stroke="url(#g1)" stroke-width="5" stroke-linecap="round" fill="none">
+    <path d="M190 130 L215 130"/><path d="M325 130 L350 130"/><path d="M470 130 L500 130"/><path d="M625 130 L655 130"/><path d="M780 130 L810 130"/><path d="M935 130 L965 130"/>
+  </g>
+  <text x="590" y="55" font-family="Microsoft JhengHei, Arial" font-size="22" font-weight="900" fill="#12395f" text-anchor="middle">Development Pipeline：功能正確 → 模組整合 → Pixel-perfect 驗證</text>
+  <text x="590" y="205" font-family="Microsoft JhengHei, Arial" font-size="15" fill="#64748b" text-anchor="middle">每一階段都需確認 address、資料寬度、clock timing、邊界條件與 golden result 是否一致。</text>
+</svg>
+<div class="caption">圖 5-1　Lab7 開發流程視覺化：由讀圖到最終 Bounding Box overlay。</div>
+</div>
+</section>
+
+<section id="stage">
+<h2>三、逐階段開發需求與驗證重點</h2>
+<table>
+<tr><th>步驟</th><th>開發內容</th><th>實作要求</th><th>驗證重點</th></tr>
+<tr><td><span class="step">1</span></td><td>ImgROM 讀圖</td><td>依 row-major 掃描整張影像，位址公式為 <code>addr = row × 256 + col</code>。</td><td>確認 <code>Img_CEN</code> active-low，讀取資料延遲與 FSM 對齊。</td></tr>
+<tr><td><span class="step">2</span></td><td>RGB to Gray</td><td>將 32-bit RGB pixel 轉為單一灰階值，並處理 rounding。</td><td>灰階公式、位元切割、四捨五入與 overflow 保護。</td></tr>
+<tr><td><span class="step">3</span></td><td>Gaussian Filter</td><td>使用 3×3 convolution 平滑雜訊，提升 threshold 穩定性。</td><td>kernel 權重、邊界 padding、除法/shift 是否正確。</td></tr>
+<tr><td><span class="step">4</span></td><td>Otsu Threshold</td><td>建立 256-level histogram，找出最大類間變異數 threshold。</td><td>累加器位寬、除以 0 保護、threshold 更新與 final T。</td></tr>
+<tr><td><span class="step">5</span></td><td>Binary Mask / Auto Polarity</td><td>以 threshold 產生 0/1 mask，必要時翻轉前景背景。</td><td>前景比例是否合理，避免 foreground/background 顛倒。</td></tr>
+<tr><td><span class="step">6</span></td><td>8-connected CCL</td><td>檢查 NW、N、NE、W 已掃描鄰居，使用 label equivalence 合併。</td><td>斜向連通、union-find root、label merge 後是否同群。</td></tr>
+<tr><td><span class="step">7</span></td><td>Bounding Box</td><td>對每個 component 記錄 <code>Xmin</code>、<code>Xmax</code>、<code>Ymin</code>、<code>Ymax</code>。</td><td>座標是否 row/col 對調、邊界物件是否需過濾。</td></tr>
+<tr><td><span class="step">8</span></td><td>Overlay / Draw</td><td>保留原始 RGB，只在框線 pixel 寫入綠色 <code>32'h0000_FF00</code>。</td><td>只畫 1-pixel 邊界，不可填滿框內區域。</td></tr>
+<tr><td><span class="step">9</span></td><td>Compare / Regression</td><td>將輸出與 <code>bbox_golden1~4.txt</code> 比對。</td><td>P1~P4 全部 <span class="pass">errors = 0</span>，才代表 pixel-perfect。</td></tr>
+</table>
+
+<div class="note"><strong>開發建議：</strong>不要一次把所有功能寫完才測試。最穩定的方法是先確認 memory control，再驗證灰階與濾波，再做 threshold / mask，最後接 CCL 與 overlay。這樣 debug 時可以快速定位問題。</div>
+</section>
+
+<section id="accept">
+<h2>四、驗收標準與評分重點</h2>
+<div class="grid">
+  <div class="card"><strong>RTL Simulation</strong><p>使用 testbench 跑 P1~P4，所有 pattern 均需通過。若任一 pixel mismatch，代表輸出影像與 golden 不一致。</p><span class="tag">必須通過</span></div>
+  <div class="card"><strong>Post-Synthesis Simulation</strong><p>合成後需產生 <code>drawBbox_syn.v</code> 與 <code>drawBbox_syn.sdf</code>，確認 gate-level 行為仍與 RTL 一致。</p><span class="tag">合成後驗證</span></div>
+  <div class="card"><strong>SuperLint Coverage</strong><p>所有 Verilog 檔案需符合基本 coding style 與 lint 規範，coverage 至少達 90%。</p><span class="tag">≥ 90%</span></div>
+  <div class="card"><strong>Report Completeness</strong><p>報告需說明設計架構、FSM、資料流程、模組功能、驗證結果與遇到問題的修正方式。</p><span class="tag">報告完整性</span></div>
+</div>
+
+<table>
+<tr><th>驗收項目</th><th>滿分條件</th><th>可能扣分原因</th></tr>
+<tr><td>功能正確性</td><td>P1~P4 全部 PASS，<code>TOTAL errors = 0</code>。</td><td>threshold 錯誤、CCL 合併錯誤、bbox 座標錯誤、綠框位置偏移。</td></tr>
+<tr><td>硬體時序</td><td>所有暫存器於 <code>posedge clk</code> 更新，reset / enable / done 行為清楚。</td><td>combinational loop、latch、done 過早拉高、memory 讀寫 timing 錯。</td></tr>
+<tr><td>可合成性</td><td>RTL 可通過 synthesis，不含不可合成語法。</td><td>使用 file I/O、initial 大量初始化、非合成系統函式或不完整 assignment。</td></tr>
+<tr><td>記憶體介面</td><td>ImgROM、UrSRAM、AnsSRAM 控制訊號符合 active-low 與 WEN 規則。</td><td>CEN/WEN 極性錯、address overflow、資料寬度不一致。</td></tr>
+<tr><td>報告與提交</td><td>檔案階層正確、所有 Verilog / testbench / bmp / txt 都有附上。</td><td>缺 submodule、上傳 waveform、缺 golden/output、檔案無法編譯。</td></tr>
+</table>
+</section>
+
+<section id="results">
+<h2>五、驗證結果與圖片佐證</h2>
+<div class="ok"><strong>目前結果：</strong>ModelSim regression log 顯示 P1、P2、P3、P4 均為 Simulation PASS，最後總結為 <code>ALL P1~P4 PASS</code>，且 <code>TOTAL errors = 0</code>。這代表目前輸出結果已達成四組 pattern 的 pixel-level 比對要求。</div>
+<div class="img-grid">
+  <div class="img-card"><img src="drawBbox_result_p1.bmp" alt="Pattern 1 output"><div class="caption">Pattern 1：Bounding Box 輸出結果</div></div>
+  <div class="img-card"><img src="drawBbox_result_p2.bmp" alt="Pattern 2 output"><div class="caption">Pattern 2：Bounding Box 輸出結果</div></div>
+  <div class="img-card"><img src="drawBbox_result_p3.bmp" alt="Pattern 3 output"><div class="caption">Pattern 3：Bounding Box 輸出結果</div></div>
+  <div class="img-card"><img src="drawBbox_result_p4.bmp" alt="Pattern 4 output"><div class="caption">Pattern 4：Bounding Box 輸出結果</div></div>
+</div>
+<pre>Regression Summary
+P1 errors = 0
+P2 errors = 0
+P3 errors = 0
+P4 errors = 0
+TOTAL errors = 0
+ALL P1~P4 PASS!!</pre>
+</section>
+
+<section id="risk">
+<h2>六、常見錯誤與避免方式</h2>
+<div class="timeline">
+  <div class="timeline-item"><strong>1. 影像偏移一格</strong><br>通常來自 ROM read latency 或 <code>row/col</code> 更新時機不一致。解法是建立 read-wait / capture state，讓 address 與 <code>Img_Q</code> 對齊。</div>
+  <div class="timeline-item"><strong>2. 綠框畫成填滿矩形</strong><br>Bounding Box overlay 只應在 <code>x==xmin/xmax</code> 或 <code>y==ymin/ymax</code> 的 pixel 寫綠色，框內其他 pixel 必須保留原始 RGB。</div>
+  <div class="timeline-item"><strong>3. CCL label 沒有正確合併</strong><br>8-connected CCL 需要檢查 NW、N、NE、W。若只檢查 N、W，斜向連接物件會被拆成多個 component。</div>
+  <div class="timeline-item"><strong>4. 邊界物件誤畫框</strong><br>若 component 碰到 image border，依規則可能不需繪製 bounding box，否則 golden comparison 會出現大量 mismatch。</div>
+  <div class="timeline-item"><strong>5. 合成失敗或 lint 分數低</strong><br>避免不可合成語法、未指定 default assignment、過大的 combinational block，以及未使用或重複宣告的 signal。</div>
+</div>
+</section>
+
+<section id="final">
+<h2>七、最終提交前檢查表</h2>
+<ul class="checklist">
+  <li>□ <strong>功能檢查：</strong>P1~P4 RTL simulation 全部 PASS，且 <code>TOTAL errors = 0</code>。</li>
+  <li>□ <strong>輸出檢查：</strong><code>drawBbox_result_p1.bmp</code> 至 <code>drawBbox_result_p4.bmp</code> 均可正常開啟。</li>
+  <li>□ <strong>檔案檢查：</strong>所有 Verilog source、testbench、input txt、golden txt、Makefile、synthesis script 均放入提交包。</li>
+  <li>□ <strong>合成檢查：</strong>Design Compiler 可產生 netlist 與 SDF，gate-level simulation 無功能錯誤。</li>
+  <li>□ <strong>Lint 檢查：</strong>SuperLint coverage 達 90% 以上，主要 warning 已修正或能合理解釋。</li>
+  <li>□ <strong>報告檢查：</strong>報告只放設計說明、圖、結果與分析，不直接貼完整 source code。</li>
+</ul>
+<div class="warn"><strong>提交提醒：</strong>若使用子模組，所有子模組都必須一起上傳。若缺少任何被 instance 的 module，即使主程式正確，也可能因無法編譯而被判定為 0 分。</div>
+</section>
+
+<div class="nav"><a href="04_assignment_purpose_enhanced.html">← 上一題</a><a href="index_enhanced.html">回索引</a><a href="06_system_block_io_enhanced.html">下一題 →</a></div>
+<div class="watermark">Lab7 Draw Bounding Box Engine｜彭靖凱｜E24134778</div>
+</div>
+</body>
+</html>

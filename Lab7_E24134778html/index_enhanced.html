@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>00 Lab7 Draw Bounding Box HTML Report Index｜Enhanced</title>
+<style>
+:root{
+  --blue:#174b78;--blue2:#1f5f90;--sky:#eaf4ff;--green:#2e8b57;--green2:#eaf8ee;
+  --orange:#fff3df;--red:#b3261e;--gray:#f6f8fb;--ink:#1f2937;--muted:#64748b;
+  --line:#c8d6e3;--shadow:0 14px 38px rgba(23,75,120,.13);--radius:22px;
+}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{font-family:"Microsoft JhengHei",Arial,sans-serif;background:linear-gradient(135deg,#edf6ff 0%,#f8fbff 48%,#eef8f2 100%);color:var(--ink);margin:0;line-height:1.85}
+.container{max-width:1220px;margin:28px auto;background:rgba(255,255,255,.96);padding:0 44px 38px;border-radius:28px;box-shadow:var(--shadow);overflow:hidden;border:1px solid rgba(138,184,230,.35)}
+.hero{margin:0 -44px 34px;padding:46px 48px 38px;background:radial-gradient(circle at 20% 15%,rgba(255,255,255,.9),transparent 32%),linear-gradient(125deg,#174b78,#1f75b6 55%,#2e8b57);color:#fff;position:relative;overflow:hidden}.hero:after{content:"";position:absolute;right:-80px;top:-80px;width:280px;height:280px;border-radius:50%;background:rgba(255,255,255,.14)}
+.kicker{display:inline-flex;gap:8px;align-items:center;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);padding:6px 13px;border-radius:999px;font-size:.95rem}.hero h1{font-size:2.65rem;line-height:1.18;margin:18px 0 10px;letter-spacing:.5px}.hero p{max-width:900px;margin:0;color:#edf7ff;font-size:1.08rem}.hero-grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:14px;margin-top:26px}.metric{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);border-radius:18px;padding:15px 16px}.metric b{display:block;font-size:1.42rem;color:#fff}.metric span{font-size:.92rem;color:#dceeff}
+h2{color:var(--blue);border-left:8px solid #5aa0df;padding-left:13px;margin-top:34px;margin-bottom:14px;font-size:1.45rem}.lead{background:#f8fbff;border:1px solid #d6e8f8;border-radius:18px;padding:18px 20px;color:#334155}.tag{display:inline-block;background:#eaf4ff;color:#174b78;border:1px solid #9dc4e8;padding:3px 10px;border-radius:999px;font-size:.9em;font-weight:700}.ok{background:var(--green2);border-left:7px solid var(--green);padding:14px 17px;margin:16px 0;border-radius:12px}.warn{background:#fff7df;border-left:7px solid #f0b429;padding:14px 17px;margin:16px 0;border-radius:12px}.note{background:#fff0f0;border-left:7px solid #d33;padding:14px 17px;margin:16px 0;border-radius:12px}
+.figure{margin:24px 0;text-align:center}.figure img{width:100%;max-width:1100px;border:1px solid #b8d6ee;border-radius:22px;background:#fff;box-shadow:0 12px 28px rgba(23,75,120,.10)}.caption{font-size:.95rem;color:#52606d;margin-top:8px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:16px}.card{border:1px solid #d6e2ee;border-radius:20px;padding:17px 18px;background:linear-gradient(180deg,#fff,#fbfdff);box-shadow:0 8px 22px rgba(23,75,120,.055)}.card h3{margin:0 0 8px;color:#174b78;font-size:1.1rem}.card p{margin:0;color:#475569}.card a{color:#174b78;text-decoration:none;font-weight:800}.card a:hover{text-decoration:underline}.num{display:inline-flex;justify-content:center;align-items:center;width:38px;height:38px;border-radius:12px;background:#eaf4ff;color:#174b78;font-weight:900;margin-right:9px}.status{float:right;font-size:.84rem;background:#eaf8ee;color:#23683f;border:1px solid #9dd9b0;border-radius:999px;padding:2px 9px;margin-top:5px}.todo{float:right;font-size:.84rem;background:#fff7df;color:#8a5a00;border:1px solid #f0d08a;border-radius:999px;padding:2px 9px;margin-top:5px}
+table{width:100%;border-collapse:collapse;margin:18px 0;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 7px 18px rgba(23,75,120,.055)}th,td{border:1px solid var(--line);padding:11px 13px;vertical-align:top}th{background:#e9f3fc;color:#174b78;text-align:left}code{font-family:Consolas,"Courier New",monospace;background:#f1f4f8;border-radius:6px;padding:2px 5px}.image-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}.shot{background:#fff;border:1px solid #d6e2ee;border-radius:20px;padding:12px;box-shadow:0 8px 22px rgba(23,75,120,.07)}.shot img{width:100%;border-radius:14px;border:1px solid #bfd4e8;background:#f8fbff;image-rendering:auto}.shot b{display:block;color:#174b78;margin:8px 4px 0}.shot span{display:block;color:#64748b;font-size:.9rem;margin:0 4px 4px}.callout-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}.callout{border-radius:18px;padding:18px;border:1px solid #d6e2ee;background:#fbfdff}.callout strong{display:block;color:#174b78;font-size:1.12rem;margin-bottom:6px}.checklist li{margin:8px 0}.nav{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:34px;border-top:1px solid #d8e2ef;padding-top:18px}.nav a{color:#174b78;text-decoration:none;font-weight:800}.watermark{font-size:.9em;color:#697386;text-align:center;margin-top:24px}
+@media (max-width:760px){.container{margin:12px;padding:0 18px 30px}.hero{margin:0 -18px 26px;padding:34px 22px}.hero h1{font-size:2rem}.hero-grid{grid-template-columns:1fr 1fr}.status,.todo{float:none;display:inline-block;margin-left:8px}.nav{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="container">
+  <section class="hero">
+    <span class="kicker">2026 iVCAD・Lab7・Draw Bounding Box Engine</span>
+    <h1>Lab7 HTML Report Index<br>完整報告導覽首頁</h1>
+    <p>本頁將 Lab7 報告整理成 14 個獨立 HTML 章節，從基本資料、模擬摘要、交付檔案、影像處理目的，到硬體架構、FSM、RTL/SYN 驗證與提交命令，形成可直接瀏覽與繳交檢查的總入口。</p>
+    <div class="hero-grid">
+      <div class="metric"><b>14</b><span>HTML report pages</span></div>
+      <div class="metric"><b>P1–P4</b><span>RTL simulation pass</span></div>
+      <div class="metric"><b>0</b><span>Total pixel errors</span></div>
+      <div class="metric"><b>E24134778</b><span>Student ID</span></div>
+    </div>
+  </section>
+
+  <h2>一、首頁用途與報告總覽</h2>
+  <p class="lead">原始 index.html 已列出 14 個 HTML 檔案，並記錄學生彭靖凱、學號 E24134778、ModelSim RTL P1~P4 全部 PASS、total errors = 0，以及 P4 simulation time 為 24011725 ns。此加強版在保留原始內容的基礎上，加入視覺化導覽、成果卡片、圖片預覽與提交檢查表，讓助教可以快速掌握整份 Lab7 報告結構。</p>
+
+  <div class="figure">
+    <img src="assets/index_navigation_map.svg" alt="Lab7 HTML Report Navigation Map">
+    <div class="caption">加強版導覽圖：14 個章節依照封面、摘要、設計、驗證、合成與提交順序串接。</div>
+  </div>
+
+  <h2>二、14 個 HTML 檔案索引</h2>
+  <div class="grid">
+    <div class="card"><span class="num">01</span><span class="status">完成</span><h3><a href="01_basic_info_enhanced.html">一、基本資料</a></h3><p>報告封面資訊、課程名稱、Lab title、姓名、學號、分數與提交者辨識資料。</p></div>
+    <div class="card"><span class="num">02</span><span class="status">完成</span><h3><a href="02_summary_enhanced.html">二、Summary 實驗結果摘要</a></h3><p>整理 RTL/SYN 狀態、P1~P4 error count、total errors、P4 simulation time 與待補 area。</p></div>
+    <div class="card"><span class="num">03</span><span class="status">完成</span><h3><a href="03_deliverables_enhanced.html">三、Deliverables 與檔案階層</a></h3><p>說明需上傳的 Verilog、testbench、BMP、txt log、合成檔與禁止上傳的 waveform。</p></div>
+    <div class="card"><span class="num">04</span><span class="status">完成</span><h3><a href="04_assignment_purpose_enhanced.html">四、作業說明與目的</a></h3><p>解釋本 Lab 的核心目標：從 256×256 RGB image 偵測物件並繪製 bounding box。</p></div>
+    <div class="card"><span class="num">05</span><span class="status">完成</span><h3><a href="05_development_acceptance_enhanced.html">五、開發流程需求與驗收標準</a></h3><p>按照 ImgROM 讀圖、Gray、Gaussian、Otsu、Mask、CCL、BBox、Overlay、Compare 展開。</p></div>
+    <div class="card"><span class="num">06</span><span class="status">完成</span><h3><a href="06_system_block_io_enhanced.html">六、系統方塊圖與 I/O Port 說明</a></h3><p>說明 testbench、DUT、ImgROM、UrSRAM、AnsSRAM 的連接與 port 功能。</p></div>
+    <div class="card"><span class="num">07</span><span class="status">完成</span><h3><a href="07_function_pipeline_enhanced.html">七、Understanding the Function</a></h3><p>完整描述 Read、Convert、Filter、Binarization、CCL、BBox、Overlay 與 done 流程。</p></div>
+    <div class="card"><span class="num">08</span><span class="status">完成</span><h3><a href="08_basic_design_rules_enhanced.html">八、Basic Design Rules</a></h3><p>整理 synchronous design、posedge clk、reset、enable、done 與 SRAM 控制規則。</p></div>
+    <div class="card"><span class="num">09</span><span class="todo">建議補圖</span><h3><a href="09_design_detail_enhanced_html/09_design_detail_enhanced.html">九、Detailed Design / Internal Architecture</a></h3><p>建議放入內部模組分層、資料路徑、暫存器規劃、label table 與 bounding box unit。</p></div>
+    <div class="card"><span class="num">10</span><span class="todo">建議補圖</span><h3><a href="10_controller_fsm_enhanced_html/10_controller_fsm_enhanced.html">十、Controller FSM</a></h3><p>建議使用狀態圖說明 IDLE、READ、GRAY、FILTER、THRESHOLD、CCL、DRAW、DONE。</p></div>
+    <div class="card"><span class="num">11</span><span class="status">驗證重點</span><h3><a href="11_compile_verification_enhanced_html/11_compile_verification_enhanced.html">十一、Verilog Compile 與 Simulation Verification</a></h3><p>放入 ModelSim compile command、run command、PASS log 與 P1~P4 結果摘要。</p></div>
+    <div class="card"><span class="num">12</span><span class="todo">待 DC report</span><h3><a href="12_synthesis_enhanced_html/12_synthesis_enhanced.html">十二、Synthesis Constraint 與結果</a></h3><p>保留 synthesis.tcl、DC.sdc、area、timing、cell report 欄位，等待正式合成補齊。</p></div>
+    <div class="card"><span class="num">13</span><span class="status">結果頁</span><h3><a href="13_results_waveform_superlint_final_full_html/13_results_waveform_superlint_final_full.html">十三、結果圖片、Waveform、SuperLint、最佳化與心得</a></h3><p>展示 final BMP、SuperLint、最佳化方法與實驗心得；注意報告可說明 waveform，但不可上傳波形檔。</p></div>
+    <div class="card"><span class="num">14</span><span class="status">提交頁</span><h3><a href="14_submission_command_enhanced.html">十四、Submission Command</a></h3><p>列出 tar 打包、檔案檢查、Linux/ModelSim/Makefile 指令與最後繳交確認。</p></div>
+  </div>
+
+  <h2>三、實驗結果依據與狀態摘要</h2>
+  <table>
+    <tr><th>項目</th><th>目前結果</th><th>說明</th></tr>
+    <tr><td>學生資訊</td><td>彭靖凱｜E24134778</td><td>用於報告 watermark、封面與提交檔名一致性。</td></tr>
+    <tr><td>RTL Simulation</td><td><span class="tag">P1~P4 ALL PASS</span></td><td>ModelSim RTL 模擬結果顯示四個 pattern 全部通過。</td></tr>
+    <tr><td>Total Errors</td><td><span class="tag">0</span></td><td>代表與 golden result 在 pixel-level 比對中沒有錯誤。</td></tr>
+    <tr><td>P4 Simulation Time</td><td><code>24011725 ns</code></td><td>原始 index 摘要記錄的 ModelSim 結束時間。</td></tr>
+    <tr><td>Final BMP</td><td>P1~P4 output images</td><td>建議在 Summary 與 Results 章節加入圖片，提升報告可讀性。</td></tr>
+    <tr><td>Synthesis / Area</td><td>待補</td><td>尚未提供 <code>area_rpt.txt</code>，不可自行填寫面積或 gate-level 結果。</td></tr>
+  </table>
+
+  <div class="callout-row">
+    <div class="callout"><strong>已完成亮點</strong>RTL 模擬 P1、P2、P3、P4 全部通過，total errors = 0，可在報告中強調 pixel-perfect RTL correctness。</div>
+    <div class="callout"><strong>需要保留誠實註記</strong>若尚未完成 Design Compiler synthesis，area、timing、SDF 與 post-synthesis result 應標示待補。</div>
+    <div class="callout"><strong>報告呈現建議</strong>首頁不要只列連結，應加入任務目標、流程地圖、驗證摘要與最終圖片，讓助教快速看到成果。</div>
+  </div>
+
+  <h2>四、P1~P4 輸出圖片預覽</h2>
+  <p class="lead">以下圖片可作為 index 首頁的成果展示區。首頁只放小圖與摘要，詳細 pixel-level 比對與 log 建議放在 02 Summary、11 Verification、13 Results 章節。</p>
+  <div class="image-grid">
+    <div class="shot"><img src="assets/drawBbox_result_p1_enhanced.png" alt="P1 output"><b>Pattern 1 Output</b><span>RTL PASS，error = 0</span></div>
+    <div class="shot"><img src="assets/drawBbox_result_p2_enhanced.png" alt="P2 output"><b>Pattern 2 Output</b><span>RTL PASS，error = 0</span></div>
+    <div class="shot"><img src="assets/drawBbox_result_p3_enhanced.png" alt="P3 output"><b>Pattern 3 Output</b><span>RTL PASS，error = 0</span></div>
+    <div class="shot"><img src="assets/drawBbox_result_p4_enhanced.png" alt="P4 output"><b>Pattern 4 Output</b><span>RTL PASS，error = 0</span></div>
+  </div>
+
+  <h2>五、提交前檢查清單</h2>
+  <div class="ok">這份 index 可以作為最終提交包首頁。助教打開 <code>index.html</code> 後，能從本頁進入所有章節並快速確認 PASS 結果。</div>
+  <ul class="checklist">
+    <li>確認 14 個 HTML 檔案都能由 index 正確連結。</li>
+    <li>確認 <code>assets/</code> 內含流程圖、檔案階層圖、P1~P4 結果圖。</li>
+    <li>確認報告沒有貼完整 source code，只保留必要片段與說明。</li>
+    <li>確認不將 <code>.fsdb</code>、<code>.vcd</code>、<code>vsim.wlf</code> 等 waveform 檔放入提交包。</li>
+    <li>若 synthesis 已完成，再補上 <code>drawBbox_syn.v</code>、<code>drawBbox_syn.sdf</code>、area/timing report 數值。</li>
+  </ul>
+
+  <div class="warn">補充：目前 index 原始內容已明確標示 area / synthesis report 未提供，所以本加強版也保留「待補」狀態，避免報告填入未驗證數據。</div>
+
+  <div class="nav"><span></span><a href="index_enhanced.html">回原始索引</a><a href="01_basic_info_enhanced.html">下一題 →</a></div>
+  <div class="watermark">Lab7 Draw Bounding Box Engine｜彭靖凱｜E24134778</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>11 十一、Verilog Compile 與 Simulation Verification｜Enhanced</title>
+<style>
+:root{
+  --blue:#174b78; --blue2:#2f75b5; --sky:#eaf4ff; --green:#1b7f45; --greenbg:#eaf8ee;
+  --orange:#f29f05; --orangebg:#fff7df; --red:#b3261e; --redbg:#fff0f0; --ink:#1f2937; --muted:#64748b;
+}
+*{box-sizing:border-box}
+body{font-family:"Microsoft JhengHei",Arial,sans-serif;margin:0;background:
+radial-gradient(circle at 12% 8%,rgba(91,160,223,.22),transparent 30%),
+linear-gradient(135deg,#f5f9ff,#eef4f8 45%,#f9fbfd);color:var(--ink);line-height:1.85}
+.container{max-width:1180px;margin:32px auto;background:rgba(255,255,255,.96);padding:42px 52px;border-radius:24px;box-shadow:0 14px 42px rgba(23,75,120,.14);border:1px solid #d7e7f5}
+.hero{padding:24px 28px;border-radius:22px;background:linear-gradient(135deg,#eaf4ff,#fff);border:1px solid #c9dff2;margin-bottom:28px}
+h1{color:var(--blue);text-align:center;margin:.2em 0 .35em;font-size:2.15rem;letter-spacing:.02em}
+.subtitle{text-align:center;color:var(--muted);font-weight:600}
+h2{color:var(--blue);border-left:8px solid #5aa0df;padding-left:14px;margin-top:34px;font-size:1.45rem}
+h3{color:#22613c;margin-top:24px}
+p{font-size:1.05rem}
+.badges{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:18px}
+.badge{display:inline-block;padding:7px 12px;border-radius:999px;background:#eef7ff;color:#174b78;border:1px solid #a8cce9;font-weight:700}
+table{width:100%;border-collapse:separate;border-spacing:0;margin:18px 0;overflow:hidden;border:1px solid #c8d6e3;border-radius:14px;background:white}
+th,td{padding:12px 14px;border-bottom:1px solid #d8e3ef;border-right:1px solid #d8e3ef;vertical-align:top}
+tr:last-child td{border-bottom:none} th:last-child,td:last-child{border-right:none}
+th{background:linear-gradient(135deg,#e7f2fb,#d8ebfb);color:#174b78;text-align:left}
+.note,.ok,.warn{border-radius:14px;padding:15px 18px;margin:18px 0}
+.note{background:var(--orangebg);border-left:7px solid #f0b429}
+.ok{background:var(--greenbg);border-left:7px solid #3a9a55}
+.warn{background:var(--redbg);border-left:7px solid #d33}
+pre{background:#0f172a;color:#e2e8f0;border-radius:16px;padding:18px;white-space:pre-wrap;overflow:auto;border:1px solid #1e293b;box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
+code{font-family:Consolas,"Courier New",monospace;background:#eef3f8;color:#123e61;border-radius:6px;padding:2px 6px}
+pre code{background:transparent;color:inherit;padding:0}
+.figure{text-align:center;margin:28px 0}
+.figure img{max-width:98%;border:1px solid #b9cfe3;border-radius:18px;background:white;box-shadow:0 8px 26px rgba(23,75,120,.12)}
+.caption{font-size:.96em;color:#52606d;margin-top:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:18px}
+.card{border:1px solid #d6e2ee;border-radius:18px;padding:18px;background:linear-gradient(180deg,#fbfdff,#fff);box-shadow:0 5px 18px rgba(23,75,120,.06)}
+.kpi{font-size:1.55rem;font-weight:900;color:#174b78}
+.nav{display:flex;justify-content:space-between;gap:12px;margin-top:36px;border-top:1px solid #d8e2ef;padding-top:20px}
+.nav a{color:#174b78;text-decoration:none;font-weight:800}
+.watermark{text-align:center;color:#697386;font-size:.9rem;margin-top:24px}
+.small{font-size:.94rem;color:#64748b}
+.terminal{background:#08111f;color:#d7fbd0;border-radius:16px;padding:18px;font-family:Consolas,monospace;white-space:pre-wrap;overflow:auto}
+.pass{color:#0f7b3a;font-weight:800}
+</style>
+</head>
+<body>
+<div class="container">
+<section class="hero">
+<h1>11. 十一、Verilog Compile 與 Simulation Verification</h1>
+<div class="subtitle">Lab7 Draw Bounding Box Engine｜彭靖凱｜E24134778</div>
+<div class="badges">
+<span class="badge">ModelSim RTL Simulation</span>
+<span class="badge">P1~P4 All PASS</span>
+<span class="badge">Total Errors = 0</span>
+<span class="badge">Pixel-perfect Verification</span>
+</div>
+</section>
+
+<h2>一、題目說明</h2>
+<p>
+本題要求完成 <code>drawBbox</code> module，並使用 Verilog/SystemVerilog testbench 進行編譯與功能模擬。
+重點不是只確認程式能編譯，而是要確認輸出影像與 golden result 逐 pixel 完全一致。
+因此本頁整理 compile flow、testbench 架構、simulation command、P1~P4 terminal result、warning 解釋與輸出 BMP 驗證。
+</p>
+
+<div class="ok">
+根據 ModelSim terminal result，本次 RTL simulation 已完成 Pattern 1 至 Pattern 4，且 P1、P2、P3、P4 的 error count 全部為 0，最後顯示 <b>ALL P1~P4 PASS</b>。
+</div>
+
+<div class="figure"><img src="assets/compile_simulation_flow.svg" alt="Fig.11-1 RTL compile 與 simulation verification flow"><div class="caption">Fig.11-1 RTL compile 與 simulation verification flow</div></div>
+
+<h2>二、編譯與模擬環境</h2>
+<table>
+<tr><th>項目</th><th>內容</th><th>說明</th></tr>
+<tr>
+<td>Simulator</td>
+<td>ModelSim - Intel FPGA Edition vlog 10.5b</td>
+<td>用於編譯 <code>drawBbox.v</code>、<code>CYCLE_MAX.sv</code>、<code>tb.sv</code> 與整合 testbench。</td>
+</tr>
+<tr>
+<td>Top Level</td>
+<td><code>tb</code></td>
+<td>ModelSim log 顯示 top level module 為 <code>tb</code>，由 testbench 控制整體模擬。</td>
+</tr>
+<tr>
+<td>DUT</td>
+<td><code>drawBbox</code></td>
+<td>主要設計模組，負責灰階、Gaussian、Otsu、CCL、Bounding Box 與 Overlay。</td>
+</tr>
+<tr>
+<td>Timeout Guard</td>
+<td><code>CYCLE_MAX.sv</code></td>
+<td>設定最大 cycle 限制，避免設計未拉高 <code>done</code> 時模擬無限執行。</td>
+</tr>
+<tr>
+<td>Output Files</td>
+<td><code>drawBbox_result_p1~p4.bmp</code></td>
+<td>testbench 將 AnsSRAM 的結果轉成 BMP，供報告與視覺檢查使用。</td>
+</tr>
+<tr>
+<td>Log Files</td>
+<td><code>terminal_result_p1~p4.log</code></td>
+<td>記錄各 pattern 的 PASS/FAIL 與 error count。</td>
+</tr>
+</table>
+
+<div class="figure"><img src="assets/testbench_role.svg" alt="Fig.11-2 tb.sv、CYCLE_MAX.sv 與 drawBbox.v 的分工"><div class="caption">Fig.11-2 tb.sv、CYCLE_MAX.sv 與 drawBbox.v 的分工</div></div>
+
+<h2>三、Compile Result 解讀</h2>
+<p>
+ModelSim compile 階段載入 <code>drawBbox</code>、<code>tb</code> 與 <code>RGBMEM</code>。log 中出現 4 個 warning，主要是因為整合 testbench 與原始 testbench 重複 include 或重複宣告 module，造成
+<code>drawBbox already exists and will be overwritten</code>、<code>tb already exists and will be overwritten</code> 類訊息。
+這類 warning 不代表功能錯誤；真正的判斷依據是 compile errors 是否為 0，以及 simulation 是否全 pattern PASS。
+</p>
+
+<div class="figure"><img src="assets/compile_warning_explanation.svg" alt="Fig.11-3 Compile warning 與 error 的解讀方式"><div class="caption">Fig.11-3 Compile warning 與 error 的解讀方式</div></div>
+
+<table>
+<tr><th>Compile 訊息</th><th>結果</th><th>解釋</th></tr>
+<tr>
+<td>Errors</td>
+<td><b>0</b></td>
+<td>沒有語法錯誤、port 連接錯誤或 module 無法 elaboration 的問題。</td>
+</tr>
+<tr>
+<td>Warnings</td>
+<td><b>4</b></td>
+<td>主要來自 module overwrite，因為 testbench 包含重複 module 定義；不影響 P1~P4 功能結果。</td>
+</tr>
+<tr>
+<td>Top level modules</td>
+<td><code>tb</code></td>
+<td>表示模擬入口正確設定為 testbench。</td>
+</tr>
+</table>
+
+<h2>四、Simulation Command</h2>
+<h3>單一 Pattern 模擬</h3>
+<p>若要分別測試 P1～P4，可使用 <code>+define+p1</code> 到 <code>+define+p4</code> 切換 pattern。</p>
+<pre><code>vlib work
+
+vlog +define+p1 drawBbox.v CYCLE_MAX.sv tb.sv
+vsim work.tb
+run -all
+
+vlog +define+p2 drawBbox.v CYCLE_MAX.sv tb.sv
+vsim work.tb
+run -all
+
+vlog +define+p3 drawBbox.v CYCLE_MAX.sv tb.sv
+vsim work.tb
+run -all
+
+vlog +define+p4 drawBbox.v CYCLE_MAX.sv tb.sv
+vsim work.tb
+run -all</code></pre>
+
+<h3>一次執行 P1～P4 的整合指令</h3>
+<p>若使用整合 testbench，可一次跑完四個 pattern。此次結果即來自整合測試流程。</p>
+<pre><code>vlog -reportprogress 300 "+define+p2" drawBbox.v CYCLE_MAX.sv tb.sv tb_all_p1_p4_full.sv
+vsim -c -suppress 12023,3015 work.tb -do "run -all; quit -sim"</code></pre>
+
+<h2>五、P1～P4 RTL Simulation 結果</h2>
+<div class="figure"><img src="assets/pattern_summary_cards.svg" alt="Fig.11-4 P1～P4 all pass summary"><div class="caption">Fig.11-4 P1～P4 all pass summary</div></div>
+
+<table>
+<tr><th>Pattern</th><th>RTL Result</th><th>Error Count</th><th>輸出檔案</th><th>說明</th></tr>
+<tr><td>Pattern 1</td><td class="pass">PASS</td><td>0</td><td><code>drawBbox_result_p1.bmp</code></td><td>與 golden result 完全一致。</td></tr>
+<tr><td>Pattern 2</td><td class="pass">PASS</td><td>0</td><td><code>drawBbox_result_p2.bmp</code></td><td>與 golden result 完全一致。</td></tr>
+<tr><td>Pattern 3</td><td class="pass">PASS</td><td>0</td><td><code>drawBbox_result_p3.bmp</code></td><td>與 golden result 完全一致。</td></tr>
+<tr><td>Pattern 4</td><td class="pass">PASS</td><td>0</td><td><code>drawBbox_result_p4.bmp</code></td><td>與 golden result 完全一致，並輸出最終 BMP。</td></tr>
+<tr><td><b>Total</b></td><td class="pass"><b>ALL PASS</b></td><td><b>0</b></td><td>—</td><td>Pixel-perfect RTL implementation achieved。</td></tr>
+</table>
+
+<h2>六、Terminal Result 重點摘錄</h2>
+<div class="terminal"># Errors: 0, Warnings: 4
+# Running Pattern 1
+# P1 Simulation PASS!!
+# Running Pattern 2
+# P2 Simulation PASS!!
+# Running Pattern 3
+# P3 Simulation PASS!!
+# Running Pattern 4
+# P4 Simulation PASS!!
+
+# P1 errors = 0
+# P2 errors = 0
+# P3 errors = 0
+# P4 errors = 0
+# TOTAL errors = 0
+# ALL P1~P4 PASS!!
+# Time: 24011725 ns</div>
+
+<p>
+由 terminal log 可知，四組測試圖皆成功產生 BMP，且每一組 pattern 的 error count 都是 0。
+最後 simulation time 顯示為 <b>24011725 ns</b>，可作為 Summary 表格中的 P4 simulation time 參考。
+</p>
+
+<h2>七、輸出 BMP 視覺化結果</h2>
+<p>以下區塊會自動顯示資料夾中存在的 <code>drawBbox_result_p1~p4.bmp</code>。若單獨開啟 HTML 時看不到圖片，請確認 <code>assets/</code> 內有對應 BMP 檔案。</p>
+<div class="grid">
+
+<div class="card">
+<div class="figure"><img src="assets/drawBbox_result_p1.bmp" alt="drawBbox_result_p1.bmp：Pattern 1 output image"><div class="caption">drawBbox_result_p1.bmp：Pattern 1 output image</div></div>
+<p><b>Pattern 1</b>：RTL simulation PASS，error count = 0。此 BMP 是 testbench 由 AnsSRAM 輸出資料繪製而成。</p>
+</div>
+
+<div class="card">
+<div class="figure"><img src="assets/drawBbox_result_p2.bmp" alt="drawBbox_result_p2.bmp：Pattern 2 output image"><div class="caption">drawBbox_result_p2.bmp：Pattern 2 output image</div></div>
+<p><b>Pattern 2</b>：RTL simulation PASS，error count = 0。此 BMP 是 testbench 由 AnsSRAM 輸出資料繪製而成。</p>
+</div>
+
+<div class="card">
+<div class="figure"><img src="assets/drawBbox_result_p3.bmp" alt="drawBbox_result_p3.bmp：Pattern 3 output image"><div class="caption">drawBbox_result_p3.bmp：Pattern 3 output image</div></div>
+<p><b>Pattern 3</b>：RTL simulation PASS，error count = 0。此 BMP 是 testbench 由 AnsSRAM 輸出資料繪製而成。</p>
+</div>
+
+<div class="card">
+<div class="figure"><img src="assets/drawBbox_result_p4.bmp" alt="drawBbox_result_p4.bmp：Pattern 4 output image"><div class="caption">drawBbox_result_p4.bmp：Pattern 4 output image</div></div>
+<p><b>Pattern 4</b>：RTL simulation PASS，error count = 0。此 BMP 是 testbench 由 AnsSRAM 輸出資料繪製而成。</p>
+</div>
+
+</div>
+
+<h2>八、Testbench 驗證邏輯說明</h2>
+<p>
+Lab7 的 testbench 會將 <code>drawBbox</code> 寫入 AnsSRAM 的每個 pixel 與 golden result 逐一比對。
+如果有任何一個 pixel 不一致，就會累加 error count 並輸出 mismatch 訊息。
+因此 <b>errors = 0</b> 代表輸出影像不只是視覺上相似，而是每個 32-bit pixel 都完全符合 golden。
+</p>
+
+<table>
+<tr><th>驗證項目</th><th>檢查方式</th><th>本次結果</th></tr>
+<tr>
+<td>Compile correctness</td>
+<td>檢查 vlog 是否有 fatal error 或 syntax error。</td>
+<td class="pass">PASS：Errors = 0</td>
+</tr>
+<tr>
+<td>Functional correctness</td>
+<td>檢查 P1~P4 每個 pixel 是否與 golden 相同。</td>
+<td class="pass">PASS：Total errors = 0</td>
+</tr>
+<tr>
+<td>Image output</td>
+<td>輸出 256×256 32-bit BMP 供視覺確認。</td>
+<td class="pass">PASS：P1~P4 BMP generated</td>
+</tr>
+<tr>
+<td>Completion signal</td>
+<td>設計需正確拉高 <code>done</code>，讓 testbench 結束。</td>
+<td class="pass">PASS：simulation finished normally</td>
+</tr>
+</table>
+
+<h2>九、常見錯誤與本設計避免方式</h2>
+<div class="grid">
+<div class="card">
+<div class="kpi">1</div>
+<h3>Port mismatch</h3>
+<p>若 <code>drawBbox</code> port 名稱或位元寬度與 testbench 不一致，compile 或 elaboration 會失敗。本設計保留題目指定 I/O。</p>
+</div>
+<div class="card">
+<div class="kpi">2</div>
+<h3>Memory timing error</h3>
+<p>若 <code>CEN/WEN/A/D</code> 時序錯誤，可能造成輸出整張圖偏移。本設計依 FSM 分階段控制讀寫。</p>
+</div>
+<div class="card">
+<div class="kpi">3</div>
+<h3>Wrong threshold / polarity</h3>
+<p>若 threshold 或 auto-polarity 錯誤，CCL 會標錯前景。本設計通過 P1~P4，表示 mask 與後續流程一致。</p>
+</div>
+<div class="card">
+<div class="kpi">4</div>
+<h3>Bounding box off-by-one</h3>
+<p>若邊界座標少一格或多一格，pixel compare 會失敗。本次 error = 0 表示 bbox boundary 與 golden 完全一致。</p>
+</div>
+</div>
+
+<h2>十、報告可直接貼上的正式答案</h2>
+<p>
+本設計已完成 <code>drawBbox</code> module，並使用 ModelSim 進行 RTL compile 與 functional simulation。
+編譯過程中 top level module 為 <code>tb</code>，並載入 <code>drawBbox</code> 與 <code>RGBMEM</code>。
+Compile 結果顯示 errors = 0，warnings = 4；warnings 主要由整合 testbench 重複 include module 所造成，不影響功能驗證。
+</p>
+<p>
+在 RTL simulation 中，系統依序執行 Pattern 1 至 Pattern 4。每個 pattern 完成後，testbench 會將輸出結果與 golden result 逐 pixel 比對，
+並產生對應的 BMP 輸出檔。模擬結果顯示 P1、P2、P3、P4 皆為 PASS，且各 pattern error count 皆為 0，total errors = 0。
+因此本設計已達成 pixel-perfect RTL verification。
+</p>
+<p>
+本次模擬亦成功輸出 <code>drawBbox_result_p1.bmp</code>、<code>drawBbox_result_p2.bmp</code>、
+<code>drawBbox_result_p3.bmp</code> 與 <code>drawBbox_result_p4.bmp</code>。
+其中 P4 simulation 結束時間為 24011725 ns，可作為 Summary 表格與後續 PA Rank 計算之參考。
+</p>
+
+<div class="nav"><a href="10_controller_fsm.html">← 上一題</a><a href="index.html">回索引</a><a href="12_synthesis.html">下一題 →</a></div>
+<div class="watermark">Lab7 Draw Bounding Box Engine｜彭靖凱｜E24134778</div>
+</div>
+</body>
+</html>

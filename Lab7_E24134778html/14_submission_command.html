@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>14 十四、Submission Command</title>
+<style>
+:root{--blue:#1f5f90;--light:#eaf4ff;--green:#eaf8ee;--orange:#fff3df;--gray:#f6f8fb;--red:#b3261e}
+body{font-family:"Microsoft JhengHei",Arial,sans-serif;background:#f4f7fb;color:#1f2937;margin:0;line-height:1.85}
+.container{max-width:1120px;margin:28px auto;background:#fff;padding:38px 48px;border-radius:18px;box-shadow:0 6px 24px rgba(0,0,0,.08)}
+h1{color:#174b78;text-align:center;border-bottom:3px solid #8ab8e6;padding-bottom:10px}
+h2{color:var(--blue);border-left:7px solid #5aa0df;padding-left:12px;margin-top:30px}
+h3{color:#2b6a3f;margin-top:22px}.tag{display:inline-block;background:#eaf4ff;color:#174b78;border:1px solid #9dc4e8;padding:3px 8px;border-radius:999px;font-size:.88em}
+table{width:100%;border-collapse:collapse;margin:16px 0;background:#fff}th,td{border:1px solid #c8d6e3;padding:10px 12px;vertical-align:top}th{background:#e9f3fc;color:#174b78}
+.note{background:#fff7df;border-left:6px solid #f0b429;padding:13px 16px;margin:16px 0;border-radius:8px}
+.ok{background:#eaf8ee;border-left:6px solid #3a9a55;padding:13px 16px;margin:16px 0;border-radius:8px}
+.warn{background:#fff0f0;border-left:6px solid #d33;padding:13px 16px;margin:16px 0;border-radius:8px}
+pre,code{font-family:Consolas,"Courier New",monospace;background:#f1f4f8;border-radius:6px}code{padding:2px 5px}pre{padding:14px;white-space:pre-wrap;overflow:auto;border:1px solid #dde5ef}
+.figure{text-align:center;margin:24px 0}.figure img{max-width:96%;border:2px solid #9bbad6;border-radius:10px;background:#fff}.caption{font-size:.93em;color:#52606d;margin-top:6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}.card{border:1px solid #d6e2ee;border-radius:12px;padding:16px;background:#fbfdff}
+.nav{display:flex;justify-content:space-between;gap:12px;margin-top:32px;border-top:1px solid #d8e2ef;padding-top:18px}.nav a{color:#174b78;text-decoration:none;font-weight:bold}
+.watermark{font-size:.86em;color:#697386;text-align:center;margin-top:24px}.formula{background:#f8fbff;border:1px dashed #9bbad6;border-radius:10px;padding:12px;margin:12px 0;text-align:center;font-weight:bold}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>14. 十四、Submission Command</h1>
+
+<h2>題目說明</h2>
+<p>本題要求將所有指定檔案壓縮成一個 <code>.tar</code> 檔並透過 Moodle 繳交。若設計使用額外檔案或子模組，也必須一併附上。</p>
+<h2>建議提交資料夾</h2>
+<pre>Lab7_E24134778/
+├── drawBbox.v
+├── tb.sv
+├── CYCLE_MAX.sv
+├── drawBbox_syn.v              # synthesis 後補入
+├── drawBbox_syn.sdf            # synthesis 後補入
+├── DC.sdc
+├── .synopsys_dc.setup
+├── superlint.tcl
+├── synthesis.tcl
+├── Makefile
+├── drawBbox_result_p1.bmp
+├── drawBbox_result_p2.bmp
+├── drawBbox_result_p3.bmp
+├── drawBbox_result_p4.bmp
+├── terminal_result_p1.log
+├── terminal_result_p2.log
+├── terminal_result_p3.log
+├── terminal_result_p4.log
+└── E24134778.pdf</pre>
+<h2>Windows PowerShell 打包指令</h2>
+<pre>tar -cvf Lab7_E24134778.tar Lab7_E24134778</pre>
+<h2>Linux / EDA Server 打包指令</h2>
+<pre>cd ~/Lab7_E24134778
+tar -cvf ../Lab7_E24134778.tar .</pre>
+<h2>若需先跑 synthesis</h2>
+<pre>dc_shell
+source synthesis.tcl
+exit</pre>
+<h2>若需檢查 area</h2>
+<pre>cat area_rpt.txt
+# 找 Total cell area</pre>
+<h2>若需跑 post-synthesis simulation</h2>
+<pre>vlog drawBbox_syn.v CYCLE_MAX.sv tb.sv
+vsim work.tb -sdftyp /tb/u_drawBbox=drawBbox_syn.sdf
+run -all</pre>
+<div class="note">提交前檢查：不要放 <code>.fsdb</code>、<code>.vcd</code>、<code>test_fig</code>；若使用子模組一定要包含；若已合成，務必放入 <code>drawBbox_syn.v</code> 與 <code>drawBbox_syn.sdf</code>。</div>
+<h2>報告可貼結論</h2>
+<p>本作業最終應以 <code>Lab7_E24134778.tar</code> 形式提交至 Moodle。壓縮檔內需包含 RTL、testbench、synthesis files、result bmp、log files 與 final report，確保助教可直接解壓縮、編譯、模擬與驗證。</p>
+
+<div class="nav"><a href="13_results_waveform_superlint_enhanced.html">← 上一題</a><a href="index_enhanced.html">回索引</a><span></span></div>
+<div class="watermark">Lab7 Draw Bounding Box Engine｜彭靖凱｜E24134778</div>
+</div>
+</body>
+</html>

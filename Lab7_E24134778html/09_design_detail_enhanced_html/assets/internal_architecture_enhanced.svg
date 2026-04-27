@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="830" viewBox="0 0 1400 830">
+<defs>
+  <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#eef7ff"/>
+    <stop offset="100%" stop-color="#ffffff"/>
+  </linearGradient>
+  <linearGradient id="blue" x1="0" x2="1">
+    <stop offset="0%" stop-color="#dff0ff"/>
+    <stop offset="100%" stop-color="#b9dbff"/>
+  </linearGradient>
+  <linearGradient id="green" x1="0" x2="1">
+    <stop offset="0%" stop-color="#e7f8ec"/>
+    <stop offset="100%" stop-color="#c9efd4"/>
+  </linearGradient>
+  <linearGradient id="orange" x1="0" x2="1">
+    <stop offset="0%" stop-color="#fff3df"/>
+    <stop offset="100%" stop-color="#ffe0ad"/>
+  </linearGradient>
+  <linearGradient id="purple" x1="0" x2="1">
+    <stop offset="0%" stop-color="#f1e7ff"/>
+    <stop offset="100%" stop-color="#d9c5ff"/>
+  </linearGradient>
+  <linearGradient id="red" x1="0" x2="1">
+    <stop offset="0%" stop-color="#fff0f0"/>
+    <stop offset="100%" stop-color="#ffd6d6"/>
+  </linearGradient>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#174b78" flood-opacity="0.18"/>
+  </filter>
+  <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+    <path d="M2,2 L10,6 L2,10 Z" fill="#39536b"/>
+  </marker>
+<style>
+.title{font-family:Arial,'Microsoft JhengHei',sans-serif;font-size:36px;font-weight:800;fill:#174b78}
+.txt{font-family:Arial,'Microsoft JhengHei',sans-serif;font-size:22px;fill:#1f2937}
+.small{font-family:Arial,'Microsoft JhengHei',sans-serif;font-size:17px;fill:#374151}
+.tiny{font-family:Arial,'Microsoft JhengHei',sans-serif;font-size:14px;fill:#52606d}
+.box{stroke:#4b83c3;stroke-width:2.4;rx:18;filter:url(#shadow)}
+.arrow{stroke:#39536b;stroke-width:3.4;marker-end:url(#arrow);fill:none}
+.dash{stroke:#6385a7;stroke-width:2.8;stroke-dasharray:8 7;fill:none}
+.phase{font-family:Arial,'Microsoft JhengHei',sans-serif;font-size:19px;font-weight:bold;fill:#174b78}
+</style>
+</defs>
+<rect width="1400" height="830" fill="url(#bg)"/>
+
+<text x="50" y="60" class="title">drawBbox Internal Architecture</text>
+<text x="50" y="92" class="small">Top module integrates memory interfaces, image-processing memories, threshold logic, CCL, BBox, and output drawing.</text>
+
+<rect x="60" y="135" width="1280" height="640" fill="#fff" stroke="#c5d7e6" stroke-width="2.5" rx="24"/>
+<text x="90" y="178" class="phase">drawBbox Top Module</text>
+
+<rect x="95" y="230" width="250" height="120" fill="url(#blue)" class="box"/>
+<text x="130" y="272" class="txt">Controller FSM</text>
+<text x="130" y="306" class="small">state / counters / done</text>
+<text x="130" y="332" class="small">CEN / WEN / address</text>
+
+<rect x="430" y="125" width="210" height="85" fill="url(#orange)" class="box"/>
+<text x="465" y="160" class="txt">ImgROM</text>
+<text x="455" y="188" class="small">input RGB image</text>
+<path d="M535 210 V250 H705" class="arrow"/>
+
+<rect x="705" y="230" width="225" height="95" fill="url(#blue)" class="box"/>
+<text x="740" y="268" class="txt">rgb_mem</text>
+<text x="735" y="298" class="small">original pixels</text>
+<path d="M930 278 H995" class="arrow"/>
+
+<rect x="995" y="230" width="235" height="95" fill="url(#green)" class="box"/>
+<text x="1017" y="268" class="txt">RGB to Gray</text>
+<text x="1025" y="298" class="small">gray_mem</text>
+
+<path d="M1112 325 V380" class="arrow"/>
+<rect x="995" y="380" width="235" height="95" fill="url(#green)" class="box"/>
+<text x="1018" y="418" class="txt">Gaussian</text>
+<text x="1028" y="448" class="small">gauss_mem + histogram</text>
+
+<path d="M995 428 H925" class="arrow"/>
+<rect x="660" y="380" width="265" height="95" fill="url(#orange)" class="box"/>
+<text x="700" y="418" class="txt">Otsu Threshold</text>
+<text x="705" y="448" class="small">best threshold T</text>
+
+<path d="M660 428 H595" class="arrow"/>
+<rect x="365" y="380" width="230" height="95" fill="url(#purple)" class="box"/>
+<text x="405" y="418" class="txt">Mask Unit</text>
+<text x="393" y="448" class="small">mask_mem + polarity</text>
+
+<path d="M480 475 V530" class="arrow"/>
+<rect x="365" y="530" width="230" height="95" fill="url(#purple)" class="box"/>
+<text x="400" y="568" class="txt">8-connected CCL</text>
+<text x="395" y="598" class="small">label_mem / parent[]</text>
+
+<path d="M595 578 H665" class="arrow"/>
+<rect x="665" y="530" width="230" height="95" fill="url(#green)" class="box"/>
+<text x="700" y="568" class="txt">BBox Unit</text>
+<text x="693" y="598" class="small">xmin/xmax/ymin/ymax</text>
+
+<path d="M895 578 H965" class="arrow"/>
+<rect x="965" y="530" width="230" height="95" fill="url(#blue)" class="box"/>
+<text x="1008" y="568" class="txt">Box Map</text>
+<text x="1000" y="598" class="small">boundary pixels</text>
+
+<path d="M1080 625 V690 H780 V625" class="arrow"/>
+<rect x="650" y="665" width="260" height="80" fill="url(#orange)" class="box"/>
+<text x="690" y="698" class="txt">Draw / Overlay</text>
+<text x="692" y="725" class="small">green box or original RGB</text>
+
+<rect x="1035" y="680" width="210" height="75" fill="url(#red)" class="box"/>
+<text x="1075" y="712" class="txt">AnsSRAM</text>
+<text x="1065" y="738" class="small">final output</text>
+<path d="M910 705 H1035" class="arrow"/>
+
+<path d="M345 290 H430 V705 H650" class="dash"/>
+<text x="120" y="405" class="small">FSM controls every stage:</text>
+<text x="120" y="435" class="tiny">• image address</text>
+<text x="120" y="460" class="tiny">• memory enable/write</text>
+<text x="120" y="485" class="tiny">• state transition</text>
+<text x="120" y="510" class="tiny">• done signal</text>
+
+</svg>
