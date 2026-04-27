@@ -1,0 +1,191 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="980" viewBox="0 0 1600 980" role="img" aria-labelledby="title desc">
+  <title id="title">Lab7 HTML Report Navigation Map - 14 Sections</title>
+  <desc id="desc">A polished SVG navigation map showing all fourteen Lab7 report sections from basic information to submission command.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F4FAFF"/>
+      <stop offset="0.48" stop-color="#EEF7FF"/>
+      <stop offset="1" stop-color="#F6FFF7"/>
+    </linearGradient>
+    <linearGradient id="navyGreen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0B3A66"/>
+      <stop offset="1" stop-color="#0E8A62"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFCF66"/>
+      <stop offset="1" stop-color="#FF9F43"/>
+    </linearGradient>
+    <linearGradient id="cardFill" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#F7FCFF"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-25%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="10" flood-color="#0B3A66" flood-opacity="0.17"/>
+    </filter>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style>
+      .font{font-family:'Microsoft JhengHei','Noto Sans TC','PingFang TC',Arial,sans-serif;}
+      .title{font-size:42px;font-weight:900;letter-spacing:.6px;fill:#0B3A66;}
+      .subtitle{font-size:19px;font-weight:700;fill:#51728D;}
+      .section-title{font-size:21px;font-weight:900;fill:#123C61;}
+      .section-en{font-size:14px;font-weight:800;fill:#5B748A;}
+      .section-note{font-size:13px;font-weight:700;fill:#6F8295;}
+      .num{font-size:19px;font-weight:900;fill:white;}
+      .tiny{font-size:13px;font-weight:800;fill:#345D7C;}
+      .card{fill:url(#cardFill);stroke:#8FC6EA;stroke-width:1.6;filter:url(#shadow);}
+      .cardHot{fill:url(#cardFill);stroke:#0E8A62;stroke-width:2.8;filter:url(#shadow);}
+      .connector{stroke:#93C8EA;stroke-width:3;stroke-linecap:round;stroke-dasharray:9 12;opacity:.82;}
+      .flow{stroke:#0E8A62;stroke-width:4;stroke-linecap:round;opacity:.92;}
+      .badge{fill:url(#navyGreen);}
+      .badgeHot{fill:url(#gold);}
+      .chip{fill:#E9F6FF;stroke:#B6DDF5;stroke-width:1.2;}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#0E8A62"/>
+    </marker>
+  </defs>
+
+  <rect width="1600" height="980" rx="42" fill="url(#bg)"/>
+  <circle cx="140" cy="115" r="92" fill="#B9E2FF" opacity=".32" filter="url(#glow)"/>
+  <circle cx="1450" cy="155" r="118" fill="#BDF4D6" opacity=".26" filter="url(#glow)"/>
+  <circle cx="1380" cy="850" r="105" fill="#FFDFA3" opacity=".22" filter="url(#glow)"/>
+
+  <text x="800" y="70" text-anchor="middle" class="font title">Lab7 Draw Bounding Box — HTML Report Navigation</text>
+  <text x="800" y="106" text-anchor="middle" class="font subtitle">完整 14 個資料頁面導覽圖｜每一點皆對應一個報告 HTML 區塊</text>
+
+  <rect x="190" y="132" width="1220" height="56" rx="28" fill="#FFFFFF" opacity=".78" stroke="#B6DDF5"/>
+  <text x="800" y="168" text-anchor="middle" class="font tiny">01 → 14：從基本資料、設計架構、驗證結果，到最後 Submission Command，全部資料都必須保留。</text>
+
+  <!-- connectors row 1 -->
+  <path class="connector" d="M300 284 H470"/>
+  <path class="connector" d="M620 284 H790"/>
+  <path class="connector" d="M940 284 H1110"/>
+  <path class="flow" marker-end="url(#arrow)" d="M1290 330 C1345 390 1345 438 1290 498"/>
+  <!-- connectors row 2 reverse -->
+  <path class="connector" d="M1110 540 H940"/>
+  <path class="connector" d="M790 540 H620"/>
+  <path class="connector" d="M470 540 H300"/>
+  <path class="flow" marker-end="url(#arrow)" d="M210 586 C155 645 155 695 210 746"/>
+  <!-- connectors row 3 -->
+  <path class="connector" d="M300 786 H470"/>
+  <path class="connector" d="M620 786 H790"/>
+  <path class="connector" d="M940 786 H1110"/>
+
+  <!-- Row 1 -->
+  <g class="font" transform="translate(110 218)">
+    <rect class="card" width="190" height="132" rx="26"/>
+    <circle class="badge" cx="95" cy="0" r="25"/><text class="num" x="95" y="7" text-anchor="middle">01</text>
+    <text class="section-title" x="95" y="52" text-anchor="middle">基本資料</text>
+    <text class="section-en" x="95" y="80" text-anchor="middle">Student Info</text>
+    <text class="section-note" x="95" y="106" text-anchor="middle">姓名、學號、Lab7 封面</text>
+  </g>
+  <g class="font" transform="translate(430 218)">
+    <rect class="card" width="190" height="132" rx="26"/>
+    <circle class="badge" cx="95" cy="0" r="25"/><text class="num" x="95" y="7" text-anchor="middle">02</text>
+    <text class="section-title" x="95" y="52" text-anchor="middle">摘要</text>
+    <text class="section-en" x="95" y="80" text-anchor="middle">Abstract</text>
+    <text class="section-note" x="95" y="106" text-anchor="middle">實驗目標與成果總覽</text>
+  </g>
+  <g class="font" transform="translate(750 218)">
+    <rect class="card" width="190" height="132" rx="26"/>
+    <circle class="badge" cx="95" cy="0" r="25"/><text class="num" x="95" y="7" text-anchor="middle">03</text>
+    <text class="section-title" x="95" y="52" text-anchor="middle">交付檔案</text>
+    <text class="section-en" x="95" y="80" text-anchor="middle">Deliverables</text>
+    <text class="section-note" x="95" y="106" text-anchor="middle">Verilog / BMP / TXT</text>
+  </g>
+  <g class="font" transform="translate(1070 218)">
+    <rect class="card" width="190" height="132" rx="26"/>
+    <circle class="badge" cx="95" cy="0" r="25"/><text class="num" x="95" y="7" text-anchor="middle">04</text>
+    <text class="section-title" x="95" y="52" text-anchor="middle">作業目的</text>
+    <text class="section-en" x="95" y="80" text-anchor="middle">Objective</text>
+    <text class="section-note" x="95" y="106" text-anchor="middle">Draw Bounding Box 任務</text>
+  </g>
+
+  <!-- Row 2 -->
+  <g class="font" transform="translate(1070 474)">
+    <rect class="card" width="190" height="132" rx="26"/>
+    <circle class="badge" cx="95" cy="0" r="25"/><text class="num" x="95" y="7" text-anchor="middle">05</text>
+    <text class="section-title" x="95" y="52" text-anchor="middle">驗收標準</text>
+    <text class="section-en" x="95" y="80" text-anchor="middle">Acceptance</text>
+    <text class="section-note" x="95" y="106" text-anchor="middle">Pixel-perfect PASS</text>
+  </g>
+  <g class="font" transform="translate(750 474)">
+    <rect class="card" width="190" height="132" rx="26"/>
+    <circle class="badge" cx="95" cy="0" r="25"/><text class="num" x="95" y="7" text-anchor="middle">06</text>
+    <text class="section-title" x="95" y="52" text-anchor="middle">I/O 介面</text>
+    <text class="section-en" x="95" y="80" text-anchor="middle">Interface</text>
+    <text class="section-note" x="95" y="106" text-anchor="middle">ImgROM / AnsSRAM</text>
+  </g>
+  <g class="font" transform="translate(430 474)">
+    <rect class="card" width="190" height="132" rx="26"/>
+    <circle class="badge" cx="95" cy="0" r="25"/><text class="num" x="95" y="7" text-anchor="middle">07</text>
+    <text class="section-title" x="95" y="52" text-anchor="middle">Pipeline</text>
+    <text class="section-en" x="95" y="80" text-anchor="middle">Processing Flow</text>
+    <text class="section-note" x="95" y="106" text-anchor="middle">RGB → Gray → Box</text>
+  </g>
+  <g class="font" transform="translate(110 474)">
+    <rect class="card" width="190" height="132" rx="26"/>
+    <circle class="badge" cx="95" cy="0" r="25"/><text class="num" x="95" y="7" text-anchor="middle">08</text>
+    <text class="section-title" x="95" y="52" text-anchor="middle">演算法規則</text>
+    <text class="section-en" x="95" y="80" text-anchor="middle">Algorithm Rules</text>
+    <text class="section-note" x="95" y="106" text-anchor="middle">Otsu / 8-CCL / Mask</text>
+  </g>
+
+  <!-- Row 3 -->
+  <g class="font" transform="translate(110 720)">
+    <rect class="card" width="190" height="132" rx="26"/>
+    <circle class="badge" cx="95" cy="0" r="25"/><text class="num" x="95" y="7" text-anchor="middle">09</text>
+    <text class="section-title" x="95" y="52" text-anchor="middle">架構設計</text>
+    <text class="section-en" x="95" y="80" text-anchor="middle">Architecture</text>
+    <text class="section-note" x="95" y="106" text-anchor="middle">Module 與 Datapath</text>
+  </g>
+  <g class="font" transform="translate(430 720)">
+    <rect class="card" width="190" height="132" rx="26"/>
+    <circle class="badge" cx="95" cy="0" r="25"/><text class="num" x="95" y="7" text-anchor="middle">10</text>
+    <text class="section-title" x="95" y="52" text-anchor="middle">FSM 控制</text>
+    <text class="section-en" x="95" y="80" text-anchor="middle">State Machine</text>
+    <text class="section-note" x="95" y="106" text-anchor="middle">Read / Compute / Write</text>
+  </g>
+  <g class="font" transform="translate(750 720)">
+    <rect class="card" width="190" height="132" rx="26"/>
+    <circle class="badge" cx="95" cy="0" r="25"/><text class="num" x="95" y="7" text-anchor="middle">11</text>
+    <text class="section-title" x="95" y="52" text-anchor="middle">驗證方法</text>
+    <text class="section-en" x="95" y="80" text-anchor="middle">Verification</text>
+    <text class="section-note" x="95" y="106" text-anchor="middle">RTL / Gate-level</text>
+  </g>
+  <g class="font" transform="translate(1070 720)">
+    <rect class="card" width="190" height="132" rx="26"/>
+    <circle class="badge" cx="95" cy="0" r="25"/><text class="num" x="95" y="7" text-anchor="middle">12</text>
+    <text class="section-title" x="95" y="52" text-anchor="middle">合成檢查</text>
+    <text class="section-en" x="95" y="80" text-anchor="middle">Synthesis</text>
+    <text class="section-note" x="95" y="106" text-anchor="middle">Area / Timing / Lint</text>
+  </g>
+
+  <!-- Bottom highlight row -->
+  <g class="font" transform="translate(1380 474)">
+    <rect class="card" width="190" height="132" rx="26"/>
+    <circle class="badge" cx="95" cy="0" r="25"/><text class="num" x="95" y="7" text-anchor="middle">13</text>
+    <text class="section-title" x="95" y="52" text-anchor="middle">結果波形</text>
+    <text class="section-en" x="95" y="80" text-anchor="middle">Results</text>
+    <text class="section-note" x="95" y="106" text-anchor="middle">P1–P4 Output</text>
+  </g>
+
+  <g class="font" transform="translate(1380 720)">
+    <rect class="cardHot" width="190" height="152" rx="28"/>
+    <circle class="badgeHot" cx="95" cy="0" r="27"/><text class="num" x="95" y="7" text-anchor="middle">14</text>
+    <text class="section-title" x="95" y="48" text-anchor="middle">Submission</text>
+    <text class="section-title" x="95" y="75" text-anchor="middle">Command</text>
+    <text class="section-en" x="95" y="103" text-anchor="middle">提交指令</text>
+    <text class="section-note" x="95" y="127" text-anchor="middle">tar -cvf Lab7_ID.tar</text>
+    <text class="section-note" x="95" y="146" text-anchor="middle">Moodle Upload</text>
+  </g>
+
+  <path class="flow" marker-end="url(#arrow)" d="M1260 786 H1370"/>
+  <path class="flow" marker-end="url(#arrow)" d="M1475 606 V710"/>
+
+  <rect x="438" y="895" width="724" height="46" rx="23" class="chip"/>
+  <text x="800" y="925" text-anchor="middle" class="font tiny">Final check：14 個資料頁面不可缺漏，Section 14 必須保留完整提交指令與 Moodle 上傳說明。</text>
+</svg>

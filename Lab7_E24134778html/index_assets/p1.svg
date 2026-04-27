@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="480" viewBox="0 0 720 480">
+  <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#dbeafe"/><stop offset="1" stop-color="#ffffff"/></linearGradient><filter id="s"><feDropShadow dx="0" dy="10" stdDeviation="8" flood-opacity=".18"/></filter></defs>
+  <rect width="720" height="480" rx="28" fill="url(#g)"/>
+  <rect x="70" y="60" width="580" height="330" rx="24" fill="#111827" opacity=".08"/>
+  <rect x="95" y="85" width="530" height="280" rx="18" fill="#f8fbff" stroke="#b8d6ee" stroke-width="3" filter="url(#s)"/>
+  <rect x="165" y="135" width="170" height="120" rx="6" fill="#e5e7eb" stroke="#94a3b8"/>
+  <rect x="158" y="128" width="184" height="134" fill="none" stroke="#00a650" stroke-width="8"/>
+  <circle cx="470" cy="220" r="56" fill="#e5e7eb" stroke="#94a3b8"/>
+  <rect x="410" y="158" width="120" height="124" fill="none" stroke="#00a650" stroke-width="8"/>
+  <text x="360" y="420" text-anchor="middle" font-family="Microsoft JhengHei, Arial" font-size="30" font-weight="800" fill="#174b78">Pattern 1 Output Preview</text>
+  <text x="360" y="450" text-anchor="middle" font-family="Arial" font-size="18" fill="#2e8b57">RTL PASS｜error = 0｜Bounding Box Overlay</text>
+</svg>
