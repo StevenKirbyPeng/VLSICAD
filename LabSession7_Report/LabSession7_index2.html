@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lab 7｜Draw Bounding Box Engine 展示級專題網站</title>
+<style>
+:root{
+  --bg0:#07111f;--bg1:#0f172a;--bg2:#111827;--card:rgba(15,23,42,.78);
+  --line:rgba(148,163,184,.22);--text:#e5e7eb;--muted:#94a3b8;--cyan:#38bdf8;
+  --green:#22c55e;--yellow:#facc15;--pink:#fb7185;--violet:#a78bfa;--orange:#fb923c;
+  --shadow:0 22px 80px rgba(0,0,0,.45);--radius:26px;
+}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:"Noto Sans TC","Microsoft JhengHei","Segoe UI",Arial,sans-serif;color:var(--text);background:radial-gradient(circle at 10% 10%,rgba(56,189,248,.22),transparent 34%),radial-gradient(circle at 85% 18%,rgba(34,197,94,.18),transparent 30%),radial-gradient(circle at 50% 90%,rgba(167,139,250,.15),transparent 38%),linear-gradient(135deg,var(--bg0),var(--bg1) 55%,#020617);min-height:100vh;overflow-x:hidden}.noise{position:fixed;inset:0;pointer-events:none;opacity:.08;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.65'/%3E%3C/svg%3E");}.navbar{position:sticky;top:0;z-index:20;backdrop-filter:blur(18px);background:rgba(2,6,23,.72);border-bottom:1px solid var(--line)}.nav-inner{width:min(1180px,92vw);margin:auto;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0}.brand{display:flex;align-items:center;gap:12px;font-weight:900;letter-spacing:.3px}.logo{width:42px;height:42px;border-radius:16px;background:linear-gradient(135deg,var(--cyan),var(--green));display:grid;place-items:center;color:#00111d;font-weight:1000;box-shadow:0 0 30px rgba(56,189,248,.35)}.nav-links{display:flex;gap:10px;flex-wrap:wrap}.nav-links a{color:var(--muted);text-decoration:none;font-weight:800;font-size:.9rem;padding:9px 12px;border:1px solid transparent;border-radius:999px}.nav-links a:hover{color:#fff;border-color:var(--line);background:rgba(255,255,255,.06)}.hero{width:min(1180px,92vw);margin:34px auto 0;display:grid;grid-template-columns:1.18fr .82fr;gap:26px;align-items:stretch}.hero-card{position:relative;overflow:hidden;border:1px solid var(--line);background:linear-gradient(135deg,rgba(15,23,42,.82),rgba(17,24,39,.68));border-radius:34px;padding:42px;box-shadow:var(--shadow)}.hero-card:before{content:"";position:absolute;inset:-2px;background:radial-gradient(circle at 10% 20%,rgba(56,189,248,.2),transparent 32%),radial-gradient(circle at 80% 15%,rgba(34,197,94,.18),transparent 30%);pointer-events:none}.hero-content{position:relative}.eyebrow{display:inline-flex;align-items:center;gap:8px;color:#dbeafe;background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.28);padding:8px 12px;border-radius:999px;font-weight:900;font-size:.92rem}.hero h1{font-size:clamp(2.2rem,5vw,4.8rem);line-height:1.02;margin:20px 0 14px;letter-spacing:-1.8px}.gradient-text{background:linear-gradient(90deg,#fff,var(--cyan),var(--green));-webkit-background-clip:text;background-clip:text;color:transparent}.hero p{font-size:1.08rem;color:#cbd5e1;line-height:1.9;max-width:760px}.hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px}.btn{display:inline-flex;align-items:center;gap:10px;text-decoration:none;border-radius:16px;padding:13px 18px;font-weight:1000;color:#06111f;background:linear-gradient(135deg,var(--cyan),var(--green));box-shadow:0 12px 35px rgba(56,189,248,.18)}.btn.secondary{color:#e5e7eb;background:rgba(255,255,255,.06);border:1px solid var(--line);box-shadow:none}.hero-preview{border:1px solid var(--line);border-radius:34px;overflow:hidden;background:rgba(15,23,42,.62);box-shadow:var(--shadow);position:relative;min-height:390px}.preview-img{width:100%;height:100%;min-height:390px;object-fit:cover;display:block;filter:saturate(1.1) contrast(1.04)}.preview-overlay{position:absolute;inset:auto 18px 18px 18px;border:1px solid rgba(255,255,255,.18);background:rgba(2,6,23,.72);backdrop-filter:blur(14px);border-radius:22px;padding:18px}.preview-overlay h3{margin:0 0 8px;color:#fff}.preview-overlay p{margin:0;color:#cbd5e1;line-height:1.6}.stats{width:min(1180px,92vw);margin:24px auto 0;display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.stat{border:1px solid var(--line);background:rgba(15,23,42,.66);border-radius:22px;padding:20px;box-shadow:0 14px 55px rgba(0,0,0,.18)}.stat .num{font-size:2rem;font-weight:1000;color:#fff}.stat .label{color:var(--muted);font-weight:800;margin-top:4px}.wrap{width:min(1180px,92vw);margin:42px auto}.section-title{display:flex;align-items:end;justify-content:space-between;gap:16px;margin:42px 0 16px}.section-title h2{margin:0;font-size:1.75rem}.section-title p{margin:0;color:var(--muted);line-height:1.7}.toolbar{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0}.search{flex:1;min-width:250px;border:1px solid var(--line);background:rgba(15,23,42,.75);color:#fff;border-radius:18px;padding:14px 16px;font-size:1rem;outline:none}.chip{border:1px solid var(--line);background:rgba(255,255,255,.05);color:#cbd5e1;border-radius:999px;padding:11px 14px;font-weight:900;cursor:pointer}.chip.active,.chip:hover{background:rgba(56,189,248,.14);color:#fff;border-color:rgba(56,189,248,.45)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:18px}.card{position:relative;overflow:hidden;border:1px solid var(--line);background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:0 16px 70px rgba(0,0,0,.2);transition:.25s transform,.25s border-color,.25s background}.card:hover{transform:translateY(-6px);border-color:rgba(56,189,248,.58);background:rgba(15,23,42,.92)}.card:after{content:"";position:absolute;right:-40px;top:-40px;width:130px;height:130px;border-radius:50%;background:radial-gradient(circle,rgba(56,189,248,.16),transparent 68%)}.badge{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:7px 10px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#bbf7d0;font-weight:900;font-size:.82rem}.badge.warn{background:rgba(250,204,21,.1);border-color:rgba(250,204,21,.28);color:#fef08a}.badge.info{background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.28);color:#bae6fd}.card h3{position:relative;margin:14px 0 8px;font-size:1.2rem}.card p{position:relative;color:#cbd5e1;line-height:1.7;margin:0 0 16px;font-size:.94rem}.card a.open{position:relative;display:flex;align-items:center;justify-content:space-between;text-decoration:none;color:#fff;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:16px;padding:12px 14px;font-weight:1000}.card a.open:hover{background:linear-gradient(135deg,rgba(56,189,248,.22),rgba(34,197,94,.18));border-color:rgba(56,189,248,.46)}.feature{display:grid;grid-template-columns:1fr 1fr;gap:20px}.panel{border:1px solid var(--line);background:rgba(15,23,42,.68);border-radius:28px;padding:24px;box-shadow:0 16px 60px rgba(0,0,0,.2)}.panel h3{margin-top:0}.flow{display:flex;gap:10px;flex-wrap:wrap}.step{padding:10px 12px;border-radius:14px;border:1px solid rgba(56,189,248,.28);background:rgba(56,189,248,.09);font-weight:900;color:#e0f2fe}.formula{font-family:"Cambria Math","Times New Roman",serif;background:rgba(2,6,23,.46);border:1px solid var(--line);border-radius:18px;padding:15px;line-height:1.8;color:#f8fafc;margin:10px 0}.gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.shot{border:1px solid var(--line);border-radius:22px;overflow:hidden;background:rgba(15,23,42,.72)}.shot img{width:100%;height:180px;object-fit:cover;display:block}.shot div{padding:12px 14px;font-weight:900;color:#e5e7eb}.footer{width:min(1180px,92vw);margin:55px auto 30px;border-top:1px solid var(--line);padding-top:24px;color:#94a3b8;text-align:center;line-height:1.8}.top{position:fixed;right:18px;bottom:18px;text-decoration:none;background:linear-gradient(135deg,var(--cyan),var(--green));color:#04111f;border-radius:16px;padding:13px 15px;font-weight:1000;box-shadow:0 18px 45px rgba(0,0,0,.28)}@media(max-width:860px){.hero{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.feature{grid-template-columns:1fr}.nav-links{display:none}.hero-card{padding:28px}}@media(max-width:520px){.stats{grid-template-columns:1fr}.hero h1{font-size:2.3rem}}
+</style>
+</head>
+<body>
+<div class="noise"></div>
+<nav class="navbar" id="top">
+  <div class="nav-inner">
+    <div class="brand"><div class="logo">L7</div><div>Draw Bounding Box 專題網站</div></div>
+    <div class="nav-links"><a href="#reports">報告入口</a><a href="#process">核心流程</a><a href="#gallery">成果圖</a><a href="#submit">提交檢查</a></div>
+  </div>
+</nav>
+<section class="hero">
+  <div class="hero-card">
+    <div class="hero-content">
+      <div class="eyebrow">🔥 iVCAD 2026 Spring｜Lab 7 Final Website</div>
+      <h1><span class="gradient-text">Draw Bounding Box</span><br>Engine</h1>
+      <p>本首頁整合 Lab7 所有 HTML 報告、影像處理流程、數學式、Python 驗證、Verilog 設計、ModelSim 結果、SuperLint、Waveform、合成最佳化與最終提交檢查表。所有連結皆使用相對路徑，可直接放在專案根目錄作為 GitHub Pages 或本機展示首頁。</p>
+      <div class="hero-actions"><a class="btn" href="#reports">開始瀏覽報告 →</a><a class="btn secondary" href="Lab7_Final_Form_Checklist_Development_Submission_HTML/12_lab7_development_submission_checklist.html">開啟最終檢查表</a></div>
+    </div>
+  </div>
+  <div class="hero-preview">
+    <img class="preview-img" src="lab7_q4/assets/drawBbox_result_p4.png" onerror="this.src='Lab7_Final_Form_Checklist_Development_Submission_HTML/assets/drawBbox_result_p4.png'; this.onerror=function(){this.src='image.png'}" alt="Lab7 P4 final result">
+    <div class="preview-overlay"><h3>Final Output Preview</h3><p>P4 最終輸出影像與 Bounding Box overlay，可作為報告成果展示入口。</p></div>
+  </div>
+</section>
+<section class="stats">
+  <div class="stat"><div class="num">10+</div><div class="label">題目 HTML 報告</div></div>
+  <div class="stat"><div class="num">P1~P4</div><div class="label">四組 Pattern 驗證</div></div>
+  <div class="stat"><div class="num">0</div><div class="label">RTL Total Errors</div></div>
+  <div class="stat"><div class="num">1</div><div class="label">單一 drawBbox.v 提交策略</div></div>
+</section>
+<main class="wrap">
+  <section id="reports">
+    <div class="section-title"><div><h2>一、Lab7 報告入口</h2><p>點選卡片即可開啟對應 HTML 頁面。</p></div></div>
+    <div class="toolbar"><input id="search" class="search" placeholder="搜尋：Q4、waveform、SuperLint、submission、Python、Verilog..."/><button class="chip active" data-filter="all">全部</button><button class="chip" data-filter="question">Q1~Q10</button><button class="chip" data-filter="system">綜合報告</button><button class="chip" data-filter="submit">提交檢查</button></div>
+    <div class="grid" id="cards">
+      <article class="card" data-type="question" data-key="q1 basic 基本說明"><span class="badge info">Q1</span><h3>基本資料與作業說明</h3><p>Lab7 目的、影像處理背景、基本設計方向。</p><a class="open" href="lab7_q1/Lab7_Q1.html">開啟 HTML <span>↗</span></a></article>
+      <article class="card" data-type="question" data-key="q2 aplus design"><span class="badge info">Q2</span><h3>設計方法 A+ 版</h3><p>更完整的設計描述與架構說明。</p><a class="open" href="lab7_q2/Lab7_Q2_Aplus_HTML.html">開啟 HTML <span>↗</span></a></article>
+      <article class="card" data-type="question" data-key="q3 chinese full"><span class="badge info">Q3</span><h3>完整中文設計說明</h3><p>系統功能、演算法與 RTL 設計細節。</p><a class="open" href="lab7_q3/Lab7_Q3_Chinese_Full_HTML.html">開啟 HTML <span>↗</span></a></article>
+      <article class="card" data-type="question" data-key="q4 final bmp p4 result"><span class="badge">Q4</span><h3>P4 Final BMP 結果</h3><p>附上 final drawBbox_result_p4.bmp 與流程圖。</p><a class="open" href="lab7_q4/04_final_drawBbox_result_p4_full_chinese.html">開啟 HTML <span>↗</span></a></article>
+      <article class="card" data-type="question" data-key="q5 waveform 波形"><span class="badge">Q5</span><h3>Waveform 與操作說明</h3><p>說明 clk、memory interface、done 與寫入流程。</p><a class="open" href="lab7_q5/05_waveforms_full_chinese.html">開啟 HTML <span>↗</span></a></article>
+      <article class="card" data-type="question" data-key="q6 superlint coverage"><span class="badge warn">Q6</span><h3>SuperLint Coverage</h3><p>所有檔案納入檢查與 coverage 說明。</p><a class="open" href="lab7_q6/06_superlint_coverage_full_chinese.html">開啟 HTML <span>↗</span></a></article>
+      <article class="card" data-type="question" data-key="q7 clock timing area terminal"><span class="badge warn">Q7</span><h3>Clock / Area / Timing</h3><p>Clock period、area、timing report 與 terminal result。</p><a class="open" href="lab7_q7/07_clock_area_timing_terminal_full_chinese.html">開啟 HTML <span>↗</span></a></article>
+      <article class="card" data-type="question" data-key="q8 synthesis optimization"><span class="badge warn">Q8</span><h3>Synthesis Optimization</h3><p>register boundary、resource sharing 與 datapath 最佳化。</p><a class="open" href="lab7_q8/08_synthesis_optimization_full_chinese.html">開啟 HTML <span>↗</span></a></article>
+      <article class="card" data-type="question" data-key="q9 lessons learned"><span class="badge">Q9</span><h3>Lessons Learned</h3><p>由 Python 演算法驗證到 Verilog RTL 實作的學習心得。</p><a class="open" href="lab7_q9/09_lessons_learned_full_chinese.html">開啟 HTML <span>↗</span></a></article>
+      <article class="card" data-type="question" data-key="q10 submission command"><span class="badge">Q10</span><h3>Final Submission Command</h3><p>.tar 打包、Makefile 指令與 Moodle 提交說明。</p><a class="open" href="lab7_q10/10_final_submission_command_full_chinese.html">開啟 HTML <span>↗</span></a></article>
+      <article class="card" data-type="system" data-key="full process math python verilog report"><span class="badge info">主報告</span><h3>Math / Python / Verilog 完整流程</h3><p>從數學式、Python 影像驗證到 Verilog 硬體化。</p><a class="open" href="lab7_zProcess_Math_Python_Verilog_Report/Lab7_Full_Process_Math_Python_Verilog_Report.html">開啟 HTML <span>↗</span></a></article>
+      <article class="card" data-type="system" data-key="deliverables 文件 繳交"><span class="badge info">文件</span><h3>Deliverables 說明</h3><p>作業繳交項目與不可上傳項目說明。</p><a class="open" href="lab7_3_deliverables_explanation.html">開啟 HTML <span>↗</span></a></article>
+      <article class="card" data-type="system" data-key="block diagram architecture"><span class="badge info">架構</span><h3>Block Diagram 說明</h3><p>DUT、testbench、ImgROM、AnsSRAM 與資料流圖解。</p><a class="open" href="lab7_4_block_diagram_explanation.html">開啟 HTML <span>↗</span></a></article>
+      <article class="card" data-type="system" data-key="ram waveform port"><span class="badge info">波形</span><h3>Port / RAM Waveform</h3><p>RAM read/write 波形與介面操作說明。</p><a class="open" href="lab7lab7_5_port_ram_waveform_explanation.html">開啟 HTML <span>↗</span></a></article>
+      <article class="card" data-type="submit" data-key="checklist final form development submission"><span class="badge">Checklist</span><h3>開發與繳交檢查表</h3><p>完成/未完成、缺什麼、如何補的總表。</p><a class="open" href="Lab7_Final_Form_Checklist_Development_Submission_HTML/12_lab7_development_submission_checklist.html">開啟 HTML <span>↗</span></a></article>
+    </div>
+  </section>
+  <section id="process">
+    <div class="section-title"><div><h2>二、核心影像處理流程</h2><p>Lab7 的重點是把影像演算法轉成可合成的 RTL 控制流程。</p></div></div>
+    <div class="feature">
+      <div class="panel"><h3>Pipeline Flow</h3><div class="flow"><span class="step">Read RGB</span><span class="step">Gray</span><span class="step">Gaussian</span><span class="step">Otsu</span><span class="step">Mask</span><span class="step">8-CCL</span><span class="step">BBox</span><span class="step">Overlay</span></div></div>
+      <div class="panel"><h3>修正版核心公式</h3><div class="formula">Gray = round_ties_even(0.299R + 0.587G + 0.114B)</div><div class="formula">σ<sub>B</sub><sup>2</sup>(T)=W<sub>b</sub>(T)W<sub>f</sub>(T)(μ<sub>b</sub>(T)-μ<sub>f</sub>(T))<sup>2</sup></div><div class="formula">BBox = {Xmin, Xmax, Ymin, Ymax}</div></div>
+    </div>
+  </section>
+  <section id="gallery">
+    <div class="section-title"><div><h2>三、成果圖片展示</h2><p>若圖片路徑存在，首頁會直接顯示 P1~P4 final overlay；若不存在，仍可正常使用報告連結。</p></div></div>
+    <div class="gallery">
+      <div class="shot"><img src="Lab7_Final_Form_Checklist_Development_Submission_HTML/assets/drawBbox_result_p1.png" onerror="this.style.display='none'" alt="P1 result"><div>P1 Final Output</div></div>
+      <div class="shot"><img src="Lab7_Final_Form_Checklist_Development_Submission_HTML/assets/drawBbox_result_p2.png" onerror="this.style.display='none'" alt="P2 result"><div>P2 Final Output</div></div>
+      <div class="shot"><img src="Lab7_Final_Form_Checklist_Development_Submission_HTML/assets/drawBbox_result_p3.png" onerror="this.style.display='none'" alt="P3 result"><div>P3 Final Output</div></div>
+      <div class="shot"><img src="Lab7_Final_Form_Checklist_Development_Submission_HTML/assets/drawBbox_result_p4.png" onerror="this.style.display='none'" alt="P4 result"><div>P4 Final Output</div></div>
+    </div>
+  </section>
+  <section id="submit">
+    <div class="section-title"><div><h2>四、提交與驗證重點</h2><p>本設計採單一 drawBbox.v 整合版本；若未使用外部 submodule，提交時可只放主 Verilog 檔案與必要報告。</p></div></div>
+    <div class="grid">
+      <article class="card"><span class="badge">完成</span><h3>RTL Simulation</h3><p>P1~P4 全部通過，Total errors = 0。</p><a class="open" href="lab7_q7/07_clock_area_timing_terminal_full_chinese.html">查看 Terminal Result <span>↗</span></a></article>
+      <article class="card"><span class="badge warn">注意</span><h3>Submodule 檢查</h3><p>若 drawBbox.v 內呼叫外部 module，必須一併繳交；若全部整合於 drawBbox.v，則避免檔案遺漏風險。</p><a class="open" href="Lab7_Final_Form_Checklist_Development_Submission_HTML/12_lab7_development_submission_checklist.html">查看 Checklist <span>↗</span></a></article>
+      <article class="card"><span class="badge info">打包</span><h3>.tar Format</h3><p>正式上傳 Moodle 應使用 .tar 格式，並確認檔案階層符合 Lab7 要求。</p><a class="open" href="lab7_q10/10_final_submission_command_full_chinese.html">查看 Submission <span>↗</span></a></article>
+    </div>
+  </section>
+</main>
+<a class="top" href="#top">↑</a>
+<footer class="footer">Lab7 Draw Bounding Box Engine｜展示級專題網站首頁<br>建議檔名：index.html，放在所有 lab7_q* 資料夾同一層。</footer>
+<script>
+const search=document.getElementById('search');
+const cards=[...document.querySelectorAll('.card')];
+const chips=[...document.querySelectorAll('.chip')];
+let current='all';
+function apply(){const q=(search.value||'').toLowerCase().trim();cards.forEach(c=>{const type=c.dataset.type||'';const key=(c.dataset.key||c.innerText).toLowerCase();const okType=current==='all'||type===current;const okQ=!q||key.includes(q)||c.innerText.toLowerCase().includes(q);c.style.display=(okType&&okQ)?'block':'none';});}
+search.addEventListener('input',apply);chips.forEach(ch=>ch.addEventListener('click',()=>{chips.forEach(x=>x.classList.remove('active'));ch.classList.add('active');current=ch.dataset.filter;apply();}));
+</script>
+</body>
+</html>

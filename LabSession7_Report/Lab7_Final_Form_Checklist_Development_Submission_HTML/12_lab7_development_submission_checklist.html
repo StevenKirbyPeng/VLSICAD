@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 7 Draw Bounding Box：開發與繳交項目完成表單（公式修正版）</title>
+<style>
+:root{--bg:#f6f8fb;--card:#ffffff;--ink:#132033;--muted:#5d6b7c;--line:#dbe4ef;--green:#16a34a;--red:#dc2626;--amber:#d97706;--blue:#2563eb;--purple:#7c3aed;--code:#111827}
+*{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,#f8fbff 0,#f3f6fb 100%);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei",Arial,sans-serif;line-height:1.75}
+.wrap{max-width:1220px;margin:0 auto;padding:32px 22px 70px}.hero{background:linear-gradient(135deg,#0f172a,#1e3a8a 58%,#15803d);color:white;border-radius:28px;padding:34px;box-shadow:0 20px 50px #0f172a33;position:relative;overflow:hidden}.hero:after{content:"";position:absolute;right:-80px;top:-80px;width:280px;height:280px;border-radius:50%;background:#ffffff18}.hero h1{margin:0 0 8px;font-size:2.1rem;letter-spacing:.02em}.hero p{margin:6px 0;color:#e5edf8}.badge{display:inline-block;background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:999px;padding:4px 12px;font-weight:800;margin:6px 8px 0 0}.sec{background:var(--card);border:1px solid var(--line);border-radius:24px;margin-top:22px;padding:26px;box-shadow:0 12px 35px #0f172a10}.sec h2{margin:0 0 14px;font-size:1.55rem;color:#0f172a;border-left:7px solid var(--blue);padding-left:12px}.sec h3{margin:22px 0 8px;color:#1e3a8a}.note{background:#eff6ff;border-left:6px solid var(--blue);border-radius:14px;padding:14px 16px;margin:14px 0}.warn{background:#fff7ed;border-left:6px solid var(--amber);border-radius:14px;padding:14px 16px;margin:14px 0}.ok{background:#f0fdf4;border-left:6px solid var(--green);border-radius:14px;padding:14px 16px;margin:14px 0}.danger{background:#fef2f2;border-left:6px solid var(--red);border-radius:14px;padding:14px 16px;margin:14px 0}table{width:100%;border-collapse:collapse;margin:14px 0;border-radius:14px;overflow:hidden;background:#fff}th{background:#0f172a;color:white;text-align:left;padding:12px;font-weight:900}td{border:1px solid var(--line);padding:11px;vertical-align:top}tr:nth-child(even) td{background:#f8fafc}.status{font-weight:900;border-radius:999px;padding:3px 10px;white-space:nowrap;display:inline-block}.done{background:#dcfce7;color:#166534}.todo{background:#fee2e2;color:#991b1b}.partial{background:#fef3c7;color:#92400e}.need{background:#e0e7ff;color:#3730a3}code,pre{font-family:Consolas,"Courier New",monospace}pre{background:var(--code);color:#e5e7eb;border-radius:16px;padding:16px;overflow:auto;border:1px solid #263449;line-height:1.55}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.imgcard{background:#fbfdff;border:1px solid var(--line);border-radius:18px;padding:12px;text-align:center}.imgcard img{max-width:100%;border-radius:12px;border:1px solid #e2e8f0}.cap{font-size:.9rem;color:#64748b;font-weight:800;margin-top:6px}.flow{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}.step{background:#e0f2fe;color:#075985;border:1px solid #7dd3fc;border-radius:14px;padding:10px 12px;font-weight:900}.arrow{align-self:center;color:#64748b;font-weight:900}.formula{font-size:1.05rem;background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:12px 15px;margin:10px 0}.small{font-size:.92rem;color:var(--muted)}@media(max-width:880px){.grid2,.grid3{grid-template-columns:1fr}.hero h1{font-size:1.6rem}}
+</style>
+
+<script>
+window.MathJax = {
+  tex: {inlineMath: [['\\(','\\)'], ['$', '$']], displayMath: [['\\[','\\]']]},
+  svg: {fontCache: 'global'}
+};
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <h1>Lab 7：Draw Bounding Box Engine 開發與繳交項目完成表單（公式修正版）</h1>
+    <p>本頁整理「須完成開發項目清單」與「須完成繳交項目清單」，每一項均標註完成狀態、相關文件、缺少內容與補救方式。內容採中文報告版，可直接放入 Lab7 HTML/Word/PDF 報告。</p>
+    <span class="badge">單檔 RTL：drawBbox.v</span><span class="badge">P1～P4 RTL PASS</span><span class="badge">Total errors = 0</span><span class="badge">外部圖片載入</span>
+  </div>
+
+  <section class="sec">
+    <h2>一、題目要求與表單製作目的</h2>
+    <p>Lab7 要求完成一個 <b>Draw Bounding Box</b> 影像處理硬體。輸入影像為 256×256 RGB photo，系統需依序完成讀圖、灰階轉換、3×3 Gaussian filter、Otsu threshold、binary mask、auto-polarity correction、8-connected CCL、Bounding Box 座標計算、邊界物件過濾與 overlay 輸出。最後輸出影像需與 golden result 逐 pixel 完全一致。</p>
+    <div class="imgcard"><img src="assets/lab7_requirement_overview.png" alt="Lab7 文件與繳交流程總覽"><div class="cap">圖 1、Lab7 文件重點：包含檔案階層、DUT block diagram、I/O port、RAM read/write waveform 與 Makefile command。</div></div>
+    <div class="flow"><span class="step">Read RGB</span><span class="arrow">→</span><span class="step">Gray</span><span class="arrow">→</span><span class="step">Gaussian</span><span class="arrow">→</span><span class="step">Otsu</span><span class="arrow">→</span><span class="step">Mask</span><span class="arrow">→</span><span class="step">CCL</span><span class="arrow">→</span><span class="step">BBox</span><span class="arrow">→</span><span class="step">Overlay</span><span class="arrow">→</span><span class="step">PASS</span></div>
+    <div class="ok">本表單的目的不是只列檔名，而是讓助教能一眼看到：哪些功能已完成、證明文件在哪裡、若未完成還缺什麼、要怎麼補齊。</div>
+  </section>
+
+  <section class="sec">
+    <h2>二、修正版核心數學式</h2>
+    <div class="ok"><b>本節已修正：</b>公式全部改成可正確顯示的 MathJax 寫法，並補上灰階 ties-to-even、Gaussian 卷積、Otsu 整數比較式與 Bounding Box 判斷括號，避免原本公式顯示或邏輯優先序錯誤。</div>
+
+    <h3>2.1 RGB 轉灰階</h3>
+    <p>Lab7 指定灰階為 BT.601 近似加權，且結果必須使用 <b>round to nearest, ties to even</b>，不能只用一般 <code>+128</code> 四捨五入。</p>
+    <div class="formula">\[\operatorname{Gray}=\operatorname{round}_{\text{ties-to-even}}(0.299R+0.587G+0.114B)\]</div>
+    <p>硬體整數近似可使用 8-bit scale：</p>
+    <div class="formula">\[S=77R+150G+29B,\qquad q=\left\lfloor\frac{S}{256}\right\rfloor,\qquad r=S\bmod 256\]</div>
+    <div class="formula">\[
+    \operatorname{Gray}=\begin{cases}
+    q, & r<128\\
+    q+1, & r>128\\
+    q, & r=128\ \text{且}\ q\ \text{為偶數}\\
+    q+1, & r=128\ \text{且}\ q\ \text{為奇數}
+    \end{cases}
+    \]</div>
+
+    <h3>2.2 Gaussian Filter</h3>
+    <p>3×3 Gaussian filter 應寫成完整卷積式，不能只把矩陣與影像相乘而未標明鄰近像素位置。</p>
+    <div class="formula">\[
+    K=\frac{1}{16}\begin{bmatrix}1&2&1\\2&4&2\\1&2&1\end{bmatrix}
+    \]</div>
+    <div class="formula">\[
+    G(x,y)=\frac{1}{16}\sum_{i=-1}^{1}\sum_{j=-1}^{1}K'(i,j)\,I(x+i,y+j)
+    \]</div>
+    <p>其中 \(K'\) 為未除以 16 前的權重矩陣。邊界處理採 <b>Reflect 101 padding</b>，也就是超出邊界時鏡射，但不重複最外層 pixel。</p>
+
+    <h3>2.3 Otsu Threshold</h3>
+    <p>設 \(h(i)\) 為灰階值 \(i\) 的 pixel 數，\(N=256\times256\)。對每個 threshold \(T\)，背景為 \(0\sim T\)，前景為 \(T+1\sim255\)。當任一群 pixel 數為 0 時，該 \(T\) 不列入比較。</p>
+    <div class="formula">\[
+    C_b(T)=\sum_{i=0}^{T}h(i),\qquad C_f(T)=\sum_{i=T+1}^{255}h(i)
+    \]</div>
+    <div class="formula">\[
+    W_b(T)=\frac{C_b(T)}{N},\qquad W_f(T)=\frac{C_f(T)}{N}
+    \]</div>
+    <div class="formula">\[
+    \mu_b(T)=\frac{\sum_{i=0}^{T}i\,h(i)}{C_b(T)},\qquad
+    \mu_f(T)=\frac{\sum_{i=T+1}^{255}i\,h(i)}{C_f(T)}
+    \]</div>
+    <div class="formula">\[
+    \sigma_B^2(T)=W_b(T)W_f(T)\bigl(\mu_b(T)-\mu_f(T)\bigr)^2
+    \]</div>
+    <p>硬體實作可避免浮點除法，改用等價的整數 score 進行大小比較：</p>
+    <div class="formula">\[
+    \text{score}(T)=\frac{\bigl(M_b(T)C_f(T)-M_f(T)C_b(T)\bigr)^2}{C_b(T)C_f(T)}
+    \]</div>
+    <p>其中 \(M_b(T)=\sum_{i=0}^{T}i\,h(i)\)，\(M_f(T)=\sum_{i=T+1}^{255}i\,h(i)\)。選擇 score 最大者作為 \(T^*\)。</p>
+    <div class="formula">\[
+    T^*=\arg\max_T\sigma_B^2(T)
+    \]</div>
+
+    <h3>2.4 Mask、Auto-Polarity、CCL 與 BBox</h3>
+    <div class="formula">\[
+    m(x,y)=\begin{cases}
+    1, & G(x,y)>T^*\\
+    0, & G(x,y)\le T^*
+    \end{cases}
+    \]</div>
+    <div class="formula">\[
+    m_{\text{final}}(x,y)=\begin{cases}
+    m(x,y), & \text{不需反轉}\\
+    1-m(x,y), & \text{需要 Auto-Polarity Correction}
+    \end{cases}
+    \]</div>
+    <div class="formula">\[
+    \mathcal{N}_{8,\text{visited}}(x,y)=\{(x-1,y-1),(x,y-1),(x+1,y-1),(x-1,y)\}
+    \]</div>
+    <div class="formula">\[
+    X_{\min}(L)=\min_{label(x,y)=L}x,\quad X_{\max}(L)=\max_{label(x,y)=L}x
+    \]</div>
+    <div class="formula">\[
+    Y_{\min}(L)=\min_{label(x,y)=L}y,\quad Y_{\max}(L)=\max_{label(x,y)=L}y
+    \]</div>
+    <p>Overlay 判斷式需要加括號，避免 AND / OR 優先序造成誤判：</p>
+    <div class="formula">\[
+    \text{onBox}(x,y,L)=
+    \bigl((x=X_{\min}(L)\lor x=X_{\max}(L))\land Y_{\min}(L)\le y\le Y_{\max}(L)\bigr)
+    \lor
+    \bigl((y=Y_{\min}(L)\lor y=Y_{\max}(L))\land X_{\min}(L)\le x\le X_{\max}(L)\bigr)
+    \]</div>
+    <div class="formula">\[
+    \text{Out}(x,y)=\begin{cases}
+    32\text{'h}0000\_FF00, & \text{onBox}(x,y,L)=1\ \text{且該物件不碰邊界}\\
+    \text{OriginalRGB}(x,y), & \text{其他情況}
+    \end{cases}
+    \]</div>
+  </section>
+
+  <section class="sec">
+    <h2>三、(一) 須完成開發項目清單：功能、文件、完成狀態與補救方式</h2>
+    <table>
+      <thead><tr><th>開發項目</th><th>功能說明</th><th>相關文件 / 證明</th><th>狀態</th><th>若未完成，缺什麼與如何補</th></tr></thead>
+      <tbody>
+        <tr><td>影像規格與位址掃描</td><td>支援 256×256 RGB，row-major 位址 addr=row×256+col。</td><td>Lab7_iVACD_v3.pdf、drawBbox.v</td><td><span class="status done">已完成</span></td><td>若未完成，需補 16-bit address counter、row/col 對應與 0～65535 掃描控制。</td></tr>
+        <tr><td>ImgROM 讀取控制</td><td>使用 Img_CEN active-low 啟動讀取，Img_A 輸出讀取位址，Img_Q 接收 32-bit pixel。</td><td>drawBbox.v、tb.sv</td><td><span class="status done">已完成</span></td><td>若未完成，需確認 CEN 低有效、讀取 latency 與 address 對齊。</td></tr>
+        <tr><td>RGB to Gray</td><td>將 RGB 三通道轉為單一灰階值，方便後續 histogram 與 threshold。</td><td>drawBbox.v、Lab7.ipynb</td><td><span class="status done">已完成</span></td><td>若未完成，需補灰階公式與 ties-to-even rounding，並用 Python 對照 golden。</td></tr>
+        <tr><td>Gaussian Filter</td><td>使用 3×3 kernel 平滑雜訊，採 Reflect 101 boundary policy。</td><td>drawBbox.v、Lab7.ipynb、assets/P4_gaussian.png</td><td><span class="status done">已完成</span></td><td>若未完成，需補 9 點鄰居讀取、權重加總、除以 16 與邊界鏡射。</td></tr>
+        <tr><td>Histogram 建立</td><td>統計 0～255 灰階分佈，供 Otsu 使用。</td><td>drawBbox.v</td><td><span class="status done">已完成</span></td><td>若未完成，需補 256-bin hist array，先清零再逐 pixel 累加。</td></tr>
+        <tr><td>Otsu Threshold</td><td>掃描 threshold，最大化類間變異數，找出最佳 T。</td><td>drawBbox.v、Lab7.ipynb</td><td><span class="status done">已完成</span></td><td>若未完成，需補 0～255 threshold scan、背景/前景 count 與平均值計算。</td></tr>
+        <tr><td>Binary Mask</td><td>依 G(x,y)&gt;T 產生 0/1 mask。</td><td>drawBbox.v、assets/P4_mask.png</td><td><span class="status done">已完成</span></td><td>若未完成，需補逐 pixel threshold compare 與 mask memory。</td></tr>
+        <tr><td>Auto-Polarity Correction</td><td>避免前景背景顛倒，必要時反轉 mask。</td><td>drawBbox.v</td><td><span class="status done">已完成</span></td><td>若未完成，需統計 foreground 數量或依背景比例判斷 invert。</td></tr>
+        <tr><td>8-connected CCL</td><td>檢查 NW、N、NE、W，建立連通元件 label。</td><td>drawBbox.v、assets/P4_labels.png</td><td><span class="status done">已完成</span></td><td>若未完成，需補 pass1 label assignment、equivalence table 或 union-find。</td></tr>
+        <tr><td>Union-Find Label Resolve</td><td>合併等價 label，讓同一物件具有一致 root label。</td><td>drawBbox.v</td><td><span class="status done">已完成</span></td><td>若未完成，需補 parent array、find/union 邏輯與第二次掃描更新 label。</td></tr>
+        <tr><td>Bounding Box 座標計算</td><td>對每個 label 計算 xmin/xmax/ymin/ymax。</td><td>drawBbox.v</td><td><span class="status done">已完成</span></td><td>若未完成，需掃描 label_mem 並對每個 label 更新 min/max 座標。</td></tr>
+        <tr><td>Border Object Rejection</td><td>若物件碰到影像邊界，不畫框。</td><td>drawBbox.v、Lab7_iVACD_v3.pdf</td><td><span class="status done">已完成</span></td><td>若未完成，需在 bbox 更新時記錄 x=0、x=255、y=0、y=255 的 border flag。</td></tr>
+        <tr><td>Overlay 綠框輸出</td><td>Bounding box 邊界 pixel 輸出 32'h0000_FF00，其餘保留原圖。</td><td>drawBbox.v、assets/P4_overlay.png</td><td><span class="status done">已完成</span></td><td>若未完成，需補 box_map 或邊界判斷，並確認 overlap 時仍只畫綠色一次。</td></tr>
+        <tr><td>AnsSRAM 寫入控制</td><td>使用 Ans_CEN active-low，Ans_WEN=0 write，Ans_A/Ans_D 寫入最終結果。</td><td>drawBbox.v、tb.sv</td><td><span class="status done">已完成</span></td><td>若未完成，需補 write state、address counter 與 done 前最後一筆資料對齊。</td></tr>
+        <tr><td>RTL Simulation P1～P4</td><td>四張測試圖皆需通過 pixel compare。</td><td>ModelSim_result.docx</td><td><span class="status done">已完成</span></td><td>若未完成，需依 terminal mismatch 位置回推是哪個 pipeline 階段錯誤。</td></tr>
+        <tr><td>Gate-level / Post-Synthesis Simulation</td><td>合成後模擬也需 P1～P4 通過。</td><td>syn terminal screenshot / terminal_result.log</td><td><span class="status partial">待放正式截圖</span></td><td>目前需補合成後 terminal 結果圖與 syn1～syn4 log；做法：make synthesize 後執行 make syn1～make syn4。</td></tr>
+        <tr><td>SuperLint Coverage</td><td>所有 Verilog 檔案 SuperLint coverage 需達 90% 以上。</td><td>SuperLint screenshot</td><td><span class="status partial">待放正式截圖</span></td><td>需補 SuperLint coverage 圖。做法：執行 make superlint，截取包含 all files coverage 的畫面。</td></tr>
+        <tr><td>Area / Timing Report</td><td>需提供 total cell area、max timing report、post simulation time。</td><td>area_rpt.txt、timing_max_rpt.txt、terminal screenshot</td><td><span class="status partial">待填正式數值</span></td><td>需補 Design Compiler 報告。做法：make synthesize，開啟 area_rpt.txt 與 timing_max_rpt.txt，填入表格。</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="sec">
+    <h2>四、(二) 須完成繳交項目清單：檔案、內容、狀態與補救方式</h2>
+    <div class="warn">本版本採「單一 drawBbox.v 整合式架構」。若沒有外部 submodule，正式上傳 Moodle 的 tar 可只包含 <b>Lab7_E24134778/drawBbox.v</b>。若程式有呼叫外部 module，則必須把所有 submodule 一起放入 tar。</div>
+    <table>
+      <thead><tr><th>繳交項目</th><th>建議檔名 / 內容</th><th>是否需放入 Moodle .tar</th><th>狀態</th><th>缺什麼與如何補</th></tr></thead>
+      <tbody>
+        <tr><td>Top RTL</td><td>drawBbox.v：完整單檔 RTL，包含 Gray、Gaussian、Otsu、Mask、CCL、BBox、Overlay。</td><td>需要</td><td><span class="status done">已完成</span></td><td>若有 submodule，需一併加入 tar；若無 submodule，單檔可直接繳交。</td></tr>
+        <tr><td>Additional submodules</td><td>rgb2gray_unit.v、gaussian_unit.v、ccl_unit.v 等。</td><td>有使用才需要</td><td><span class="status done">不適用：單檔整合</span></td><td>本版本未使用外部 module，因此不需附；若改成多檔版，必須全部補齊。</td></tr>
+        <tr><td>Synthesized Verilog</td><td>drawBbox_syn.v</td><td>依課程繳交規定</td><td><span class="status partial">待確認</span></td><td>若作業平台要求上傳 synthesis 結果，需由 make synthesize 產生並放入指定資料夾。</td></tr>
+        <tr><td>Timing constraint / SDF</td><td>drawBbox_syn.sdf 或 DC.sdc</td><td>依課程繳交規定</td><td><span class="status partial">待確認</span></td><td>若題目要求 post-synthesis simulation，需保留 SDF 與合成約束檔。</td></tr>
+        <tr><td>Report PDF</td><td>Lab7_E24134778.pdf：包含架構、演算法、波形、SuperLint、area/timing、terminal result。</td><td>通常需要</td><td><span class="status partial">需由 Word/HTML 匯出 PDF</span></td><td>需把本 HTML 內容或 Word 報告整理後匯出成 PDF。</td></tr>
+        <tr><td>Final P4 result image</td><td>drawBbox_result_p4.bmp / png</td><td>報告內需附圖，tar 視規定</td><td><span class="status done">已完成</span></td><td>若圖片缺少，重新執行 make rtl4 或完整 tb 產生 BMP。</td></tr>
+        <tr><td>Terminal result screenshot</td><td>Pattern 1～4 RTL / SYN terminal result screenshot。</td><td>報告內附圖</td><td><span class="status partial">RTL 已有，SYN 待補</span></td><td>RTL 已顯示 P1～P4 PASS；需補 SYN1～SYN4 截圖。</td></tr>
+        <tr><td>Waveform screenshot</td><td>nWave / waveform：標註 reset、enable、Img/Ans SRAM operation、done。</td><td>報告內附圖</td><td><span class="status partial">待確認截圖完整性</span></td><td>若太擁擠，需分成讀圖、寫入、done 三張清楚截圖。</td></tr>
+        <tr><td>SuperLint screenshot</td><td>包含 all files coverage，coverage ≥ 90%。</td><td>報告內附圖</td><td><span class="status partial">待補正式截圖</span></td><td>執行 make superlint，截取 coverage summary。</td></tr>
+        <tr><td>Area report</td><td>area_rpt.txt 或 area screenshot。</td><td>報告內附數值</td><td><span class="status partial">待補</span></td><td>執行 make synthesize 後讀取 total cell area。</td></tr>
+        <tr><td>Max timing report</td><td>timing_max_rpt.txt。</td><td>報告內附截圖 / 數值</td><td><span class="status partial">待補</span></td><td>執行 report_timing，確認 clock period 10.0 ns 下 slack 是否符合要求。</td></tr>
+        <tr><td>正式壓縮檔</td><td>Lab7_E24134778.tar</td><td>需要，上傳 Moodle</td><td><span class="status done">已完成</span></td><td>上傳前用 tar -tf Lab7_E24134778.tar 檢查內部路徑。</td></tr>
+        <tr><td>禁止上傳項目</td><td>不要上傳 P0 notice source code、不要上傳 waveform 原始檔 .fsdb/.vcd，test_fig 通常不需放入。</td><td>不應放入</td><td><span class="status need">需最後檢查</span></td><td>送出前檢查 tar 內沒有 .fsdb、.vcd、test_fig 或多餘暫存資料夾。</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="sec">
+    <h2>五、Python 驗證流程與 Lab7.ipynb 對應說明</h2>
+    <p>在撰寫 Verilog 之前，建議先用 Python 將演算法逐步驗證。Python 的目的不是取代硬體，而是先建立「數學 golden model」，確認每個階段輸入輸出是否合理，最後再把流程轉成 FSM 與 fixed-point/integer RTL。</p>
+    <pre><code># Python golden model 概念流程
+img = read_rgb_image("input_rgb4.txt")
+gray = rgb_to_gray_ties_to_even(img)
+gauss = gaussian_3x3_reflect101(gray)
+T = otsu_threshold(gauss)
+mask = gauss > T
+mask = auto_polarity_correction(mask)
+labels = ccl_8_connected(mask)
+boxes = extract_bounding_boxes(labels, reject_border=True)
+out = overlay_green_boxes(img, boxes, green=0x0000_FF00)
+write_bmp("drawBbox_result_p4.bmp", out)</code></pre>
+    <div class="grid3">
+      <div class="imgcard"><img src="assets/P4_input.png" alt="P4 input"><div class="cap">P4 原始輸入</div></div>
+      <div class="imgcard"><img src="assets/P4_gray.png" alt="P4 gray"><div class="cap">P4 灰階結果</div></div>
+      <div class="imgcard"><img src="assets/P4_gaussian.png" alt="P4 gaussian"><div class="cap">P4 Gaussian 結果</div></div>
+      <div class="imgcard"><img src="assets/P4_mask.png" alt="P4 mask"><div class="cap">P4 Binary Mask</div></div>
+      <div class="imgcard"><img src="assets/P4_labels.png" alt="P4 labels"><div class="cap">P4 CCL Label</div></div>
+      <div class="imgcard"><img src="assets/P4_overlay.png" alt="P4 overlay"><div class="cap">P4 Overlay 最終結果</div></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>六、Verilog 實作對應說明</h2>
+    <p>本次設計使用單一 <code>drawBbox.v</code> 整合所有功能，FSM 狀態依序控制影像處理流程。這種做法的優點是繳交時不容易漏檔，也能避免助教編譯時找不到 submodule。</p>
+    <pre><code>// drawBbox.v 核心狀態摘要
+S_IDLE         // 等待 enable
+S_LOAD         // 從 ImgROM 讀入 RGB 影像
+S_GRAY         // RGB 轉灰階
+S_GAUSS_HIST   // Gaussian filter 並建立 histogram
+S_OTSU_SCAN    // 掃描 0~255 找最佳 threshold
+S_POLARITY     // Auto-polarity correction
+S_MASK_WRITE   // 產生 binary mask
+S_CCL_SCAN     // 8-connected CCL
+S_BBOX_SCAN    // 計算 Xmin/Xmax/Ymin/Ymax
+S_BOXMAP_GEN   // 產生綠框位置
+S_DRAW_WRITE   // 寫入 AnsSRAM
+S_DONE         // done = 1</code></pre>
+    <div class="grid2">
+      <div class="imgcard"><img src="assets/internal_architecture_enhanced.svg" alt="Internal architecture"><div class="cap">內部架構圖：FSM 控制各階段資料流。</div></div>
+      <div class="imgcard"><img src="assets/fsm_controller_enhanced.svg" alt="FSM"><div class="cap">FSM 圖解：每個 state 對應一個主要處理階段。</div></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>七、模擬結果與完成狀態總結</h2>
+    <table>
+      <thead><tr><th>Pattern</th><th>RTL 結果</th><th>輸出檔案</th><th>狀態</th></tr></thead>
+      <tbody>
+        <tr><td>P1</td><td>Simulation PASS，errors=0</td><td>drawBbox_result_p1.bmp</td><td><span class="status done">完成</span></td></tr>
+        <tr><td>P2</td><td>Simulation PASS，errors=0</td><td>drawBbox_result_p2.bmp</td><td><span class="status done">完成</span></td></tr>
+        <tr><td>P3</td><td>Simulation PASS，errors=0</td><td>drawBbox_result_p3.bmp</td><td><span class="status done">完成</span></td></tr>
+        <tr><td>P4</td><td>Simulation PASS，errors=0</td><td>drawBbox_result_p4.bmp</td><td><span class="status done">完成</span></td></tr>
+      </tbody>
+    </table>
+    <div class="ok">目前 RTL 模擬結果為 P1～P4 全部 PASS，Total errors = 0。正式報告仍建議補齊 synthesis、post-synthesis、SuperLint、area/timing 截圖，使第 7、8 題資料完整。</div>
+    <div class="grid2">
+      <div class="imgcard"><img src="assets/pattern_summary_cards.svg" alt="pattern summary"><div class="cap">P1～P4 結果摘要。</div></div>
+      <div class="imgcard"><img src="assets/drawBbox_result_p4.png" alt="drawBbox result p4"><div class="cap">Final drawBbox_result_p4 圖片。</div></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>八、提交前最後檢查表</h2>
+    <table>
+      <thead><tr><th>檢查項目</th><th>檢查方式</th><th>標準</th><th>狀態</th></tr></thead>
+      <tbody>
+        <tr><td>tar 檔名</td><td>檢查是否為 Lab7_E24134778.tar</td><td>學號大寫，副檔名 .tar</td><td><span class="status done">完成</span></td></tr>
+        <tr><td>tar 內容</td><td><code>tar -tf Lab7_E24134778.tar</code></td><td>至少包含 Lab7_E24134778/drawBbox.v</td><td><span class="status done">完成</span></td></tr>
+        <tr><td>沒有漏 submodule</td><td>grep module instantiation 或重新編譯</td><td>若有外部 module 必須附上；本版為單檔整合</td><td><span class="status done">完成</span></td></tr>
+        <tr><td>RTL P1～P4</td><td>make rtl1～make rtl4</td><td>全部 PASS</td><td><span class="status done">完成</span></td></tr>
+        <tr><td>SYN P1～P4</td><td>make syn1～make syn4</td><td>全部 PASS</td><td><span class="status partial">待補截圖</span></td></tr>
+        <tr><td>SuperLint</td><td>make superlint</td><td>Coverage ≥ 90%</td><td><span class="status partial">待補截圖</span></td></tr>
+        <tr><td>Report PDF</td><td>從 Word/HTML 匯出 PDF</td><td>包含功能、波形、terminal、area/timing、心得</td><td><span class="status partial">待匯出</span></td></tr>
+        <tr><td>禁止檔案</td><td>檢查 tar 內沒有 .fsdb/.vcd</td><td>不得上傳 waveform 原始檔</td><td><span class="status need">上傳前檢查</span></td></tr>
+      </tbody>
+    </table>
+    <pre><code># 建議最後打包與檢查指令
+mkdir -p Lab7_E24134778
+cp drawBbox.v Lab7_E24134778/
+tar -cvf Lab7_E24134778.tar Lab7_E24134778
+tar -tf Lab7_E24134778.tar</code></pre>
+  </section>
+
+  <section class="sec">
+    <h2>九、總結：目前完成與未完成重點</h2>
+    <div class="ok"><b>已完成：</b>核心 RTL 功能、單檔 drawBbox.v 架構、RGB/Gray/Gaussian/Otsu/Mask/CCL/BBox/Overlay、RTL P1～P4 PASS、P4 結果圖、Moodle tar 檔基本結構。</div>
+    <div class="warn"><b>待補強：</b>正式 SuperLint coverage 截圖、Design Compiler total cell area、max timing report、post-synthesis simulation terminal 截圖、report PDF 最終輸出。</div>
+    <p>因此，目前開發功能面已達成主要目標；若要讓報告更接近滿分，最後應集中補齊「合成與報告證明文件」，尤其是 SuperLint、area/timing 與 SYN terminal result。</p>
+  </section>
+</div>
+</body>
+</html>
