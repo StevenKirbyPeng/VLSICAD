@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lab7 Deliverables 提交內容詳細說明</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+      background: #f3f7fb;
+      color: #1f2937;
+      line-height: 1.8;
+    }
+    .page {
+      max-width: 1100px;
+      margin: 32px auto;
+      padding: 32px;
+      background: #ffffff;
+      border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+    }
+    h1 {
+      margin: 0 0 12px;
+      font-size: 34px;
+      color: #0f172a;
+      border-left: 10px solid #22c55e;
+      padding-left: 16px;
+    }
+    h2 {
+      margin-top: 36px;
+      font-size: 25px;
+      color: #14532d;
+      border-bottom: 3px solid #bbf7d0;
+      padding-bottom: 8px;
+    }
+    h3 { color: #166534; margin-top: 24px; }
+    .subtitle {
+      font-size: 18px;
+      color: #475569;
+      margin-bottom: 24px;
+    }
+    .notice {
+      background: linear-gradient(135deg, #ecfdf5, #f0f9ff);
+      border: 1px solid #86efac;
+      border-left: 8px solid #22c55e;
+      border-radius: 16px;
+      padding: 18px 22px;
+      margin: 24px 0;
+    }
+    .warning {
+      background: #fff7ed;
+      border: 1px solid #fdba74;
+      border-left: 8px solid #f97316;
+      border-radius: 16px;
+      padding: 18px 22px;
+      margin: 24px 0;
+    }
+    .danger {
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      border-left: 8px solid #ef4444;
+      border-radius: 16px;
+      padding: 18px 22px;
+      margin: 24px 0;
+    }
+    .image-box {
+      margin: 24px 0;
+      text-align: center;
+      background: #f8fafc;
+      border: 1px solid #dbeafe;
+      padding: 16px;
+      border-radius: 18px;
+    }
+    .image-box img {
+      width: min(100%, 900px);
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.15);
+    }
+    .caption {
+      color: #64748b;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 18px 0 28px;
+      overflow: hidden;
+      border-radius: 14px;
+      box-shadow: 0 0 0 1px #e5e7eb;
+    }
+    th {
+      background: #16a34a;
+      color: white;
+      padding: 12px;
+      text-align: left;
+      font-weight: 700;
+    }
+    td {
+      border-bottom: 1px solid #e5e7eb;
+      padding: 12px;
+      vertical-align: top;
+      background: #fff;
+    }
+    tr:nth-child(even) td { background: #f8fafc; }
+    code {
+      background: #eef2ff;
+      color: #3730a3;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-family: Consolas, "Courier New", monospace;
+    }
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 18px;
+      border-radius: 14px;
+      overflow-x: auto;
+      line-height: 1.6;
+    }
+    .tag-ok { color: #15803d; font-weight: 700; }
+    .tag-no { color: #dc2626; font-weight: 700; }
+    .checklist li { margin: 8px 0; }
+    .footer {
+      margin-top: 36px;
+      padding-top: 18px;
+      border-top: 1px solid #e5e7eb;
+      color: #64748b;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1>Lab7 Deliverables 提交內容詳細說明</h1>
+    <p class="subtitle">本頁將附件中的 Deliverables 與 File Hierarchy 轉換成中文 HTML 說明，方便放入報告或提交前檢查。</p>
+
+    <div class="image-box">
+      <img src="image.png" alt="Lab7 Deliverables file hierarchy screenshot" />
+      <div class="caption">Fig. 1 Lab7 作業提交檔案階層與注意事項</div>
+    </div>
+
+    <section>
+      <h2>一、Deliverables 整體意思</h2>
+      <p>
+        這張附件主要是在說明 Lab7 作業最後上傳時必須包含哪些檔案、哪些檔案不能放進報告或壓縮檔，以及壓縮檔內部資料夾階層必須如何排列。Lab7 的重點不是只繳交 <code>drawBbox.v</code>，而是要讓助教能在 SoC Lab 環境中直接編譯、模擬、合成與檢查 SuperLint。因此所有必要的 Verilog、測試平台、合成腳本、限制檔、結果圖片與 PDF 報告都要完整放入指定資料夾中。
+      </p>
+      <div class="notice">
+        <strong>核心原則：</strong>助教解壓縮後，應該可以直接依照 Makefile 或指定指令執行 RTL simulation、synthesis、post-synthesis simulation 與 SuperLint 檢查。如果缺少任何自訂 submodule，就可能導致無法編譯，嚴重時會被視為 0 分。
+      </div>
+    </section>
+
+    <section>
+      <h2>二、六項提交規定逐條說明</h2>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 24%;">原規定</th>
+            <th>中文詳細說明</th>
+            <th style="width: 22%;">提交重點</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1) All Verilog codes including testbenches, .bmp and .txt should be uploaded.</td>
+            <td>所有 Verilog 設計檔與測試檔都要上傳，包含主程式、子模組、testbench、模擬產生或比對需要的 BMP 圖片與文字檔。這代表只放主模組是不夠的，凡是模擬會用到的檔案都應一起放入壓縮檔。</td>
+            <td><span class="tag-ok">必放</span> Verilog、testbench、BMP、TXT。</td>
+          </tr>
+          <tr>
+            <td>2) Please DO NOT include source code in the paper report.</td>
+            <td>紙本或 PDF 報告中不要整份貼上 Verilog 原始碼。報告應著重在架構、流程、FSM、模組功能、實驗結果與分析。如果真的要展示程式，只能放少量關鍵片段截圖或簡短說明，不應整份程式碼塞進報告。</td>
+            <td><span class="tag-no">報告不可整份貼 code</span>。</td>
+          </tr>
+          <tr>
+            <td>3) Please DO NOT upload waveforms (.fsdb or .vcd).</td>
+            <td>不要上傳波形檔，例如 <code>.fsdb</code> 或 <code>.vcd</code>。這些檔案通常很大，只是用來除錯，不屬於最後提交內容。若放入可能造成壓縮檔過大或不符合規定。</td>
+            <td><span class="tag-no">不要放</span> FSDB / VCD。</td>
+          </tr>
+          <tr>
+            <td>4) If you upload a dead body which we can’t even compile, you will get NO credit!</td>
+            <td>「dead body」是指助教拿到後完全不能編譯的作業。如果檔案缺漏、module 名稱不一致、port 對不上、語法錯誤、少放 submodule，導致無法 compile，可能直接沒有分數。</td>
+            <td>提交前一定要重新解壓縮測試 compile。</td>
+          </tr>
+          <tr>
+            <td>5) All Verilog file should get at least 90% SuperLint Coverage.</td>
+            <td>所有 Verilog 檔案都需要通過 SuperLint 檢查，且 coverage 至少要達到 90%。這代表除了功能正確，也要注意硬體設計風格，例如避免 latch、未使用訊號、寬度不匹配、不可合成語法等問題。</td>
+            <td><span class="tag-ok">SuperLint ≥ 90%</span>。</td>
+          </tr>
+          <tr>
+            <td>6) All homework requirements should be uploaded in this file hierarchy...</td>
+            <td>所有作業檔案必須依照指定階層放置。如果使用額外子模組，必須一起放入 tar 檔案；如果沒有放，助教編譯時找不到 module，就會被視為未完成或 0 分。</td>
+            <td>檔名、資料夾、階層都要照規定。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>三、標準提交檔案階層</h2>
+      <p>附件中的壓縮檔名稱為 <code>Lab7_StudentID.tar</code>。其中 <code>StudentID</code> 要改成自己的學號，例如 <code>Lab7_E24134778.tar</code>。壓縮檔內部建議放一個同名資料夾，資料夾內包含下列檔案。</p>
+      <pre>Lab7_StudentID.tar
+└── Lab7_StudentID/
+    ├── drawBbox.v
+    ├── tb.sv
+    ├── CYCLE_MAX.sv
+    ├── drawBbox_syn.v
+    ├── drawBbox_syn.sdf
+    ├── DC.sdc
+    ├── .synopsys_dc.setup
+    ├── superlint.tcl
+    ├── synthesize.tcl
+    ├── Makefile
+    ├── drawBbox_result_p4.bmp
+    ├── StudentID.pdf
+    └── additional_submodules.v</pre>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 26%;">檔案名稱</th>
+            <th>用途說明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>drawBbox.v</code></td>
+            <td>Lab7 的主 RTL 設計檔，負責影像讀取、灰階、濾波、threshold、mask、CCL、bounding box 與 overlay 控制。</td>
+          </tr>
+          <tr>
+            <td><code>tb.sv</code></td>
+            <td>測試平台，用來餵入測試圖、驅動 clock/reset/enable、檢查輸出結果是否與 golden answer 一致。</td>
+          </tr>
+          <tr>
+            <td><code>CYCLE_MAX.sv</code></td>
+            <td>設定最大模擬 cycle 或 clock 相關參數，避免設計卡住造成無限模擬。</td>
+          </tr>
+          <tr>
+            <td><code>drawBbox_syn.v</code></td>
+            <td>合成後的 gate-level netlist，用於 post-synthesis simulation。</td>
+          </tr>
+          <tr>
+            <td><code>drawBbox_syn.sdf</code></td>
+            <td>合成後的延遲標註檔，用來在 gate-level simulation 中加入實際延遲資訊。</td>
+          </tr>
+          <tr>
+            <td><code>DC.sdc</code></td>
+            <td>Design Compiler 使用的 timing constraint 檔，通常包含 clock period 與相關限制。</td>
+          </tr>
+          <tr>
+            <td><code>.synopsys_dc.setup</code></td>
+            <td>Synopsys Design Compiler 環境設定檔，協助工具找到 library 與相關設定。</td>
+          </tr>
+          <tr>
+            <td><code>superlint.tcl</code></td>
+            <td>執行 SuperLint 檢查用的 Tcl 腳本。</td>
+          </tr>
+          <tr>
+            <td><code>synthesize.tcl</code></td>
+            <td>合成流程腳本，通常包含讀入 RTL、設定 current design、link、compile、輸出 report 等指令。</td>
+          </tr>
+          <tr>
+            <td><code>Makefile</code></td>
+            <td>提供統一指令執行 RTL simulation、synthesis、post-simulation、SuperLint 與 clean。</td>
+          </tr>
+          <tr>
+            <td><code>drawBbox_result_p4.bmp</code></td>
+            <td>Pattern 4 的輸出結果圖片，用來展示 bounding box 是否正確畫在輸出影像上。若老師要求 P1–P4 結果，也可一併附上。</td>
+          </tr>
+          <tr>
+            <td><code>StudentID.pdf</code></td>
+            <td>正式報告 PDF，檔名要改為自己的學號，例如 <code>E24134778.pdf</code>。</td>
+          </tr>
+          <tr>
+            <td><code>additional_submodules.v</code></td>
+            <td>如果你的設計有使用額外子模組，例如 <code>rgb2gray_unit.v</code>、<code>gaussian_unit.v</code>、<code>otsu_unit.v</code>、<code>ccl_unit.v</code> 等，必須全部放入。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>四、哪些檔案一定要放，哪些不要放</h2>
+      <h3>1、一定要放</h3>
+      <ul>
+        <li>主 RTL：<code>drawBbox.v</code></li>
+        <li>所有自訂 Verilog submodules：例如灰階、Gaussian、Otsu、mask、CCL、bbox、overlay 等模組。</li>
+        <li>測試平台與設定檔：<code>tb.sv</code>、<code>CYCLE_MAX.sv</code>。</li>
+        <li>合成與驗證腳本：<code>Makefile</code>、<code>synthesize.tcl</code>、<code>superlint.tcl</code>、<code>DC.sdc</code>。</li>
+        <li>合成後檔案：<code>drawBbox_syn.v</code>、<code>drawBbox_syn.sdf</code>。</li>
+        <li>結果圖片與文字檔：<code>.bmp</code>、<code>.txt</code>，依助教規定放入。</li>
+        <li>正式報告：<code>StudentID.pdf</code>。</li>
+      </ul>
+
+      <h3>2、不要放</h3>
+      <ul>
+        <li><code>.fsdb</code>、<code>.vcd</code> 等 waveform 檔案。</li>
+        <li>不必要的大型暫存檔、工具產生的 cache、無關圖片。</li>
+        <li><code>test_fig</code> 檔案。附件紅字已特別標註：<strong>No need to include test_fig file</strong>。</li>
+        <li>報告中不要整份貼上 source code。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>五、提交前檢查清單</h2>
+      <div class="warning">
+        <strong>建議做法：</strong>不要只檢查原本工作資料夾。請把最後的 <code>.tar</code> 解壓縮到一個新的空資料夾，重新執行 compile / simulation / synthesis / SuperLint，確認助教端也能重現結果。
+      </div>
+      <ol class="checklist">
+        <li>確認壓縮檔名稱為 <code>Lab7_StudentID.tar</code>，StudentID 已換成自己的學號。</li>
+        <li>確認壓縮檔內部資料夾階層正確，不是直接散落一堆檔案。</li>
+        <li>確認所有 submodule 都已放入，沒有只放 <code>drawBbox.v</code>。</li>
+        <li>確認 <code>vlog</code> 或 Makefile 可以成功編譯所有 Verilog/SystemVerilog 檔案。</li>
+        <li>確認 RTL simulation P1、P2、P3、P4 都可以正常跑完。</li>
+        <li>確認 synthesis 可以成功產生 <code>drawBbox_syn.v</code> 與 <code>drawBbox_syn.sdf</code>。</li>
+        <li>確認 post-synthesis simulation 可以正常執行。</li>
+        <li>確認 SuperLint coverage 至少 90%。</li>
+        <li>確認報告是 PDF 格式，而且沒有把整份 Verilog source code 貼進去。</li>
+        <li>確認沒有放入 <code>.fsdb</code>、<code>.vcd</code>、<code>test_fig</code> 或其他不必要檔案。</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>六、建議的最終提交指令</h2>
+      <p>在 Linux / SoC Lab 環境中，若資料夾名稱為 <code>Lab7_E24134778</code>，可以使用下列指令建立 tar 檔：</p>
+      <pre>tar -cvf Lab7_E24134778.tar Lab7_E24134778</pre>
+      <p>建立後可用下列指令檢查內容：</p>
+      <pre>tar -tvf Lab7_E24134778.tar</pre>
+      <p>如果檢查時看到資料夾、主 RTL、testbench、合成檔、Makefile、報告 PDF 與所有 submodule 都在裡面，才代表提交包比較安全。</p>
+    </section>
+
+    <section>
+      <h2>七、附件重點總結</h2>
+      <div class="danger">
+        <strong>最重要的三件事：</strong><br />
+        1. 檔案階層要完全正確。<br />
+        2. 使用到的所有 submodule 都要放入 tar。<br />
+        3. 不能提交無法編譯的 dead body，也不能放 waveform 檔案。
+      </div>
+      <p>
+        簡單來說，這份 Deliverables 附件是在提醒學生：Lab7 不只是看報告，也會實際編譯、模擬、合成與檢查 lint。只要缺少檔案或階層錯誤，就可能被扣分；如果整個無法編譯，甚至可能沒有分數。因此最後提交前，務必用全新資料夾重新解壓縮與測試。
+      </p>
+    </section>
+
+    <div class="footer">Generated HTML explanation for Lab7 Deliverables and File Hierarchy.</div>
+  </main>
+</body>
+</html>

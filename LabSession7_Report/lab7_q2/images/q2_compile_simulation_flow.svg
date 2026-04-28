@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1450" height="700" viewBox="0 0 1450 700">
+<defs>
+<marker id="a" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#334155"/></marker>
+<style>
+.title{font-family:Arial,'Microsoft JhengHei';font-size:34px;font-weight:800;fill:#174b78}
+.t{font-family:Arial,'Microsoft JhengHei';font-size:21px;font-weight:800;fill:#172033}
+.s{font-family:Arial,'Microsoft JhengHei';font-size:15px;fill:#475569}
+.box{stroke:#5482bd;stroke-width:2.4;rx:18;filter:drop-shadow(0 7px 7px rgba(30,64,175,.14))}
+.ar{stroke:#334155;stroke-width:3;fill:none;marker-end:url(#a)}
+.ok{font-family:Arial,'Microsoft JhengHei';font-size:20px;font-weight:800;fill:#047857}
+</style>
+</defs>
+<rect width="1450" height="700" fill="#f8fbff"/>
+<text x="55" y="60" class="title">Q2 A+ Answer: Compile Verilog Code and Verify Operation</text>
+
+<rect x="70" y="145" width="205" height="115" fill="#dbeafe" class="box"/>
+<text x="105" y="188" class="t">Source Files</text>
+<text x="100" y="220" class="s">drawBbox.v</text>
+<text x="100" y="245" class="s">CYCLE_MAX.sv / tb.sv</text>
+
+<path d="M275 202 H340" class="ar"/>
+
+<rect x="340" y="145" width="205" height="115" fill="#dcfce7" class="box"/>
+<text x="375" y="188" class="t">Compile</text>
+<text x="365" y="220" class="s">vlog +define+p*</text>
+<text x="365" y="245" class="s">Errors = 0</text>
+
+<path d="M545 202 H610" class="ar"/>
+
+<rect x="610" y="145" width="205" height="115" fill="#ffedd5" class="box"/>
+<text x="645" y="188" class="t">Simulate</text>
+<text x="635" y="220" class="s">vsim work.tb</text>
+<text x="635" y="245" class="s">run -all</text>
+
+<path d="M815 202 H880" class="ar"/>
+
+<rect x="880" y="145" width="205" height="115" fill="#f3e8ff" class="box"/>
+<text x="915" y="188" class="t">Patterns</text>
+<text x="905" y="220" class="s">P1, P2, P3, P4</text>
+<text x="905" y="245" class="s">pixel comparison</text>
+
+<path d="M1085 202 H1150" class="ar"/>
+
+<rect x="1150" y="145" width="225" height="115" fill="#fee2e2" class="box"/>
+<text x="1185" y="188" class="t">Result</text>
+<text x="1178" y="220" class="s">ALL PASS</text>
+<text x="1178" y="245" class="s">TOTAL errors = 0</text>
+
+<rect x="125" y="365" width="1200" height="145" rx="20" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="170" y="410" class="ok">Verified operation</text>
+<text x="170" y="450" class="s">ModelSim successfully compiled the Verilog/SystemVerilog files and simulated all four test patterns.</text>
+<text x="170" y="482" class="s">The terminal result reports P1 Simulation PASS, P2 Simulation PASS, P3 Simulation PASS, P4 Simulation PASS, and TOTAL errors = 0.</text>
+</svg>

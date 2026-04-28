@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520">
+<style>.bg{fill:#f8fafc}.card{fill:white;stroke:#cbd5e1;stroke-width:2}.txt{font-family:Arial,'Noto Sans TC',sans-serif;fill:#0f172a;font-size:18px;font-weight:800}.sub{font-family:Arial,'Noto Sans TC',sans-serif;fill:#475569;font-size:14px}.label{font-family:Consolas,monospace;fill:#0f172a;font-size:15px}.line{stroke:#2563eb;stroke-width:3;fill:none}.green{stroke:#16a34a;stroke-width:3;fill:none}.red{stroke:#dc2626;stroke-width:3;fill:none}.grid{stroke:#e2e8f0;stroke-width:1}.box{fill:#f0fdf4;stroke:#86efac}.box2{fill:#fff7ed;stroke:#fdba74}</style>
+<rect class="bg" width="1200" height="520"/><rect class="card" x="30" y="24" width="1140" height="470" rx="22"/>
+<text class="txt" x="60" y="60">BBox / Overlay Waveform：確認邊界座標、過濾規則與綠框寫入</text>
+<text class="sub" x="60" y="86">觀察 label_idx、bbox_valid、bbox_border、edge_stage、edge_ctr、box_map 與 Ans_D 是否在畫框階段正確動作。</text>
+<g transform="translate(190,125)">
+<line class="grid" x1="0" y1="0" x2="900" y2="0"/><line class="grid" x1="0" y1="60" x2="900" y2="60"/><line class="grid" x1="0" y1="120" x2="900" y2="120"/><line class="grid" x1="0" y1="180" x2="900" y2="180"/><line class="grid" x1="0" y1="240" x2="900" y2="240"/>
+<text class="label" x="-145" y="5">state</text><path class="line" d="M0 0 L150 0 L150 -15 L330 -15 L330 0 L560 0 L560 -15 L760 -15 L760 0 L900 0"/>
+<text class="label" x="-145" y="65">label_idx</text><path class="line" d="M0 60 L150 60 L190 40 L230 60 L270 40 L310 60 L350 40 L390 60 L430 40 L470 60 L900 60"/>
+<text class="label" x="-145" y="125">bbox_valid</text><path class="green" d="M0 140 L170 140 L170 100 L500 100 L500 140 L900 140"/>
+<text class="label" x="-145" y="185">bbox_border</text><path class="red" d="M0 200 L250 200 L250 160 L340 160 L340 200 L900 200"/>
+<text class="label" x="-145" y="245">Ans_D</text><path class="green" d="M0 260 L560 260 L600 230 L640 260 L680 230 L720 260 L760 230 L800 260 L900 260"/><text class="sub" x="610" y="222">GREEN = 32'h0000_FF00</text>
+<rect class="box" x="150" y="300" width="180" height="52" rx="10"/><text class="sub" x="182" y="332">S_BBOX_SCAN</text>
+<rect class="box2" x="330" y="300" width="230" height="52" rx="10"/><text class="sub" x="365" y="332">S_BOXMAP_GEN</text>
+<rect class="box" x="560" y="300" width="200" height="52" rx="10"/><text class="sub" x="593" y="332">S_DRAW_WRITE</text>
+</g>
+</svg>

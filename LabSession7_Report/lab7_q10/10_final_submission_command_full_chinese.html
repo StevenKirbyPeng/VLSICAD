@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lab7 第10題 最終繳交與指令說明滿分版</title>
+<script>
+window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$','$$']] }, svg: { fontCache: 'global' } };
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+<style>
+:root{--bg:#f6f8fb;--card:#fff;--ink:#102033;--muted:#64748b;--brand:#2563eb;--ok:#16a34a;--warn:#f97316;--bad:#dc2626;--line:#dbe5f0;--code:#0f172a;--soft:#eef6ff;}
+*{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,#f7fbff,#eef4fb);font-family:"Noto Sans TC","Microsoft JhengHei",Arial,sans-serif;color:var(--ink);line-height:1.75} .wrap{max-width:1180px;margin:0 auto;padding:34px 22px 80px} header{background:linear-gradient(135deg,#102033,#1e3a8a);color:white;border-radius:28px;padding:34px;box-shadow:0 18px 40px rgba(15,23,42,.18)} h1{margin:0;font-size:2.15rem;letter-spacing:.02em} h2{margin:32px 0 14px;font-size:1.55rem;border-left:7px solid var(--brand);padding-left:12px} h3{margin:22px 0 10px;font-size:1.15rem;color:#1e3a8a}.subtitle{opacity:.92;margin-top:10px}.card{background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:22px;padding:24px;margin:20px 0;box-shadow:0 10px 26px rgba(30,58,138,.07)}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}@media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr}} figure{margin:0;background:#fbfdff;border:1px solid var(--line);border-radius:18px;padding:12px;text-align:center} figure img{max-width:100%;border-radius:12px;display:block;margin:0 auto}.cap,figcaption{font-size:.9rem;color:var(--muted);font-weight:700;margin-top:8px} table{width:100%;border-collapse:collapse;background:white;border-radius:14px;overflow:hidden;margin:14px 0} th{background:#1e3a8a;color:white} td,th{border:1px solid var(--line);padding:10px 12px;vertical-align:top}.ok{color:var(--ok);font-weight:800}.warn{color:var(--warn);font-weight:800}.bad{color:var(--bad);font-weight:800}.tag{display:inline-block;border-radius:999px;padding:4px 10px;background:#dbeafe;color:#1d4ed8;font-weight:800;font-size:.85rem;margin:3px}pre{background:var(--code);color:#e5e7eb;border-radius:16px;padding:18px;overflow:auto;line-height:1.55;border:1px solid #263449} code{font-family:Consolas,"Courier New",monospace;font-size:.92rem}.note{background:#fff7ed;border:1px solid #fed7aa;border-radius:18px;padding:16px}.success{background:#ecfdf5;border:1px solid #bbf7d0;border-radius:18px;padding:16px}.formula{background:#f8fafc;border:1px solid var(--line);border-radius:16px;padding:14px;margin:10px 0}.toc a{display:inline-block;margin:5px 8px 5px 0;text-decoration:none}.btn{background:#2563eb;color:#fff;border-radius:12px;padding:10px 14px;font-weight:800}.small{font-size:.92rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>Lab7 第10題：Final Submission Command 與 Moodle 繳交說明滿分版</h1>
+<div class="subtitle">主題：將所有必要檔案壓縮成 .tar，確認單一 drawBbox.v 架構可完整編譯、模擬、合成與繳交。</div>
+<div style="margin-top:16px"><span class="tag">中文滿分版</span><span class="tag">修正版數學式</span><span class="tag">Python 對照</span><span class="tag">Verilog 對照</span><span class="tag">外部圖片載入</span></div>
+</header>
+
+<section class="card toc">
+<h2>目錄</h2>
+<a class="btn" href="#q">一、題目重點</a>
+<a class="btn" href="#tar">二、.tar 繳交格式</a>
+<a class="btn" href="#math">三、修正版數學式</a>
+<a class="btn" href="#python">四、Python 驗證流程</a>
+<a class="btn" href="#verilog">五、Verilog 對應</a>
+<a class="btn" href="#pic">六、圖解與外部圖片</a>
+<a class="btn" href="#check">七、提交前檢查清單</a>
+</section>
+
+<section id="q" class="card">
+<h2>一、題目重點說明</h2>
+<p>此題要求將 Lab7 需要繳交的檔案整理成一個 <b>.tar compressed file</b>，並透過 Moodle 上傳。圖中也提醒：若設計有額外使用其他檔案，必須一起附上，並確認檔案被正確包含；若只有單一 <code>drawBbox.v</code>，且所有功能都寫在同一個檔案內，則可採用單檔繳交策略。</p>
+<div class="grid2">
+<figure><img src="assets/submission_command_screenshot.png" alt="Lab7 submission command screenshot"><figcaption>題目截圖：.tar 繳交格式與 Makefile 指令表</figcaption></figure>
+<div class="success"><b>本次繳交策略：</b><br>本設計採用單一 <code>drawBbox.v</code> 整合式架構，Gray、Gaussian、Otsu、Mask、8-connected CCL、Bounding Box 與 Overlay 都在同一個 top module 中完成，沒有外部 submodule。因此正式上傳 Moodle 的核心檔案可以是：<br><br><code>Lab7_E24134778.tar</code><br><br>其中包含：<br><code>Lab7_E24134778/drawBbox.v</code></div>
+</div>
+</section>
+
+<section id="tar" class="card">
+<h2>二、.tar 壓縮與 Moodle 繳交格式</h2>
+<h3>2.1 正確資料夾結構</h3>
+<pre><code>Lab7_E24134778/
+└── drawBbox.v</code></pre>
+<p>因為本設計沒有拆成 <code>rgb2gray_unit.v</code>、<code>gaussian_unit.v</code>、<code>otsu_unit.v</code> 等外部檔案，所以不需要額外附上 submodule。若未來版本有使用外部 module，則必須全部放入同一資料夾中，否則助教端編譯時會出現 module not found。</p>
+<h3>2.2 Linux / SoC Lab 正式壓縮指令</h3>
+<pre><code>tar -cvf Lab7_E24134778.tar Lab7_E24134778</code></pre>
+<h3>2.3 檢查 tar 內容</h3>
+<pre><code>tar -tvf Lab7_E24134778.tar</code></pre>
+<p>理想輸出應看到：</p>
+<pre><code>Lab7_E24134778/
+Lab7_E24134778/drawBbox.v</code></pre>
+<h3>2.4 Makefile 指令說明</h3>
+<table>
+<tr><th>Situation</th><th>Command</th><th>中文說明</th></tr>
+<tr><td>RTL Simulation</td><td><code>make rtl%</code></td><td>執行 RTL 模擬，% 換成 1～4，例如 <code>make rtl1</code></td></tr>
+<tr><td>Synthesize your RTL code</td><td><code>make synthesize</code></td><td>執行 Design Compiler synthesis</td></tr>
+<tr><td>Post-Synthesis Simulation</td><td><code>make syn%</code></td><td>執行合成後 gate-level 模擬，例如 <code>make syn4</code></td></tr>
+<tr><td>View Waveform</td><td><code>make nWave</code></td><td>開啟 waveform viewer 檢查 clk、state、memory control 與 done</td></tr>
+<tr><td>Open SuperLint</td><td><code>make superlint</code></td><td>執行 SuperLint，確認 coverage 達 90% 以上</td></tr>
+<tr><td>Clean files</td><td><code>make clean</code></td><td>清除模擬、合成與驗證暫存檔</td></tr>
+</table>
+</section>
+
+<section id="math" class="card">
+<h2>三、修正版數學式與本題繳交邏輯</h2>
+<h3>3.1 影像尺寸與位址對應</h3>
+<div class="formula">$$N = 256 \times 256 = 65536$$ $$addr = y \times 256 + x$$</div>
+<p>因為影像固定為 256×256，所以 x 與 y 皆可用 8-bit 表示，address 則使用 16-bit 從 0 掃描到 65535。</p>
+<h3>3.2 RGB 轉灰階</h3>
+<div class="formula">$$Gray = \operatorname{RTE}(0.299R + 0.587G + 0.114B)$$</div>
+<p>其中 RTE 表示 round to nearest, ties to even。硬體常用整數近似：</p>
+<div class="formula">$$S = 77R + 150G + 29B$$ $$Gray = \operatorname{RTE}\left(\frac{S}{256}\right)$$</div>
+<h3>3.3 Gaussian Filter</h3>
+<div class="formula">$$G(x,y)=\operatorname{RTE}\left(\frac{1}{16}\sum_{i=-1}^{1}\sum_{j=-1}^{1}K(i,j)I(x+i,y+j)\right)$$ $$K=\begin{bmatrix}1&2&1\\2&4&2\\1&2&1\end{bmatrix}$$</div>
+<p>邊界採 Reflect101，避免影像邊界因補 0 而變暗。</p>
+<h3>3.4 Otsu Threshold</h3>
+<div class="formula">$$W_b(T)=\frac{\sum_{i=0}^{T}h(i)}{N},\quad W_f(T)=\frac{\sum_{i=T+1}^{255}h(i)}{N}$$ $$\mu_b(T)=\frac{\sum_{i=0}^{T}i h(i)}{\sum_{i=0}^{T}h(i)},\quad \mu_f(T)=\frac{\sum_{i=T+1}^{255}i h(i)}{\sum_{i=T+1}^{255}h(i)}$$ $$\sigma_B^2(T)=W_b(T)W_f(T)(\mu_b(T)-\mu_f(T))^2$$ $$T^*=\arg\max_T \sigma_B^2(T)$$</div>
+<h3>3.5 Binary Mask、CCL、BBox 與 Overlay</h3>
+<div class="formula">$$M(x,y)=\begin{cases}1,&G(x,y)>T^*\\0,&G(x,y)\le T^*\end{cases}$$ $$M'(x,y)=\begin{cases}1-M(x,y),&\text{if polarity needs correction}\\M(x,y),&\text{otherwise}\end{cases}$$ $$N_8=\{NW,N,NE,W\}$$ $$X_{min}=\min(x),\quad X_{max}=\max(x),\quad Y_{min}=\min(y),\quad Y_{max}=\max(y)$$</div>
+<p>Overlay 判斷式如下：若 pixel 位於 bbox 的上、下、左、右邊界，輸出綠色；否則輸出原 RGB pixel。</p>
+<div class="formula">$$Out(x,y)=\begin{cases}32'h0000\_FF00,&(x,y)\in \partial BBox\\RGB(x,y),&\text{otherwise}\end{cases}$$</div>
+</section>
+
+<section id="python" class="card">
+<h2>四、Python code：先用 Lab7.ipynb 驗證演算法</h2>
+<p>在 Verilog 硬體化前，先使用 Python 將每個影像處理階段跑出來，可確認數學式與輸出圖是否正確。Python 的角色不是最後提交用，而是作為 golden model / algorithm reference，協助檢查每個中間結果。</p>
+<pre><code class="language-python">import numpy as np
+from PIL import Image
+
+IMG_W, IMG_H = 256, 256
+GREEN = np.array([0, 255, 0], dtype=np.uint8)
+
+def round_ties_to_even_div256(s):
+    q = s // 256
+    r = s % 256
+    if r > 128:
+        q += 1
+    elif r == 128 and (q % 2 == 1):
+        q += 1
+    return q
+
+def rgb_to_gray(rgb):
+    R = rgb[:, :, 0].astype(np.int32)
+    G = rgb[:, :, 1].astype(np.int32)
+    B = rgb[:, :, 2].astype(np.int32)
+    S = 77 * R + 150 * G + 29 * B
+    return np.vectorize(round_ties_to_even_div256)(S).astype(np.uint8)
+
+def reflect101(p, n=256):
+    if p < 0:
+        return -p
+    if p >= n:
+        return 2*n - 2 - p
+    return p
+
+def gaussian_3x3(gray):
+    K = np.array([[1,2,1],[2,4,2],[1,2,1]], dtype=np.int32)
+    out = np.zeros_like(gray)
+    for y in range(IMG_H):
+        for x in range(IMG_W):
+            s = 0
+            for dy in range(-1,2):
+                for dx in range(-1,2):
+                    yy = reflect101(y + dy, IMG_H)
+                    xx = reflect101(x + dx, IMG_W)
+                    s += int(gray[yy, xx]) * K[dy+1, dx+1]
+            q, r = divmod(s, 16)
+            if r > 8 or (r == 8 and q % 2 == 1):
+                q += 1
+            out[y, x] = q
+    return out
+
+def otsu_threshold(img):
+    hist = np.bincount(img.flatten(), minlength=256).astype(np.float64)
+    total = img.size
+    sum_total = np.dot(np.arange(256), hist)
+    best_t, best_score = 0, -1
+    w_b, sum_b = 0.0, 0.0
+    for t in range(256):
+        w_b += hist[t]
+        sum_b += t * hist[t]
+        w_f = total - w_b
+        if w_b == 0 or w_f == 0:
+            continue
+        mu_b = sum_b / w_b
+        mu_f = (sum_total - sum_b) / w_f
+        score = (w_b / total) * (w_f / total) * (mu_b - mu_f) ** 2
+        if score > best_score:
+            best_score = score
+            best_t = t
+    return best_t
+
+# mask = gaussian > threshold
+# 若前景比例過高，做 auto-polarity correction
+# 接著做 8-connected CCL、計算 bbox、最後 overlay 綠框。</code></pre>
+</section>
+
+<section id="verilog" class="card">
+<h2>五、Verilog code：單一 drawBbox.v 整合式架構</h2>
+<p>本版本的最大特色是所有流程都整合在同一個 <code>drawBbox.v</code>，不依賴外部 module。這樣的好處是繳交時不會漏檔，助教只要編譯 <code>drawBbox.v</code> 就可以取得完整設計。</p>
+<h3>5.1 Top module 與 I/O</h3>
+<pre><code class="language-verilog">module drawBbox (
+    input              clk,
+    input              rst,
+    input              enable,
+    output             done,
+    input      [31:0]  Img_Q,
+    output reg         Img_CEN,
+    output reg [15:0]  Img_A,
+    input      [31:0]  Ur_Q,
+    output reg         Ur_CEN,
+    output reg         Ur_WEN,
+    output reg [31:0]  Ur_D,
+    output reg [15:0]  Ur_A,
+    input      [31:0]  Ans_Q,
+    output reg         Ans_CEN,
+    output reg         Ans_WEN,
+    output reg [31:0]  Ans_D,
+    output reg [15:0]  Ans_A
+);</code></pre>
+<h3>5.2 FSM 階段</h3>
+<pre><code class="language-verilog">localparam [5:0]
+    S_IDLE         = 6'd0,
+    S_LOAD         = 6'd1,
+    S_GRAY         = 6'd2,
+    S_HIST_CLEAR   = 6'd3,
+    S_GAUSS_HIST   = 6'd4,
+    S_OTSU_INIT    = 6'd5,
+    S_OTSU_SCAN    = 6'd6,
+    S_COUNT_HI     = 6'd7,
+    S_POLARITY     = 6'd8,
+    S_MASK_WRITE   = 6'd9,
+    S_PARENT_INIT  = 6'd10,
+    S_CCL_SCAN     = 6'd11,
+    S_BBOX_INIT    = 6'd12,
+    S_BBOX_SCAN    = 6'd13,
+    S_BOXMAP_CLEAR = 6'd14,
+    S_BOXMAP_GEN   = 6'd15,
+    S_DRAW_WRITE   = 6'd16,
+    S_DONE         = 6'd17;</code></pre>
+<h3>5.3 Gaussian 與 rounding</h3>
+<pre><code class="language-verilog">q = s >> 4;       // 除以 16
+rem = s & 4'hF;   // 餘數用來做 rounding
+
+if (rem > 8)
+    q = q + 1;
+else if ((rem == 8) && (q[0] == 1'b1))
+    q = q + 1;</code></pre>
+<h3>5.4 Auto-polarity 與 mask</h3>
+<pre><code class="language-verilog">invert_sel <= (count_hi > 17'd32768);
+
+base_i = (gauss_mem[addr_cnt] > otsu_t) ? 1 : 0;
+if (invert_sel)
+    base_i = !base_i;
+mask_mem[addr_cnt] <= base_i[0];</code></pre>
+<h3>5.5 Bounding Box 與綠框輸出</h3>
+<pre><code class="language-verilog">if ((x_i == 0) || (x_i == 255) || (y_i == 0) || (y_i == 255))
+    bbox_border[root_label] <= 1'b1;
+
+if (box_map[addr_cnt])
+    Ans_D <= 32'h0000_FF00;
+else
+    Ans_D <= rgb_mem[addr_cnt];</code></pre>
+</section>
+
+<section id="pic" class="card">
+<h2>六、圖解：從題目指令到最終輸出</h2>
+<div class="grid2">
+<figure><img src="assets/compile_simulation_flow.svg" alt="compile simulation flow"><figcaption>編譯與模擬流程圖</figcaption></figure>
+<figure><img src="assets/algorithm_pipeline_enhanced.svg" alt="algorithm pipeline"><figcaption>影像處理演算法 pipeline</figcaption></figure>
+<figure><img src="assets/internal_architecture_enhanced.svg" alt="architecture"><figcaption>drawBbox 單檔整合式硬體架構</figcaption></figure>
+<figure><img src="assets/fsm_controller_enhanced.svg" alt="FSM"><figcaption>FSM 控制狀態圖</figcaption></figure>
+</div>
+<h3>6.1 P4 影像處理流程附圖</h3>
+<div class="grid3">
+<figure><img src="assets/P4_input.png"><figcaption>P4 原始輸入影像</figcaption></figure>
+<figure><img src="assets/P4_gray.png"><figcaption>P4 Gray 結果</figcaption></figure>
+<figure><img src="assets/P4_gaussian.png"><figcaption>P4 Gaussian 結果</figcaption></figure>
+<figure><img src="assets/P4_mask.png"><figcaption>P4 Binary Mask</figcaption></figure>
+<figure><img src="assets/P4_labels.png"><figcaption>P4 CCL Label</figcaption></figure>
+<figure><img src="assets/P4_overlay.png"><figcaption>P4 Overlay 結果</figcaption></figure>
+</div>
+<div class="grid2">
+<figure><img src="assets/drawBbox_result_p4.png"><figcaption>最終 drawBbox_result_p4.bmp 轉 PNG 預覽</figcaption></figure>
+<figure><img src="assets/P4_diff.png"><figcaption>P4 Diff 圖：無差異代表 pixel-perfect</figcaption></figure>
+</div>
+</section>
+
+<section id="check" class="card">
+<h2>七、提交前檢查清單</h2>
+<table>
+<tr><th>檢查項目</th><th>正確狀態</th><th>說明</th></tr>
+<tr><td>正式上傳格式</td><td class="ok">.tar</td><td>不可只上傳 zip 作為正式作業；Moodle 要求 .tar</td></tr>
+<tr><td>資料夾名稱</td><td class="ok">Lab7_E24134778</td><td>學號需大寫，避免 file hierarchy 扣分</td></tr>
+<tr><td>核心 Verilog 檔</td><td class="ok">drawBbox.v</td><td>單一檔案整合所有功能</td></tr>
+<tr><td>是否需要 submodule</td><td class="ok">不需要</td><td>因本版本沒有外部 module 呼叫</td></tr>
+<tr><td>RTL Simulation</td><td class="ok">P1～P4 PASS</td><td>四個 pattern 皆需通過</td></tr>
+<tr><td>Post-Synthesis Simulation</td><td class="warn">需依環境補跑</td><td>正式環境需再確認 <code>make syn1</code>～<code>make syn4</code></td></tr>
+<tr><td>SuperLint</td><td class="warn">需附截圖</td><td>coverage 應達 90% 以上</td></tr>
+<tr><td>終端輸出</td><td class="ok">terminal_result.log</td><td>可附在報告截圖或摘要中</td></tr>
+</table>
+<div class="note"><b>報告可直接貼上的結論：</b><br>本次 Lab7 採用單一 <code>drawBbox.v</code> 整合式 RTL 設計，所有影像處理階段皆在同一檔案內完成，因此不需要額外附上 submodule。繳交時建立 <code>Lab7_E24134778</code> 資料夾，將 <code>drawBbox.v</code> 放入後，以 <code>tar -cvf Lab7_E24134778.tar Lab7_E24134778</code> 壓縮成 .tar 格式上傳 Moodle。此繳交方式可避免漏交 submodule、include path 錯誤與助教環境編譯失敗的風險，並符合 Lab7 submission 的檔案結構要求。</div>
+<p><a class="btn" href="assets/Lab7_E24134778.tar">下載本頁附帶的 Lab7_E24134778.tar</a></p>
+</section>
+
+<footer class="small">本 HTML 使用外部圖片載入，所有圖片皆位於 assets/ 資料夾。正式上傳 Moodle 請使用 .tar；HTML 報告包僅供報告與展示使用。</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lab7 第5題：Waveforms 與操作說明滿分版</title>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<style>
+:root{--bg:#f6f8fb;--card:#ffffff;--ink:#0f172a;--muted:#64748b;--line:#d8e0ea;--blue:#2563eb;--green:#16a34a;--orange:#f97316;--red:#dc2626;--code:#101828;--soft:#eef6ff}
+*{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,#f8fbff 0%,#eef4fb 100%);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Microsoft JhengHei",Arial,sans-serif;line-height:1.75}
+.container{max-width:1180px;margin:0 auto;padding:36px 20px 80px}.hero{background:linear-gradient(135deg,#0f172a,#1d4ed8 55%,#16a34a);color:white;border-radius:28px;padding:36px 42px;box-shadow:0 24px 70px rgba(15,23,42,.22)}
+.hero h1{font-size:2.2rem;margin:0 0 10px}.hero p{font-size:1.05rem;margin:8px 0;color:#e2e8f0}.badge{display:inline-block;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:6px 12px;margin:6px 6px 0 0;font-weight:800}
+.card{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:28px;margin-top:24px;box-shadow:0 16px 42px rgba(15,23,42,.08)} h2{font-size:1.65rem;margin:0 0 14px;color:#0f172a;border-left:7px solid var(--blue);padding-left:14px} h3{font-size:1.25rem;margin:22px 0 10px;color:#1e293b}.note{background:#eff6ff;border-left:6px solid var(--blue);padding:14px 18px;border-radius:14px;margin:14px 0}.ok{background:#ecfdf5;border-left:6px solid var(--green);padding:14px 18px;border-radius:14px;margin:14px 0}.warn{background:#fff7ed;border-left:6px solid var(--orange);padding:14px 18px;border-radius:14px;margin:14px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}@media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr}.hero{padding:28px 22px}}
+figure{margin:0;background:#fbfdff;border:1px solid var(--line);border-radius:18px;padding:12px;text-align:center}figure img{max-width:100%;border-radius:12px;background:white}figcaption{font-size:.9rem;color:var(--muted);font-weight:800;margin-top:8px}table{width:100%;border-collapse:collapse;margin:14px 0;overflow:hidden;border-radius:14px}th,td{border:1px solid var(--line);padding:10px 12px;vertical-align:top}th{background:#eaf2ff;color:#0f172a;text-align:left}td{background:white}.small{font-size:.92rem;color:var(--muted)}pre{background:var(--code);color:#e5e7eb;border-radius:16px;padding:18px;overflow:auto;line-height:1.55;border:1px solid #263449}code{font-family:Consolas,"Courier New",monospace;font-size:.92rem}.formula{background:#f8fafc;border:1px dashed #cbd5e1;border-radius:16px;padding:16px;margin:12px 0}.pill{display:inline-block;border-radius:999px;padding:4px 10px;font-size:.85rem;font-weight:800;background:#eef2ff;color:#3730a3;margin:2px}.toc a{display:inline-block;text-decoration:none;color:#1d4ed8;font-weight:800;margin:6px 12px 6px 0}.caption{text-align:center;font-size:.9rem;color:#64748b;font-weight:800}.mono{font-family:Consolas,"Courier New",monospace}</style>
+</head>
+<body>
+<div class="container">
+<section class="hero">
+  <div class="badge">Lab7 Draw Bounding Box</div><div class="badge">Question 5</div><div class="badge">Waveform 說明滿分版</div>
+  <h1>5. Please attach your waveforms and specify your operations on the waveforms.</h1>
+  <p>本題目的重點不是只貼波形，而是要說明「我在波形中加入哪些訊號、如何分組觀察、每個階段正在做什麼、如何證明設計正確完成」。因此本頁以 ModelSim / nWave 的觀察流程為主軸，結合修正版數學式、Lab7.ipynb 的軟體驗證流程、drawBbox.v 的硬體狀態機，以及外部載入圖片，整理成可直接放入報告的完整 HTML。</p>
+</section>
+
+<section class="card toc">
+<h2>目錄</h2>
+<a href="#summary">一、波形驗證摘要</a><a href="#math">二、正確數學式</a><a href="#python">三、Python 驗證流程</a><a href="#verilog">四、Verilog 波形對應</a><a href="#waveform">五、Waveform 操作說明</a><a href="#figures">六、圖解與結果</a><a href="#conclusion">七、結論</a>
+</section>
+
+<section class="card" id="summary">
+<h2>一、Waveform 驗證摘要</h2>
+<p>本次波形觀察的目的，是確認 <b>drawBbox</b> 模組能夠依序完成：讀取 RGB 影像、轉灰階、Gaussian filter、Otsu threshold、binary mask、8-connected CCL、bounding box extraction、最後將綠色框線 overlay 到原始影像並寫入 AnsSRAM。從模擬結果可確認 P1、P2、P3、P4 都通過，並且總錯誤數為 0，代表輸出結果與 golden answer 完全一致。</p>
+<div class="ok"><b>驗證結果：</b>ModelSim 結果顯示 P1～P4 Simulation PASS，且 P1/P2/P3/P4 errors 皆為 0，TOTAL errors = 0。最後也成功輸出 <span class="mono">drawBbox_result_p4.bmp</span> 作為 P4 final result。</div>
+<table>
+<tr><th>觀察項目</th><th>波形中要確認的訊號</th><th>正確現象</th></tr>
+<tr><td>Reset / Enable</td><td><span class="mono">clk, rst, enable, done</span></td><td>reset 後暫存器歸零，enable 拉高後 FSM 開始運作，完成後 done 拉高。</td></tr>
+<tr><td>FSM 流程</td><td><span class="mono">state, addr_cnt, otsu_idx, label_idx</span></td><td>state 按照 LOAD → GRAY → GAUSS/HIST → OTSU → MASK → CCL → BBOX → DRAW → DONE 順序前進。</td></tr>
+<tr><td>ROM 讀取</td><td><span class="mono">Img_CEN, Img_A, Img_Q</span></td><td>Img_CEN 為 active low，Img_A 以 row-major 方式由 0 掃到 65535。</td></tr>
+<tr><td>SRAM 寫入</td><td><span class="mono">Ur_CEN, Ur_WEN, Ur_A, Ur_D, Ans_CEN, Ans_WEN, Ans_A, Ans_D</span></td><td>WEN=0 時寫入；UrSRAM 用於 mask/debug，AnsSRAM 寫入最終 overlay RGB 結果。</td></tr>
+<tr><td>BBox Overlay</td><td><span class="mono">box_map, edge_stage, edge_ctr, Ans_D</span></td><td>當 box_map=1 時，Ans_D 輸出 32'h0000_FF00；否則輸出原始 RGB pixel。</td></tr>
+</table>
+</section>
+
+<section class="card" id="math">
+<h2>二、正確數學式（已修正版）</h2>
+<h3>2.1 RGB to Grayscale：round-to-nearest, ties-to-even</h3>
+<p>Lab7 指定輸入影像為 256×256 RGB 影像，灰階公式為：</p>
+<div class="formula">\[ Gray \approx 0.299R + 0.587G + 0.114B \]</div>
+<p>硬體中使用整數近似：</p>
+<div class="formula">\[ S = 77R + 150G + 29B, \qquad q=\left\lfloor \frac{S}{256}\right\rfloor, \qquad r=S\bmod 256 \]</div>
+<div class="formula">\[
+Gray =
+\begin{cases}
+q+1, & r>128 \\
+q+1, & r=128 \text{ 且 } q \text{ 為奇數} \\
+q, & \text{otherwise}
+\end{cases}
+\]</div>
+<p>這裡不能只寫成 <span class="mono">(S+128)>>8</span>，因為那是一般四捨五入，沒有處理 ties-to-even。正確作法是先取商數 q 與餘數 r，再判斷 r 是否大於 128；若剛好等於 128，只有 q 為奇數時才進位，讓結果變成偶數。</p>
+
+<h3>2.2 Gaussian Filter：3×3 權重與 reflect101 邊界</h3>
+<div class="formula">\[
+G(x,y)=\frac{1}{16}
+\begin{bmatrix}1&2&1\\2&4&2\\1&2&1\end{bmatrix} * Gray(x,y)
+\]</div>
+<div class="formula">\[
+S_G = p_{x-1,y-1}+2p_{x,y-1}+p_{x+1,y-1}+2p_{x-1,y}+4p_{x,y}+2p_{x+1,y}+p_{x-1,y+1}+2p_{x,y+1}+p_{x+1,y+1}
+\]</div>
+<div class="formula">\[
+G = \operatorname{round\_ties\_to\_even}\left(\frac{S_G}{16}\right)
+\]</div>
+<p>邊界採用 reflect without repeating edge，也就是 reflect101 padding。以一維座標為例：</p>
+<div class="formula">\[
+reflect101(x)=
+\begin{cases}
+1, & x=-1 \\
+254, & x=256 \\
+x, & 0\le x\le255
+\end{cases}
+\]</div>
+
+<h3>2.3 Otsu Threshold：最大化 between-class variance</h3>
+<p>對每一個候選 threshold T，將灰階分成 background 與 foreground：</p>
+<div class="formula">\[
+N_b(T)=\sum_{i=0}^{T}h(i), \qquad N_f(T)=\sum_{i=T+1}^{255}h(i), \qquad N=65536
+\]</div>
+<div class="formula">\[
+W_b(T)=\frac{N_b(T)}{N}, \qquad W_f(T)=\frac{N_f(T)}{N}
+\]</div>
+<div class="formula">\[
+\mu_b(T)=\frac{\sum_{i=0}^{T} i\cdot h(i)}{N_b(T)}, \qquad
+\mu_f(T)=\frac{\sum_{i=T+1}^{255} i\cdot h(i)}{N_f(T)}
+\]</div>
+<div class="formula">\[
+\sigma_B^2(T)=W_b(T)W_f(T)\left(\mu_b(T)-\mu_f(T)\right)^2
+\]</div>
+<p>為避免硬體中大量除法，可使用等價 score 比較：</p>
+<div class="formula">\[
+Score(T)=\frac{\left(S_{total}N_b(T)-S_b(T)N\right)^2}{N_b(T)\left(N-N_b(T)\right)}
+\]</div>
+<p>其中 \(S_{total}=\sum_{i=0}^{255}i h(i)\)，\(S_b(T)=\sum_{i=0}^{T}i h(i)\)。波形中應觀察 <span class="mono">otsu_idx, wb_acc, sum_b_acc, cand_score, best_score, otsu_t</span>，確認 <span class="mono">otsu_idx</span> 掃描 0～255，最後保留最大 score 的 threshold。</p>
+
+<h3>2.4 Binary Mask 與 Auto-Polarity Correction</h3>
+<div class="formula">\[
+base(x,y)=
+\begin{cases}
+1, & G(x,y)>T_{otsu} \\
+0, & G(x,y)\le T_{otsu}
+\end{cases}
+\]</div>
+<div class="formula">\[
+invert\_sel = (count\_hi > 32768)
+\]</div>
+<div class="formula">\[
+mask(x,y)=
+\begin{cases}
+\neg base(x,y), & invert\_sel=1 \\
+base(x,y), & invert\_sel=0
+\end{cases}
+\]</div>
+<p>這個判斷可避免 threshold 後背景被誤當成前景。若大於 threshold 的 pixel 超過整張圖的一半，表示可能是 polarity 反了，所以要反轉 mask。</p>
+
+<h3>2.5 8-connected CCL 與 Bounding Box</h3>
+<p>由於掃描順序為 row-major，當前 pixel 只需檢查已經掃描過的四個鄰居：</p>
+<div class="formula">\[
+\mathcal{N}_{8,prev}(x,y)=\{(x-1,y),(x-1,y-1),(x,y-1),(x+1,y-1)\}
+\]</div>
+<div class="formula">\[
+BBox_L=(x_{min,L},x_{max,L},y_{min,L},y_{max,L})
+\]</div>
+<div class="formula">\[
+x_{min,L}=\min(x_{min,L},x),\quad x_{max,L}=\max(x_{max,L},x),\quad y_{min,L}=\min(y_{min,L},y),\quad y_{max,L}=\max(y_{max,L},y)
+\]</div>
+<p>如果 component 碰到影像邊界，則不畫 bounding box：</p>
+<div class="formula">\[
+border_L=1 \quad \text{if}\quad x=0\lor x=255\lor y=0\lor y=255
+\]</div>
+
+<h3>2.6 Overlay 綠框輸出</h3>
+<div class="formula">\[
+Ans_D(x,y)=
+\begin{cases}
+32'h0000\_FF00, & box\_map(x,y)=1 \\
+rgb\_mem(x,y), & box\_map(x,y)=0
+\end{cases}
+\]</div>
+<p>若多個 bbox 邊界重疊在同一個 pixel，<span class="mono">box_map</span> 仍只會被設為 1，因此同一點只輸出一次綠色，不會造成重複寫入錯誤。</p>
+</section>
+
+<section class="card" id="python">
+<h2>三、Python code（Lab7.ipynb）驗證流程說明</h2>
+<p>Lab7.ipynb 可作為演算法的軟體黃金模型，主要用途是將硬體流程先以 Python 方式驗證，再用 Verilog 實作相同邏輯。報告中不需要貼完整 notebook，但可以說明 notebook 對應到硬體的每個階段。</p>
+<table>
+<tr><th>Python / Notebook 階段</th><th>目的</th><th>對應硬體階段</th></tr>
+<tr><td>讀入 RGB 圖片</td><td>確認 256×256 row-major pixel 順序正確</td><td><span class="mono">S_LOAD, Img_A, Img_Q</span></td></tr>
+<tr><td>RGB to Gray</td><td>用修正版灰階公式與 ties-to-even rounding 產生灰階圖</td><td><span class="mono">gray_round_rgb()</span></td></tr>
+<tr><td>Gaussian Filter</td><td>用 3×3 kernel 與 reflect101 padding 平滑雜訊</td><td><span class="mono">gaussian_at_reflect()</span></td></tr>
+<tr><td>Histogram / Otsu</td><td>建立 256-level histogram，找出最大 between-class variance 的 threshold</td><td><span class="mono">S_HIST_CLEAR, S_GAUSS_HIST, S_OTSU_SCAN</span></td></tr>
+<tr><td>Mask / Polarity</td><td>產生 foreground/background mask，必要時反轉 polarity</td><td><span class="mono">S_COUNT_HI, S_POLARITY, S_MASK_WRITE</span></td></tr>
+<tr><td>CCL / BBox</td><td>找出 connected components 與 bbox 座標</td><td><span class="mono">S_CCL_SCAN, S_BBOX_SCAN</span></td></tr>
+<tr><td>Overlay / Output</td><td>將 bbox 邊界畫成綠色，輸出 BMP 結果</td><td><span class="mono">S_BOXMAP_GEN, S_DRAW_WRITE</span></td></tr>
+</table>
+<pre><code># Python 驗證流程摘要（報告版，不貼完整 notebook）
+# 1. 讀入 RGB image，確認尺寸為 256×256
+# 2. gray = round_ties_to_even((77R + 150G + 29B) / 256)
+# 3. 使用 3×3 Gaussian kernel 與 reflect101 padding
+# 4. 建立 histogram，使用 Otsu score 找最大 threshold
+# 5. 產生 binary mask，若 foreground 面積過大則做 auto-polarity correction
+# 6. 以 8-connected CCL 找 components
+# 7. 計算每個 component 的 xmin/xmax/ymin/ymax
+# 8. 過濾 touching-border 與太小的 component
+# 9. 將 box_map 為 1 的 pixel overlay 成 32'h0000_FF00
+# 10. 輸出 drawBbox_result_p1~p4.bmp，與 golden answer 比對</code></pre>
+<div class="note">Python 模型的價值在於快速確認演算法正確性；Verilog 波形的價值在於確認硬體週期、記憶體控制、FSM 轉移與最後寫入行為都符合 testbench 規格。</div>
+</section>
+
+<section class="card" id="verilog">
+<h2>四、Verilog code 與波形觀察對應</h2>
+<h3>4.1 FSM 狀態流程</h3>
+<p>本設計以單一主控 FSM 串接所有影像處理階段。觀察 waveform 時，最重要的是確認 <span class="mono">state</span> 不會停住、不會跳錯，也不會在尚未完成資料掃描時提前進入下一階段。</p>
+<pre><code>localparam [5:0]
+    S_IDLE         = 6'd0,
+    S_LOAD         = 6'd1,
+    S_GRAY         = 6'd2,
+    S_HIST_CLEAR   = 6'd3,
+    S_GAUSS_HIST   = 6'd4,
+    S_OTSU_INIT    = 6'd5,
+    S_OTSU_SCAN    = 6'd6,
+    S_COUNT_HI     = 6'd7,
+    S_POLARITY     = 6'd8,
+    S_MASK_WRITE   = 6'd9,
+    S_PARENT_INIT  = 6'd10,
+    S_CCL_SCAN     = 6'd11,
+    S_BBOX_INIT    = 6'd12,
+    S_BBOX_SCAN    = 6'd13,
+    S_BOXMAP_CLEAR = 6'd14,
+    S_BOXMAP_GEN   = 6'd15,
+    S_DRAW_WRITE   = 6'd16,
+    S_DONE         = 6'd17;</code></pre>
+
+<h3>4.2 波形中要加入的 Verilog 訊號</h3>
+<table>
+<tr><th>群組</th><th>建議加入訊號</th><th>操作說明</th></tr>
+<tr><td>Control</td><td><span class="mono">clk, rst, enable, done, state</span></td><td>確認 reset、start、state transition 與完成旗標。</td></tr>
+<tr><td>Address Counter</td><td><span class="mono">addr_cnt, x_i, y_i</span></td><td>確認影像以 row-major 掃描，addr_cnt 對應 x=addr[7:0]、y=addr[15:8]。</td></tr>
+<tr><td>ImgROM</td><td><span class="mono">Img_CEN, Img_A, Img_Q</span></td><td>確認讀取啟用與位址遞增。</td></tr>
+<tr><td>UrSRAM</td><td><span class="mono">Ur_CEN, Ur_WEN, Ur_A, Ur_D</span></td><td>確認 mask 或中間結果寫入，WEN=0 時為 write。</td></tr>
+<tr><td>AnsSRAM</td><td><span class="mono">Ans_CEN, Ans_WEN, Ans_A, Ans_D</span></td><td>確認最後 overlay 結果寫入，box_map=1 時寫入綠色。</td></tr>
+<tr><td>Otsu</td><td><span class="mono">otsu_idx, otsu_t, wb_acc, sum_b_acc, cand_score, best_score</span></td><td>確認 threshold 由 0 掃到 255，並記錄最大 score。</td></tr>
+<tr><td>Mask</td><td><span class="mono">count_hi, invert_sel, base_i, mask_mem</span></td><td>確認前景判斷與 polarity 是否正確。</td></tr>
+<tr><td>CCL / BBox</td><td><span class="mono">n_w, n_nw, n_n, n_ne, chosen_label, root_label, bbox_xmin, bbox_xmax, bbox_ymin, bbox_ymax</span></td><td>確認 8-connected labeling、union-find root 與 bbox 更新。</td></tr>
+<tr><td>Overlay</td><td><span class="mono">box_map, edge_stage, edge_ctr, GREEN, Ans_D</span></td><td>確認四條邊逐步產生，最後在 AnsSRAM 中畫出綠框。</td></tr>
+</table>
+</section>
+
+<section class="card" id="waveform">
+<h2>五、Waveform 圖片與操作說明</h2>
+<p>以下波形圖以外部 SVG 圖片載入，適合放在報告中說明 ModelSim/nWave 的觀察操作。實際操作時可在 ModelSim Transcript 輸入 <span class="mono">add wave</span> 指令，或在 GUI 中將訊號拖入 waveform 視窗。</p>
+
+<h3>5.1 Waveform 操作一：觀察 reset、enable、FSM 與 done</h3>
+<figure><img src="assets_custom/waveform_main.svg" alt="main waveform"><figcaption>圖 1：主控波形觀察，確認 reset、enable、state 與 done 的時間關係。</figcaption></figure>
+<p><b>操作說明：</b>先加入 <span class="mono">clk, rst, enable, state, done</span>。模擬開始時，<span class="mono">rst</span> 會將內部暫存器與狀態歸零；當 <span class="mono">enable</span> 拉高後，FSM 從 <span class="mono">S_IDLE</span> 進入 <span class="mono">S_LOAD</span>。接著 state 依序經過灰階轉換、Gaussian、Otsu、mask、CCL、bbox 與 draw 階段。最後進入 <span class="mono">S_DONE</span>，<span class="mono">done</span> 拉高，代表整張影像已經處理完成。</p>
+<pre><code># ModelSim / nWave 建議操作
+add wave -divider CONTROL
+add wave sim:/tb/u_drawBbox/clk
+add wave sim:/tb/u_drawBbox/rst
+add wave sim:/tb/u_drawBbox/enable
+add wave -radix unsigned sim:/tb/u_drawBbox/state
+add wave sim:/tb/u_drawBbox/done
+run -all</code></pre>
+
+<h3>5.2 Waveform 操作二：觀察 ImgROM / UrSRAM / AnsSRAM</h3>
+<figure><img src="assets_custom/waveform_memory.svg" alt="memory waveform"><figcaption>圖 2：記憶體介面波形，確認 ImgROM 讀取、中間結果寫入與最後 AnsSRAM 寫入。</figcaption></figure>
+<p><b>操作說明：</b>加入 ROM/SRAM 相關訊號後，先觀察 <span class="mono">Img_CEN</span> 是否在讀圖階段拉低，並確認 <span class="mono">Img_A</span> 由 0 依序遞增到 65535。接著觀察 <span class="mono">Ur_WEN</span> 與 <span class="mono">Ur_D</span>，確認 mask 產生時寫入 0 或 1。最後在 <span class="mono">S_DRAW_WRITE</span> 觀察 <span class="mono">Ans_WEN=0</span>、<span class="mono">Ans_A</span> 遞增，以及 <span class="mono">Ans_D</span> 寫入原始 RGB 或綠色框線。</p>
+<pre><code>add wave -divider MEMORY_INTERFACE
+add wave sim:/tb/u_drawBbox/Img_CEN
+add wave -radix unsigned sim:/tb/u_drawBbox/Img_A
+add wave -radix hexadecimal sim:/tb/u_drawBbox/Img_Q
+add wave sim:/tb/u_drawBbox/Ur_CEN
+add wave sim:/tb/u_drawBbox/Ur_WEN
+add wave -radix unsigned sim:/tb/u_drawBbox/Ur_A
+add wave -radix hexadecimal sim:/tb/u_drawBbox/Ur_D
+add wave sim:/tb/u_drawBbox/Ans_CEN
+add wave sim:/tb/u_drawBbox/Ans_WEN
+add wave -radix unsigned sim:/tb/u_drawBbox/Ans_A
+add wave -radix hexadecimal sim:/tb/u_drawBbox/Ans_D</code></pre>
+
+<h3>5.3 Waveform 操作三：觀察 Otsu threshold 與 mask</h3>
+<p><b>操作說明：</b>在 <span class="mono">S_OTSU_SCAN</span> 階段，應觀察 <span class="mono">otsu_idx</span> 是否從 0 掃描到 255；<span class="mono">wb_acc</span> 與 <span class="mono">sum_b_acc</span> 會隨著 threshold 逐步累積；<span class="mono">cand_score</span> 若大於 <span class="mono">best_score</span>，則更新 <span class="mono">otsu_t</span>。進入 <span class="mono">S_COUNT_HI</span> 後，電路計算大於 threshold 的 pixel 數量；進入 <span class="mono">S_POLARITY</span> 後，若 <span class="mono">count_hi > 32768</span>，則 <span class="mono">invert_sel</span> 會被設為 1，後續 mask 會反轉。</p>
+<pre><code>add wave -divider OTSU_MASK
+add wave -radix unsigned sim:/tb/u_drawBbox/otsu_idx
+add wave -radix unsigned sim:/tb/u_drawBbox/otsu_t
+add wave -radix unsigned sim:/tb/u_drawBbox/wb_acc
+add wave -radix unsigned sim:/tb/u_drawBbox/sum_b_acc
+add wave -radix unsigned sim:/tb/u_drawBbox/cand_score
+add wave -radix unsigned sim:/tb/u_drawBbox/best_score
+add wave -radix unsigned sim:/tb/u_drawBbox/count_hi
+add wave sim:/tb/u_drawBbox/invert_sel</code></pre>
+
+<h3>5.4 Waveform 操作四：觀察 CCL、BBox 與 Overlay</h3>
+<figure><img src="assets_custom/waveform_bbox.svg" alt="bbox waveform"><figcaption>圖 3：BBox 與 overlay 波形，確認 label、bbox、box_map 與 GREEN 輸出。</figcaption></figure>
+<p><b>操作說明：</b>在 <span class="mono">S_CCL_SCAN</span> 中，觀察 <span class="mono">n_w, n_nw, n_n, n_ne</span> 四個已掃描鄰居 label。若四個鄰居皆為 0，代表新 component，需要產生新 label；若有非零 label，則選擇最小 label 並透過 union-find 合併等價 label。進入 <span class="mono">S_BBOX_SCAN</span> 後，觀察 <span class="mono">bbox_xmin, bbox_xmax, bbox_ymin, bbox_ymax</span> 是否隨 foreground pixel 更新。最後在 <span class="mono">S_BOXMAP_GEN</span> 逐邊建立 <span class="mono">box_map</span>，在 <span class="mono">S_DRAW_WRITE</span> 時若 <span class="mono">box_map=1</span>，<span class="mono">Ans_D</span> 應寫入 <span class="mono">32'h0000_FF00</span>。</p>
+<pre><code>add wave -divider CCL_BBOX_OVERLAY
+add wave -radix unsigned sim:/tb/u_drawBbox/n_w
+add wave -radix unsigned sim:/tb/u_drawBbox/n_nw
+add wave -radix unsigned sim:/tb/u_drawBbox/n_n
+add wave -radix unsigned sim:/tb/u_drawBbox/n_ne
+add wave -radix unsigned sim:/tb/u_drawBbox/chosen_label
+add wave -radix unsigned sim:/tb/u_drawBbox/root_label
+add wave -radix unsigned sim:/tb/u_drawBbox/label_idx
+add wave -radix unsigned sim:/tb/u_drawBbox/edge_stage
+add wave -radix unsigned sim:/tb/u_drawBbox/edge_ctr
+add wave -radix hexadecimal sim:/tb/u_drawBbox/Ans_D</code></pre>
+</section>
+
+<section class="card" id="figures">
+<h2>六、圖解與輸出結果（圖片皆為外部載入）</h2>
+<h3>6.1 演算法與硬體架構圖</h3>
+<div class="grid2">
+<figure><img src="assets/algorithm_pipeline_enhanced.svg" alt="algorithm pipeline"><figcaption>演算法 pipeline：RGB → Gray → Gaussian → Otsu → Mask → CCL → BBox → Overlay。</figcaption></figure>
+<figure><img src="assets/internal_architecture_enhanced.svg" alt="internal architecture"><figcaption>內部硬體架構：FSM 控制資料流與記憶體讀寫。</figcaption></figure>
+</div>
+<div class="grid2" style="margin-top:18px">
+<figure><img src="assets/memory_interface_enhanced.svg" alt="memory interface"><figcaption>記憶體介面：ImgROM 讀取與 AnsSRAM/UrSRAM 寫入。</figcaption></figure>
+<figure><img src="assets/fsm_controller_enhanced.svg" alt="fsm"><figcaption>FSM 控制器：每一個 state 對應一段影像處理操作。</figcaption></figure>
+</div>
+
+<h3>6.2 P4 結果圖與中間圖</h3>
+<div class="grid3">
+<figure><img src="assets/P4_input.png" alt="P4 input"><figcaption>P4 原始輸入影像</figcaption></figure>
+<figure><img src="assets/P4_gray.png" alt="P4 gray"><figcaption>P4 灰階影像</figcaption></figure>
+<figure><img src="assets/P4_gaussian.png" alt="P4 gaussian"><figcaption>P4 Gaussian 平滑結果</figcaption></figure>
+<figure><img src="assets/P4_mask.png" alt="P4 mask"><figcaption>P4 binary mask</figcaption></figure>
+<figure><img src="assets/P4_labels.png" alt="P4 labels"><figcaption>P4 CCL label 結果</figcaption></figure>
+<figure><img src="assets/P4_overlay.png" alt="P4 overlay"><figcaption>P4 overlay 綠框結果</figcaption></figure>
+</div>
+<h3>6.3 Final BMP Result</h3>
+<div class="grid2">
+<figure><img src="assets/drawBbox_result_p4.png" alt="drawBbox result p4"><figcaption>drawBbox_result_p4.bmp 轉成 PNG 顯示：最終 P4 輸出結果。</figcaption></figure>
+<figure><img src="assets/P4_golden.png" alt="P4 golden"><figcaption>P4 golden answer：與 final result 比對應完全一致。</figcaption></figure>
+</div>
+<div class="ok"><b>結果說明：</b>P4 最終輸出圖中，所有符合條件的 connected components 都被綠色 bounding box 正確框出；碰到影像邊界的物件不畫框；過小雜訊也不畫框。因此 final result 可用來證明 waveform 中的 FSM、memory write 與 overlay 行為皆正確。</div>
+</section>
+
+<section class="card" id="conclusion">
+<h2>七、可直接放報告的最終回答</h2>
+<p>In the waveform verification, I added the control signals, memory interface signals, Otsu threshold signals, CCL labeling signals, bounding-box signals, and final SRAM output signals into the waveform window. First, I observed <span class="mono">rst</span>, <span class="mono">enable</span>, <span class="mono">state</span>, and <span class="mono">done</span> to confirm that the FSM started correctly after reset and finished by asserting <span class="mono">done</span>. Then, I checked <span class="mono">Img_CEN</span>, <span class="mono">Img_A</span>, and <span class="mono">Img_Q</span> to ensure that the input image was read from ImgROM in row-major order. During the thresholding stage, I observed <span class="mono">otsu_idx</span>, <span class="mono">cand_score</span>, <span class="mono">best_score</span>, and <span class="mono">otsu_t</span> to verify that the Otsu threshold was selected by maximizing the between-class variance score. After that, I checked <span class="mono">count_hi</span> and <span class="mono">invert_sel</span> to confirm the auto-polarity correction. In the CCL and bounding-box stages, I observed the neighboring labels, selected label, root label, and bbox coordinates to verify 8-connected component labeling and bounding-box extraction. Finally, during <span class="mono">S_DRAW_WRITE</span>, I checked <span class="mono">Ans_WEN</span>, <span class="mono">Ans_A</span>, and <span class="mono">Ans_D</span>. When <span class="mono">box_map</span> was asserted, <span class="mono">Ans_D</span> correctly became <span class="mono">32'h0000_FF00</span>; otherwise, the original RGB pixel was written back. Therefore, the waveform confirms that the complete hardware flow operates correctly from image reading to final bounding-box overlay.</p>
+<div class="ok"><b>中文結論：</b>本波形驗證完整確認了 reset/start、FSM 狀態轉移、ImgROM 讀取、UrSRAM 中間資料寫入、Otsu threshold、mask polarity、8-connected CCL、bbox 座標更新，以及 AnsSRAM final overlay 寫入。最後 P1～P4 全部 PASS，總錯誤數為 0，代表本設計在功能模擬中達到 pixel-perfect 的正確性。</div>
+</section>
+
+</div>
+</body>
+</html>

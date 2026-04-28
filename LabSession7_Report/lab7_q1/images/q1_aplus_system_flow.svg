@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="720" viewBox="0 0 1500 720">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eef7ff"/><stop offset="1" stop-color="#ffffff"/></linearGradient>
+<marker id="a" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#334155"/></marker>
+<style>
+.title{font-family:Arial,'Microsoft JhengHei';font-size:34px;font-weight:800;fill:#174b78}
+.t{font-family:Arial,'Microsoft JhengHei';font-size:20px;font-weight:800;fill:#172033}
+.s{font-family:Arial,'Microsoft JhengHei';font-size:15px;fill:#475569}
+.box{stroke:#5482bd;stroke-width:2.4;rx:18;filter:drop-shadow(0 7px 7px rgba(30,64,175,.14))}
+.ar{stroke:#334155;stroke-width:3;fill:none;marker-end:url(#a)}
+.note{font-family:Arial,'Microsoft JhengHei';font-size:17px;font-weight:700;fill:#0f5132}
+</style>
+</defs>
+<rect width="1500" height="720" fill="url(#bg)"/>
+<text x="55" y="60" class="title">Q1 A+ Answer: Complete the Module in the System</text>
+<rect x="80" y="120" width="1340" height="85" rx="18" fill="#fff7df" stroke="#f59e0b" stroke-width="2"/>
+<text x="115" y="158" class="note">Important clarification: “bicubic module” is a reused template phrase. In Lab7, the completed module is the Draw Bounding Box Engine.</text>
+<text x="115" y="185" class="s">The actual system is an image-processing hardware pipeline that generates green bounding-box overlays.</text>
+
+<rect x="60" y="290" width="155" height="105" fill="#dbeafe" class="box"/>
+<text x="95" y="330" class="t">ImgROM</text><text x="83" y="360" class="s">32-bit RGB</text>
+<path d="M215 342 H270" class="ar"/>
+
+<rect x="270" y="290" width="170" height="105" fill="#dcfce7" class="box"/>
+<text x="305" y="330" class="t">RGB → Gray</text><text x="295" y="360" class="s">weighted formula</text>
+<path d="M440 342 H495" class="ar"/>
+
+<rect x="495" y="290" width="170" height="105" fill="#dcfce7" class="box"/>
+<text x="520" y="330" class="t">Gaussian</text><text x="518" y="360" class="s">3×3 blur</text>
+<path d="M665 342 H720" class="ar"/>
+
+<rect x="720" y="290" width="170" height="105" fill="#ffedd5" class="box"/>
+<text x="760" y="330" class="t">Otsu</text><text x="742" y="360" class="s">threshold</text>
+<path d="M890 342 H945" class="ar"/>
+
+<rect x="945" y="290" width="170" height="105" fill="#f3e8ff" class="box"/>
+<text x="988" y="330" class="t">Mask</text><text x="980" y="360" class="s">0 / 1 map</text>
+<path d="M1115 342 H1170" class="ar"/>
+
+<rect x="1170" y="290" width="170" height="105" fill="#f3e8ff" class="box"/>
+<text x="1210" y="330" class="t">CCL</text><text x="1190" y="360" class="s">8-connected</text>
+<path d="M1255 395 V455" class="ar"/>
+
+<rect x="1005" y="455" width="210" height="105" fill="#dcfce7" class="box"/>
+<text x="1033" y="495" class="t">BBox Tracker</text><text x="1035" y="525" class="s">Xmin/Xmax/Ymin/Ymax</text>
+<path d="M1005 507 H930" class="ar"/>
+
+<rect x="720" y="455" width="210" height="105" fill="#dbeafe" class="box"/>
+<text x="755" y="495" class="t">Overlay Draw</text><text x="752" y="525" class="s">green boundary</text>
+<path d="M720 507 H645" class="ar"/>
+
+<rect x="470" y="455" width="175" height="105" fill="#fee2e2" class="box"/>
+<text x="505" y="495" class="t">AnsSRAM</text><text x="495" y="525" class="s">final output</text>
+<path d="M470 507 H395" class="ar"/>
+
+<rect x="220" y="455" width="175" height="105" fill="#fee2e2" class="box"/>
+<text x="268" y="495" class="t">done</text><text x="240" y="525" class="s">notify testbench</text>
+
+<rect x="110" y="620" width="1280" height="60" rx="18" fill="#fff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="145" y="657" class="s">A+ report point: the completed module is verified by P1–P4 simulation with total errors = 0, proving correct integration and pixel-perfect output.</text>
+</svg>

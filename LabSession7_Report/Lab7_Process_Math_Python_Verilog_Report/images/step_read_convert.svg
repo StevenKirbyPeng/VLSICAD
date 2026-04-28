@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420">
+<defs>
+<marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#334155"/></marker>
+<style>
+.title{font-family:Arial,'Microsoft JhengHei';font-size:32px;font-weight:800;fill:#0f3b63}
+.t{font-family:Arial,'Microsoft JhengHei';font-size:20px;font-weight:800;fill:#172033}
+.s{font-family:Arial,'Microsoft JhengHei';font-size:14px;fill:#475569}
+.box{stroke:#5482bd;stroke-width:2.2;rx:18;filter:drop-shadow(0 7px 7px rgba(30,64,175,.14))}
+.arrow{stroke:#334155;stroke-width:3;fill:none;marker-end:url(#arrow)}
+</style>
+</defs>
+<rect width="1200" height="420" fill="#f8fbff"/>
+<text x="45" y="60" class="title">a) Read and Convert</text>
+<rect x="55" y="150" width="170" height="110" fill="#dbeafe" class="box"/>
+<text x="73" y="188" class="t">ImgROM</text>
+<text x="73" y="222" class="s">Read 32-bit RGB pixel</text>
+<path d="M225 205 H245" class="arrow"/>
+<rect x="250" y="150" width="170" height="110" fill="#dcfce7" class="box"/>
+<text x="268" y="188" class="t">Split RGB</text>
+<text x="268" y="222" class="s">Extract R G B</text>
+<text x="268" y="244" class="s">channels</text>
+<path d="M420 205 H440" class="arrow"/>
+<rect x="445" y="150" width="170" height="110" fill="#ffedd5" class="box"/>
+<text x="463" y="188" class="t">Gray</text>
+<text x="463" y="222" class="s">Weighted rounded grayscale</text>
+<path d="M615 205 H635" class="arrow"/>
+<rect x="640" y="150" width="170" height="110" fill="#f3e8ff" class="box"/>
+<text x="658" y="188" class="t">Store</text>
+<text x="658" y="222" class="s">Save gray result for</text>
+<text x="658" y="244" class="s">next stage</text>
+</svg>

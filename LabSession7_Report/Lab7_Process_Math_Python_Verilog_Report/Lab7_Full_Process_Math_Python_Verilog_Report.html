@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab7 Draw Bounding Box Engine｜完整流程實作報告</title>
+<style>
+:root{--bg:#eef4fb;--card:#fff;--ink:#162033;--muted:#5f6b7c;--blue:#1e5aa8;--blue2:#3b82f6;--green:#00a651;--line:#d7e4f2;--soft:#f6fbff;--code:#0f172a;}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(135deg,#eaf3ff,#f8fbff 45%,#eefbf4);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:var(--ink);line-height:1.9;}
+.container{max-width:1320px;margin:26px auto;background:rgba(255,255,255,.97);border:1px solid #dce7f4;border-radius:26px;box-shadow:0 18px 55px rgba(15,23,42,.13);overflow:hidden}
+.hero{padding:44px 52px;background:radial-gradient(circle at 10% 20%,rgba(34,197,94,.25),transparent 26%),linear-gradient(135deg,#102a43,#1e5aa8 58%,#00a36c);color:#fff}
+.hero h1{margin:0 0 12px;font-size:2.25rem;line-height:1.25}
+.hero p{margin:0;color:#eaf6ff;max-width:1080px}
+.badges{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.badge{padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);font-weight:700}
+main{padding:34px 48px}
+h2{color:#164b80;border-left:8px solid var(--blue2);padding-left:14px;margin:34px 0 16px;font-size:1.55rem}
+h3{color:#155e38;margin:18px 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px;margin:18px 0;box-shadow:0 8px 24px rgba(15,23,42,.06)}
+.figure-card{background:#fbfdff;border:1px solid var(--line);border-radius:20px;padding:14px;margin:18px 0;text-align:center}
+.figure-card img{max-width:100%;border-radius:14px;border:1px solid #d7e4f2;background:#fff}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.eq{background:#f8fbff;border:1px solid #d7e4f2;border-radius:16px;padding:14px 18px;margin:12px 0;font-family:"Times New Roman",serif;font-size:1.18rem;text-align:center;overflow:auto}
+pre{background:var(--code);color:#e5e7eb;border-radius:16px;padding:18px;overflow:auto;line-height:1.55;border:1px solid #263449;max-height:520px}
+code{font-family:Consolas,"Courier New",monospace;font-size:.88rem}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:18px;background:#fff;margin:16px 0}
+table{border-collapse:collapse;width:100%;min-width:980px}
+th,td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:10px;vertical-align:top}
+th{background:#eaf4ff;color:#174b78;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:last-child,th:last-child{border-right:0}
+.thumb{width:120px;max-width:100%;aspect-ratio:1/1;object-fit:contain;border:1px solid #d0ddec;border-radius:10px;background:#111}
+.cap,figcaption{font-size:.88rem;color:#64748b;font-weight:700;margin-top:6px}
+.note{background:#fff7df;border-left:7px solid #f59e0b;border-radius:14px;padding:14px 16px;margin:18px 0}
+.ok{background:#ecfdf5;border-left:7px solid #22c55e;border-radius:14px;padding:14px 16px;margin:18px 0}
+ul{padding-left:24px}
+@media(max-width:1000px){main,.hero{padding-left:24px;padding-right:24px}.grid2,.grid3{grid-template-columns:1fr}}
+@media print{body{background:#fff}.container{box-shadow:none;margin:0;border:0}}
+</style>
+</head>
+<body>
+<div class="container">
+<section class="hero">
+<h1>Lab7 Draw Bounding Box Engine｜完整流程實作報告</h1>
+<p>本 HTML 依照 Understanding the function、basic design rules 與 design description 完整整理。每個流程皆包含：(1) 正確數學式、(2) Python code（依 Lab7.ipynb 流程）、(3) Verilog RTL code（依 drawBbox.v 擷取）、(4) 圖解。所有圖片皆由 images/ 資料夾外部載入，不使用 base64 內嵌圖片。</p>
+<div class="badges"><span class="badge">256×256 RGB</span><span class="badge">Gaussian 3×3</span><span class="badge">Otsu Threshold</span><span class="badge">8-connected CCL</span><span class="badge">Green BBox Overlay</span><span class="badge">External Images</span></div>
+</section>
+<main>
+
+<h2>一、Understanding the Function：整體功能理解</h2>
+<div class="card">
+<p>系統初始化後，FSM 會從輸入記憶體 ImgROM 讀取原始 RGB 影像，經過灰階轉換、Gaussian 濾波、Otsu 二值化、8-connected CCL、Bounding Box 擷取、Overlay 繪製，最後將標註後的影像寫入 AnsSRAM。整個設計的核心目標是：在硬體中自動找出影像中的有效物件，並在原始 RGB 圖上畫出 1-pixel 綠色 bounding box。</p>
+</div>
+<figure class="figure-card"><img src="images/algorithm_pipeline_enhanced.svg" alt="algorithm pipeline"><figcaption>Figure 1. Algorithm pipeline implemented in hardware</figcaption></figure>
+<figure class="figure-card"><img src="images/internal_architecture_enhanced.svg" alt="internal architecture"><figcaption>Figure 2. Internal architecture of drawBbox top module</figcaption></figure>
+
+<h2>二、Know the Basic Design Rules：基本設計規則</h2>
+<div class="card">
+<p>本設計是同步 RTL，因此所有主要行為都必須在 <b>positive edge of the clock</b> 觸發。FSM state、counter、memory address、memory write data、CCL label、bbox tracker 與 done signal 都應該在 posedge clk 更新。若 CEN/WEN 時序錯誤，可能造成資料未寫入、讀到舊資料、或最後輸出影像整體偏移一個 pixel/cycle。</p>
+<div class="tablewrap"><table>
+<tr><th>Signal</th><th>Rule</th><th>說明</th></tr>
+<tr><td>Img_CEN</td><td>Active low read enable signal for ImgROM</td><td>讀取 ImgROM 時為 0，非讀取階段可關閉。</td></tr>
+<tr><td>Ans_CEN</td><td>Active low chip enable signal for AnsSRAM</td><td>啟用 ResultSRAM / AnsSRAM，用於最終 RGB overlay output。</td></tr>
+<tr><td>Ans_WEN</td><td>Low write / high read</td><td>Ans_WEN=0 寫入；Ans_WEN=1 讀取。</td></tr>
+<tr><td>Ur_CEN</td><td>Active low chip enable signal for UrSRAM</td><td>啟用 tracking memory，可存 mask、bbox 或中間資料。</td></tr>
+<tr><td>Ur_WEN</td><td>Low write / high read</td><td>Ur_WEN=0 寫入；Ur_WEN=1 讀取。</td></tr>
+<tr><td>done</td><td>Stop the process</td><td>Final annotated image 完成後拉高，通知 testbench。</td></tr>
+</table></div>
+</div>
+<figure class="figure-card"><img src="images/memory_interface_enhanced.svg" alt="memory interface"><figcaption>Figure 3. Memory interface and active-low control rules</figcaption></figure>
+<figure class="figure-card"><img src="images/fsm_controller_enhanced_fixed.svg" alt="fsm controller"><figcaption>Figure 4. FSM controller state flow</figcaption></figure>
+
+<h2>三、Describe Your Design in Detail：設計架構詳細說明</h2>
+<div class="card">
+<p>本設計可以分成 Controller FSM、Memory Interface、Image Processing Datapath、CCL/BBox Tracking Unit 與 Overlay Writer。Controller FSM 負責決定目前執行哪個 stage，並產生各記憶體的 CEN、WEN、address 與 write data。Datapath 則依序處理 RGB-to-gray、Gaussian filter、histogram/Otsu threshold、mask generation。CCL/BBox Tracking Unit 使用 8-connected rule 追蹤 connected component，並保存每個有效物件的 X_min、X_max、Y_min、Y_max。最後 Overlay Writer 判斷目前 pixel 是否位於 bounding box 邊界，若是則輸出 32'h0000_FF00，否則保留原始 RGB。</p>
+<pre><code>localparam [5:0]
+        S_IDLE         = 6&#x27;d0,   // 等待 enable
+        S_LOAD         = 6&#x27;d1,   // 從 ImgROM 讀入整張 RGB 影像
+        S_GRAY         = 6&#x27;d2,   // RGB 轉 grayscale
+        S_HIST_CLEAR   = 6&#x27;d3,   // 清除 histogram
+        S_GAUSS_HIST   = 6&#x27;d4,   // Gaussian filter 並建立 histogram
+        S_OTSU_INIT    = 6&#x27;d5,   // Otsu threshold 初始化
+        S_OTSU_SCAN    = 6&#x27;d6,   // 掃描 0~255 找最佳 threshold
+        S_COUNT_HI     = 6&#x27;d7,   // 統計大於 threshold 的 pixel 數量
+        S_POLARITY     = 6&#x27;d8,   // 判斷是否需要 foreground/background 反轉
+        S_MASK_WRITE   = 6&#x27;d9,   // 產生 binary mask，並寫入 UrSRAM
+        S_PARENT_INIT  = 6&#x27;d10,  // 初始化 union-find parent 與 bbox 暫存
+        S_CCL_SCAN     = 6&#x27;d11,  // Connected Component Labeling 第一階段
+        S_BBOX_INIT    = 6&#x27;d12,  // 初始化 bounding box 資料
+        S_BBOX_SCAN    = 6&#x27;d13,  // 掃描 label 結果並計算 bbox
+        S_BOXMAP_CLEAR = 6&#x27;d14,  // 清除 box_map
+        S_BOXMAP_GEN   = 6&#x27;d15,  // 根據 bbox 座標產生要畫綠框的位置
+        S_DRAW_WRITE   = 6&#x27;d16,  // 將原圖或綠框 pixel 寫入 AnsSRAM
+        S_DONE         = 6&#x27;d17;  // 完成
+
+    // FSM current state
+    reg [5:0] state;</code></pre>
+</div>
+<figure class="figure-card"><img src="images/memory_dataflow_enhanced.svg" alt="memory dataflow"><figcaption>Figure 5. Internal memory/register array dataflow</figcaption></figure>
+
+<h2>四、a) Read and Convert：讀取 RGB 並轉換灰階</h2>
+<div class="card">
+<h3>(1) 正確數學式</h3>
+<p>讀取 ImgROM 中的 32-bit RGB pixel 後，將 R、G、B 三個通道轉換成單一灰階值。為符合 Lab7 要求，採用近似亮度公式並做 round-to-nearest, ties-to-even。</p>
+<div class="eq">Gray(x,y) ≈ 0.299R(x,y) + 0.587G(x,y) + 0.114B(x,y)</div>
+<div class="eq">Gray(x,y) = round((77R + 150G + 29B) / 256)</div>
+<h3>(2) Python code（Lab7.ipynb）</h3>
+<pre><code># Cell 5：RGB 轉灰階
+def rgb_to_gray(rgb):
+    &quot;&quot;&quot;
+    Gray ≈ 0.299R + 0.587G + 0.114B
+    使用 np.rint() 做 round to nearest, ties to even
+    &quot;&quot;&quot;
+    r = rgb[..., 0].astype(np.float64)
+    g = rgb[..., 1].astype(np.float64)
+    b = rgb[..., 2].astype(np.float64)
+
+    gray_f = 0.299 * r + 0.587 * g + 0.114 * b
+    gray = np.rint(gray_f).astype(np.uint8)
+    return gray
+
+gray = rgb_to_gray(rgb_img)
+
+print(&quot;gray min/max =&quot;, gray.min(), gray.max())
+
+plt.figure(figsize=(5, 5))
+plt.imshow(gray, cmap=&quot;gray&quot;, vmin=0, vmax=255)
+plt.title(&quot;Step 5: Grayscale&quot;)
+plt.axis(&quot;off&quot;)
+plt.show()</code></pre>
+<h3>(3) Verilog code（drawBbox.v）</h3>
+<pre><code>function [7:0] gray_round_rgb;
+        input [31:0] pix;
+        integer rr, gg, bb;
+        integer s, q, rem;
+        begin
+            rr = pix[23:16]; // R
+            gg = pix[15:8];  // G
+            bb = pix[7:0];   // B
+
+            s  = rr*77 + gg*150 + bb*29; // 加權總和
+            q  = s &gt;&gt; 8;                 // 除以 256
+            rem = s &amp; 8&#x27;hFF;             // 取餘數判斷是否進位
+
+            // round-to-nearest
+            if (rem &gt; 128)
+                q = q + 1;
+            // ties-to-even：剛好 0.5 時，若 q 為奇數才進位
+            else if ((rem == 128) &amp;&amp; (q[0] == 1&#x27;b1))
+                q = q + 1;
+
+            gray_round_rgb = q[7:0];
+        end
+    endfunction
+
+    // ============================================================
+    // function: gray_at_reflect
+    // 功能：
+    //   依照 reflect101 邊界規則讀取 gray_mem。
+
+                // S_GRAY：逐 pixel 將 RGB 轉成 grayscale
+                // =================================================
+                S_GRAY: begin
+                    gray_mem[addr_cnt] &lt;= gray_round_rgb(rgb_mem[addr_cnt]);
+                    if (addr_cnt == NPIX-1) begin
+                        addr_cnt  &lt;= 16&#x27;d0;
+                        label_idx &lt;= 12&#x27;d0;
+                        state     &lt;= S_HIST_CLEAR;
+                    end else begin
+                        addr_cnt &lt;= addr_cnt + 16&#x27;d1;
+                    end
+                end
+
+                // =================================================
+                // S_HIST_CLEAR：清除 histogram，準備統計 Gaussian 灰階分佈
+                // =================================================
+                S_HIST_CLEAR: begin
+                    hist[label_idx] &lt;= 32&#x27;d0;
+                    if (label_idx == 12&#x27;d255) begin
+                        label_idx &lt;= 12&#x27;d0;
+                        addr_cnt  &lt;= 16&#x27;d0;
+                        state     &lt;= S_GAUSS_HIST;
+                    end else begin
+                        label_idx &lt;= label_idx + 12&#x27;d1;
+                    end
+                end</code></pre>
+<h3>(4) 圖解</h3>
+<figure class="figure-card"><img src="images/step_read_convert.svg" alt="read convert"><figcaption>Figure 6. RGB read and grayscale conversion flow</figcaption></figure>
+<div class="grid2"><figure class="figure-card"><img src="images/P1_input.png" alt="P1 input"><figcaption>P1 Input RGB</figcaption></figure><figure class="figure-card"><img src="images/P1_gray.png" alt="P1 gray"><figcaption>P1 Gray Result</figcaption></figure></div>
+</div>
+
+<h2>五、b) Filter Noise：3×3 Gaussian Blur</h2>
+<div class="card">
+<h3>(1) 正確數學式</h3>
+<p>Gaussian blur 使用 3×3 sliding window 對灰階影像做加權平均。kernel 總和為 16，因此硬體可用右移 4 bits 取代除法。</p>
+<div class="eq">G(x,y)= [1p(x−1,y−1)+2p(x,y−1)+1p(x+1,y−1)+2p(x−1,y)+4p(x,y)+2p(x+1,y)+1p(x−1,y+1)+2p(x,y+1)+1p(x+1,y+1)] / 16</div>
+<h3>(2) Python code（Lab7.ipynb）</h3>
+<pre><code># Cell 6：3x3 Gaussian Filter（Reflect 101）
+def gaussian_3x3_reflect101(gray):
+    &quot;&quot;&quot;
+    3x3 Gaussian
+    kernel =
+    1 2 1
+    2 4 2   / 16
+    1 2 1
+
+    邊界使用 np.pad(..., mode=&#x27;reflect&#x27;)
+    對應 Reflect 101
+    &quot;&quot;&quot;
+    kernel = np.array(
+        [[1, 2, 1],
+         [2, 4, 2],
+         [1, 2, 1]], dtype=np.int32
+    )
+
+    padded = np.pad(gray.astype(np.int32), ((1, 1), (1, 1)), mode=&quot;reflect&quot;)
+    out = np.zeros_like(gray, dtype=np.uint8)
+
+    for y in range(gray.shape[0]):
+        for x in range(gray.shape[1]):
+            win = padded[y:y+3, x:x+3]
+            val = np.sum(win * kernel) / 16.0
+            out[y, x] = np.rint(val).astype(np.uint8)
+
+    return out
+
+gauss = gaussian_3x3_reflect101(gray)
+
+plt.figure(figsize=(10, 4))
+plt.subplot(1, 2, 1)
+plt.imshow(gray, cmap=&quot;gray&quot;, vmin=0, vmax=255)
+plt.title(&quot;Gray&quot;)
+plt.axis(&quot;off&quot;)
+
+plt.subplot(1, 2, 2)
+plt.imshow(gauss, cmap=&quot;gray&quot;, vmin=0, vmax=255)
+plt.title(&quot;Step 6: Gaussian&quot;)
+plt.axis(&quot;off&quot;)
+plt.show()</code></pre>
+<h3>(3) Verilog code（drawBbox.v）</h3>
+<pre><code>function [7:0] gray_at_reflect;
+        input integer xx;
+        input integer yy;
+        integer rx, ry;
+        begin
+            rx = refl101(xx);
+            ry = refl101(yy);
+            gray_at_reflect = gray_mem[(ry &lt;&lt; 8) + rx]; // address = y*256 + x
+        end
+    endfunction
+
+    // ============================================================
+    // function: gaussian_at_reflect
+    // 功能：
+    //   對座標 (xx, yy) 做 3x3 Gaussian filter。
+    //   kernel:
+    //       1 2 1
+    //       2 4 2
+    //       1 2 1
+    //   總權重為 16，因此最後右移 4 bits。
+    //   同樣使用 round-to-nearest, ties-to-even。
+    // ============================================================
+    function [7:0] gaussian_at_reflect;
+        input integer xx;
+        input integer yy;
+        integer s, q, rem;
+        begin
+            s = 0;
+
+            // Gaussian kernel 第一列
+            s = s + gray_at_reflect(xx-1, yy-1);
+            s = s + (gray_at_reflect(xx,   yy-1) &lt;&lt; 1);
+            s = s + gray_at_reflect(xx+1, yy-1);
+
+            // Gaussian kernel 第二列
+            s = s + (gray_at_reflect(xx-1, yy  ) &lt;&lt; 1);
+            s = s + (gray_at_reflect(xx,   yy  ) &lt;&lt; 2);
+            s = s + (gray_at_reflect(xx+1, yy  ) &lt;&lt; 1);
+
+            // Gaussian kernel 第三列
+            s = s + gray_at_reflect(xx-1, yy+1);
+            s = s + (gray_at_reflect(xx,   yy+1) &lt;&lt; 1);
+            s = s + gray_at_reflect(xx+1, yy+1);
+
+            q = s &gt;&gt; 4;       // 除以 16
+            rem = s &amp; 4&#x27;hF;   // 餘數用來做 rounding
+
+            if (rem &gt; 8)
+                q = q + 1;
+            else if ((rem == 8) &amp;&amp; (q[0] == 1&#x27;b1))
+                q = q + 1;
+
+            gaussian_at_reflect = q[7:0];
+        end
+    endfunction
+
+
+                // S_GAUSS_HIST：
+                //   1. 對每個 pixel 做 Gaussian filter
+                //   2. 將 Gaussian 結果存入 gauss_mem
+                //   3. 同時建立 histogram
+                // =================================================
+                S_GAUSS_HIST: begin
+                    x_i = addr_cnt[7:0];
+                    y_i = addr_cnt[15:8];
+                    base_i = gaussian_at_reflect(x_i, y_i);
+                    gauss_mem[addr_cnt] &lt;= base_i[7:0];
+                    hist[base_i[7:0]] = hist[base_i[7:0]] + 32&#x27;d1;
+
+                    if (addr_cnt == NPIX-1) begin
+                        addr_cnt &lt;= 16&#x27;d0;
+                        state    &lt;= S_OTSU_INIT;
+                    end else begin
+                        addr_cnt &lt;= addr_cnt + 16&#x27;d1;
+                    end</code></pre>
+<h3>(4) 圖解</h3>
+<figure class="figure-card"><img src="images/step_gaussian.svg" alt="gaussian"><figcaption>Figure 7. 3×3 Gaussian sliding window flow</figcaption></figure>
+<div class="grid2"><figure class="figure-card"><img src="images/P1_gray.png" alt="P1 gray"><figcaption>P1 Gray Input</figcaption></figure><figure class="figure-card"><img src="images/P1_gaussian.png" alt="P1 gaussian"><figcaption>P1 Gaussian Result</figcaption></figure></div>
+</div>
+
+<h2>六、c) Binarization：Otsu Threshold 與 0/1 Mask</h2>
+<div class="card">
+<h3>(1) 正確數學式</h3>
+<p>Otsu threshold 的目標是尋找使 background 與 foreground 類間變異最大的 threshold。產生 threshold 後，將灰階影像轉成 binary mask。</p>
+<div class="eq">t* = arg max<sub>t</sub> σ<sub>B</sub><sup>2</sup>(t)</div>
+<div class="eq">σ<sub>B</sub><sup>2</sup>(t)=W<sub>b</sub>W<sub>f</sub>(μ<sub>b</sub>−μ<sub>f</sub>)<sup>2</sup></div>
+<div class="eq">Mask(x,y)=1 if G(x,y)&gt;t*, otherwise 0</div>
+<h3>(2) Python code（Lab7.ipynb）</h3>
+<pre><code># Cell 7：Histogram + Otsu Threshold
+def otsu_threshold(img):
+    hist = np.bincount(img.flatten(), minlength=256).astype(np.int64)
+
+    total = img.size
+    total_sum = np.dot(np.arange(256, dtype=np.int64), hist)
+
+    best_t = 0
+    best_sigma = -1.0
+
+    wb_count = 0
+    wb_sum = 0
+
+    for t in range(256):
+        wb_count += hist[t]
+        wb_sum += t * hist[t]
+        wf_count = total - wb_count
+
+        if wb_count == 0 or wf_count == 0:
+            continue
+
+        mub = wb_sum / wb_count
+        muf = (total_sum - wb_sum) / wf_count
+
+        wb = wb_count / total
+        wf = wf_count / total
+
+        sigma_b2 = wb * wf * (mub - muf) ** 2
+
+        if sigma_b2 &gt; best_sigma:
+            best_sigma = sigma_b2
+            best_t = t
+
+    return best_t, hist
+
+otsu_t, hist = otsu_threshold(gauss)
+print(&quot;Otsu threshold =&quot;, otsu_t)
+
+plt.figure(figsize=(8, 4))
+plt.bar(np.arange(256), hist, width=1.0)
+plt.axvline(otsu_t, color=&quot;r&quot;, linestyle=&quot;--&quot;, label=f&quot;T={otsu_t}&quot;)
+plt.title(&quot;Step 7: Histogram + Otsu&quot;)
+plt.xlabel(&quot;Gray Level&quot;)
+plt.ylabel(&quot;Count&quot;)
+plt.legend()
+plt.show()
+
+# Cell 8：初始 Mask
+mask_raw = (gauss &gt; otsu_t).astype(np.uint8)
+
+print(&quot;mask_raw foreground pixels =&quot;, int(mask_raw.sum()))
+
+plt.figure(figsize=(5, 5))
+plt.imshow(mask_raw, cmap=&quot;gray&quot;, vmin=0, vmax=1)
+plt.title(&quot;Step 8: Raw Mask&quot;)
+plt.axis(&quot;off&quot;)
+plt.show()
+
+# Cell 9：Auto-Polarity Correction
+def auto_polarity_correction(mask_raw, ratio_threshold=0.5):
+    &quot;&quot;&quot;
+    若 foreground 比例過大，代表可能把背景當前景
+    就做反相
+    &quot;&quot;&quot;
+    fg_ratio = mask_raw.mean()
+    if fg_ratio &gt; ratio_threshold:
+        return 1 - mask_raw, True, fg_ratio
+    return mask_raw.copy(), False, fg_ratio
+
+mask, inverted, fg_ratio = auto_polarity_correction(mask_raw, ratio_threshold=0.5)
+
+print(&quot;foreground ratio =&quot;, fg_ratio)
+print(&quot;是否反相 =&quot;, inverted)
+
+plt.figure(figsize=(10, 4))
+plt.subplot(1, 2, 1)
+plt.imshow(mask_raw, cmap=&quot;gray&quot;, vmin=0, vmax=1)
+plt.title(&quot;Raw Mask&quot;)
+plt.axis(&quot;off&quot;)
+
+plt.subplot(1, 2, 2)
+plt.imshow(mask, cmap=&quot;gray&quot;, vmin=0, vmax=1)
+plt.title(&quot;Step 9: Corrected Mask&quot;)
+plt.axis(&quot;off&quot;)
+plt.show()</code></pre>
+<h3>(3) Verilog code（drawBbox.v）</h3>
+<pre><code>// S_OTSU_INIT：
+                //   計算整張圖的灰階加權總和 sum_total，
+                //   並初始化 Otsu 掃描所需變數。
+                // =================================================
+                S_OTSU_INIT: begin
+                    sum_total = 32&#x27;d0;
+                    for (idx_i = 0; idx_i &lt; 256; idx_i = idx_i + 1)
+                        sum_total = sum_total + idx_i * hist[idx_i];
+
+                    wb_acc     &lt;= 17&#x27;d0;
+                    sum_b_acc  &lt;= 32&#x27;d0;
+                    otsu_idx   &lt;= 8&#x27;d0;
+                    otsu_t     &lt;= 8&#x27;d0;
+                    best_score &lt;= 96&#x27;d0;
+                    state      &lt;= S_OTSU_SCAN;
+                end
+
+                // =================================================
+                // S_OTSU_SCAN：
+                //   掃描 threshold = 0~255。
+                //   對每個 threshold 計算分離度 score，
+                //   選出 score 最大的 threshold 作為 otsu_t。
+                // =================================================
+                S_OTSU_SCAN: begin
+                    wb_acc    &lt;= wb_acc + hist[otsu_idx];
+                    sum_b_acc &lt;= sum_b_acc + otsu_idx * hist[otsu_idx];
+
+                    // 使用 blocking 暫存，確保當 cycle 計算使用最新候選值
+                    lhs48 = sum_total * (wb_acc + hist[otsu_idx]);
+                    rhs48 = (sum_b_acc + otsu_idx * hist[otsu_idx]) * NPIX;
+                    if (lhs48 &gt;= rhs48)
+                        diff48 = lhs48 - rhs48;
+                    else
+                        diff48 = rhs48 - lhs48;
+
+                    denom32 = (wb_acc + hist[otsu_idx]) * (NPIX - (wb_acc + hist[otsu_idx]));
+                    if (((wb_acc + hist[otsu_idx]) != 0) &amp;&amp; ((wb_acc + hist[otsu_idx]) != NPIX))
+                        cand_score = (diff48 * diff48) / denom32;
+                    else
+                        cand_score = 96&#x27;d0;
+
+                    if (cand_score &gt; best_score) begin
+                        best_score &lt;= cand_score;
+                        otsu_t     &lt;= otsu_idx;
+                    end
+
+                    if (otsu_idx == 8&#x27;d255) begin
+                        addr_cnt &lt;= 16&#x27;d0;
+                        count_hi &lt;= 17&#x27;d0;
+                        state    &lt;= S_COUNT_HI;
+                    end else begin
+                        otsu_idx &lt;= otsu_idx + 8&#x27;d1;
+                    end
+                end
+
+                // =================================================
+                // S_COUNT_HI：
+                //   統計 gauss_mem 中大於 otsu_t 的 pixel 數量。
+                //   用來判斷前景是否太多，若太多則代表 polarity 可能反了。
+                // =================================================
+                S_COUNT_HI: begin
+                    if (gauss_mem[addr_cnt] &gt; otsu_t)
+                        count_hi &lt;= count_hi + 17&#x27;d1;
+
+                    if (addr_cnt == NPIX-1) begin
+                        addr_cnt &lt;= 16&#x27;d0;
+                        state    &lt;= S_POLARITY;
+                    end else begin
+                        addr_cnt &lt;= addr_cnt + 16&#x27;d1;
+                    end
+                end
+
+                // =================================================
+                // S_POLARITY：
+                //   Auto-polarity correction。
+                //   若大於 threshold 的 pixel 超過一半，
+                //   則推測 foreground/background 需要反轉。
+                // =================================================
+                S_POLARITY: begin
+                    invert_sel &lt;= (count_hi &gt; 17&#x27;d32768);
+                    addr_cnt   &lt;= 16&#x27;d0;
+                    state      &lt;= S_MASK_WRITE;
+                end
+
+                // =================================================
+                // S_MASK_WRITE：
+                //   依 threshold 產生 binary mask。
+                //   同時將 mask 寫入 UrSRAM：
+                //      foreground = 1
+                //      background = 0
+                // =================================================
+                S_MASK_WRITE: begin
+                    base_i = (gauss_mem[addr_cnt] &gt; otsu_t) ? 1 : 0;
+                    if (invert_sel)
+                        base_i = !base_i;
+                    mask_mem[addr_cnt] &lt;= base_i[0];
+
+                    Ur_CEN &lt;= 1&#x27;b0;
+                    Ur_WEN &lt;= 1&#x27;b0;
+                    Ur_A   &lt;= addr_cnt;
+                    Ur_D   &lt;= base_i[0] ? 32&#x27;h0000_0001 : 32&#x27;h0000_0000;
+
+                    if (addr_cnt == NPIX-1) begin
+                        addr_cnt   &lt;= 16&#x27;d0;
+                        label_idx  &lt;= 12&#x27;d0;
+                        next_label &lt;= 12&#x27;d1;
+                        state      &lt;= S_PARENT_INIT;
+                    end else begin
+                        addr_cnt &lt;= addr_cnt + 16&#x27;d1;
+                    end
+                end
+
+                // =================================================
+                // S_PARENT_INIT：
+                //   初始化 union-find parent table
+                //   同時清空 bbox 記錄。
+                // =================================================
+                S_PARENT_INIT: begin
+                    parent[label_idx]      &lt;= label_idx;
+                    bbox_valid[label_idx]  &lt;= 1&#x27;b0;
+                    bbox_border[label_idx] &lt;= 1&#x27;b0;
+                    bbox_xmin[label_idx]   &lt;= 8&#x27;hFF;
+                    bbox_xmax[label_idx]   &lt;= 8&#x27;h00;
+                    bbox_ymin[label_idx]   &lt;= 8&#x27;hFF;
+                    bbox_ymax[label_idx]   &lt;= 8&#x27;h00;
+
+                    if (label_idx == MAX_LABELS-1) begin
+                        addr_cnt   &lt;= 16&#x27;d0;
+                        next_label &lt;= 12&#x27;d1;
+                        state      &lt;= S_CCL_SCAN;
+                    end else begin
+                        label_idx &lt;= label_idx + 12&#x27;d1;
+                    end
+                end</code></pre>
+<h3>(4) 圖解</h3>
+<figure class="figure-card"><img src="images/step_otsu_mask.svg" alt="otsu mask"><figcaption>Figure 8. Histogram, Otsu threshold and mask generation</figcaption></figure>
+<div class="grid2"><figure class="figure-card"><img src="images/P1_gaussian.png" alt="P1 gaussian"><figcaption>P1 Gaussian Input</figcaption></figure><figure class="figure-card"><img src="images/P1_mask.png" alt="P1 mask"><figcaption>P1 Binary Mask</figcaption></figure></div>
+</div>
+
+<h2>七、d) CCL & BBox Extraction：8-connected CCL 與邊界框擷取</h2>
+<div class="card">
+<h3>(1) 正確數學式</h3>
+<p>8-connected CCL 將相鄰的 foreground pixels 分成 connected components。掃描時會考慮八鄰域，而硬體 pass1 通常只需檢查已掃描過的 NW、N、NE、W。</p>
+<div class="eq">N<sub>8</sub>(x,y)={(x−1,y),(x+1,y),(x,y−1),(x,y+1),(x−1,y−1),(x+1,y−1),(x−1,y+1),(x+1,y+1)}</div>
+<div class="eq">X<sub>min</sub>=min(X<sub>min</sub>,x), X<sub>max</sub>=max(X<sub>max</sub>,x), Y<sub>min</sub>=min(Y<sub>min</sub>,y), Y<sub>max</sub>=max(Y<sub>max</sub>,y)</div>
+<div class="eq">Reject border object if X<sub>min</sub>=0 or Y<sub>min</sub>=0 or X<sub>max</sub>=255 or Y<sub>max</sub>=255</div>
+<h3>(2) Python code（Lab7.ipynb）</h3>
+<pre><code># Cell 10：8-connected CCL
+def ccl_8_connected(mask):
+    h, w = mask.shape
+    labels = np.zeros((h, w), dtype=np.int32)
+    visited = np.zeros((h, w), dtype=bool)
+
+    label = 0
+
+    nbrs = [
+        (-1, -1), (-1, 0), (-1, 1),
+        ( 0, -1),          ( 0, 1),
+        ( 1, -1), ( 1, 0), ( 1, 1),
+    ]
+
+    for y in range(h):
+        for x in range(w):
+            if mask[y, x] == 0 or visited[y, x]:
+                continue
+
+            label += 1
+            q = deque([(y, x)])
+            visited[y, x] = True
+            labels[y, x] = label
+
+            while q:
+                cy, cx = q.popleft()
+                for dy, dx in nbrs:
+                    ny, nx = cy + dy, cx + dx
+                    if 0 &lt;= ny &lt; h and 0 &lt;= nx &lt; w:
+                        if mask[ny, nx] == 1 and not visited[ny, nx]:
+                            visited[ny, nx] = True
+                            labels[ny, nx] = label
+                            q.append((ny, nx))
+
+    return labels, label
+
+labels, label_count = ccl_8_connected(mask)
+print(&quot;Step 10: Label count =&quot;, label_count)
+
+plt.figure(figsize=(6, 6))
+plt.imshow(labels, cmap=&quot;nipy_spectral&quot;)
+plt.title(f&quot;8-connected CCL (count={label_count})&quot;)
+plt.axis(&quot;off&quot;)
+plt.colorbar()
+plt.show()
+
+# Cell 11：Bounding Box + Border Object Rejection
+def compute_bboxes(labels, label_count):
+    h, w = labels.shape
+    bboxes = {}
+
+    for lb in range(1, label_count + 1):
+        ys, xs = np.where(labels == lb)
+        if len(xs) == 0:
+            continue
+
+        xmin = int(xs.min())
+        xmax = int(xs.max())
+        ymin = int(ys.min())
+        ymax = int(ys.max())
+
+        touch_border = (xmin == 0) or (xmax == w - 1) or (ymin == 0) or (ymax == h - 1)
+
+        bboxes[lb] = {
+            &quot;xmin&quot;: xmin,
+            &quot;xmax&quot;: xmax,
+            &quot;ymin&quot;: ymin,
+            &quot;ymax&quot;: ymax,
+            &quot;touch_border&quot;: touch_border
+        }
+
+    return bboxes
+
+bboxes = compute_bboxes(labels, label_count)
+bboxes_valid = {lb: box for lb, box in bboxes.items() if not box[&quot;touch_border&quot;]}
+
+print(&quot;所有 bbox 數量 =&quot;, len(bboxes))
+print(&quot;有效 bbox 數量 =&quot;, len(bboxes_valid))
+
+for k in list(bboxes_valid.keys())[:10]:
+    print(f&quot;Label {k}: {bboxes_valid[k]}&quot;)</code></pre>
+<h3>(3) Verilog code（drawBbox.v）</h3>
+<pre><code>// S_CCL_SCAN：
+                //   8-connectivity CCL 掃描。
+                //   掃描順序為 row-major，因此只需要檢查已掃過的鄰居：
+                //      W  = left
+                //      NW = upper-left
+                //      N  = upper
+                //      NE = upper-right
+                //   若鄰居 label 不同，使用 union_pair 合併。
+                // =================================================
+                S_CCL_SCAN: begin
+                    x_i = addr_cnt[7:0];
+                    y_i = addr_cnt[15:8];
+
+                    if (!mask_mem[addr_cnt]) begin
+                        label_mem[addr_cnt] &lt;= 12&#x27;d0;
+                    end else begin
+                        n_w  = (x_i == 0)   ? 12&#x27;d0 : label_mem[addr_cnt - 16&#x27;d1];
+                        n_nw = ((x_i == 0) || (y_i == 0))     ? 12&#x27;d0 : label_mem[addr_cnt - 16&#x27;d257];
+                        n_n  = (y_i == 0)   ? 12&#x27;d0 : label_mem[addr_cnt - 16&#x27;d256];
+                        n_ne = ((x_i == 255) || (y_i == 0))   ? 12&#x27;d0 : label_mem[addr_cnt - 16&#x27;d255];
+
+                        chosen_label = 12&#x27;hFFF;
+                        if ((n_w  != 0) &amp;&amp; (n_w  &lt; chosen_label)) chosen_label = n_w;
+                        if ((n_nw != 0) &amp;&amp; (n_nw &lt; chosen_label)) chosen_label = n_nw;
+                        if ((n_n  != 0) &amp;&amp; (n_n  &lt; chosen_label)) chosen_label = n_n;
+                        if ((n_ne != 0) &amp;&amp; (n_ne &lt; chosen_label)) chosen_label = n_ne;
+
+                        // 若四個鄰居都沒有 label，建立新 label
+                        if (chosen_label == 12&#x27;hFFF) begin
+                            chosen_label = next_label;
+                            label_mem[addr_cnt] &lt;= next_label;
+                            parent[next_label] = next_label;
+                            next_label &lt;= next_label + 12&#x27;d1;
+                        end else begin
+                            // 若有鄰居，使用最小 label，並記錄等價關係
+                            label_mem[addr_cnt] &lt;= chosen_label;
+                            union_pair(chosen_label, n_w);
+                            union_pair(chosen_label, n_nw);
+                            union_pair(chosen_label, n_n);
+                            union_pair(chosen_label, n_ne);
+                        end
+                    end
+
+                    if (addr_cnt == NPIX-1) begin
+                        label_idx &lt;= 12&#x27;d0;
+                        state     &lt;= S_BBOX_INIT;
+                    end else begin
+                        addr_cnt &lt;= addr_cnt + 16&#x27;d1;
+                    end
+                end
+
+                // =================================================
+                // S_BBOX_INIT：
+                //   CCL 完成後，重新清除 bbox 資訊，
+                //   準備根據 resolved label 計算 bbox。
+                // =================================================
+                S_BBOX_INIT: begin
+                    bbox_valid[label_idx]  &lt;= 1&#x27;b0;
+                    bbox_border[label_idx] &lt;= 1&#x27;b0;
+                    bbox_xmin[label_idx]   &lt;= 8&#x27;hFF;
+                    bbox_xmax[label_idx]   &lt;= 8&#x27;h00;
+                    bbox_ymin[label_idx]   &lt;= 8&#x27;hFF;
+                    bbox_ymax[label_idx]   &lt;= 8&#x27;h00;
+                    if (label_idx == MAX_LABELS-1) begin
+                        addr_cnt &lt;= 16&#x27;d0;
+                        state    &lt;= S_BBOX_SCAN;
+                    end else begin
+                        label_idx &lt;= label_idx + 12&#x27;d1;
+                    end
+                end
+
+                // =================================================
+                // S_BBOX_SCAN：
+                //   掃描每個 foreground pixel：
+                //   1. 取得其 root label
+                //   2. 更新該 label 的 xmin/xmax/ymin/ymax
+                //   3. 若 component 碰到影像邊界，標記 bbox_border
+                // =================================================
+                S_BBOX_SCAN: begin
+                    if (mask_mem[addr_cnt] &amp;&amp; (label_mem[addr_cnt] != 0)) begin
+                        root_label = find_root_func(label_mem[addr_cnt]);
+                        label_mem[addr_cnt] &lt;= root_label;
+                        x_i = addr_cnt[7:0];
+                        y_i = addr_cnt[15:8];
+
+                        bbox_valid[root_label] &lt;= 1&#x27;b1;
+                        if (x_i &lt; bbox_xmin[root_label]) bbox_xmin[root_label] = x_i[7:0];
+                        if (x_i &gt; bbox_xmax[root_label]) bbox_xmax[root_label] = x_i[7:0];
+                        if (y_i &lt; bbox_ymin[root_label]) bbox_ymin[root_label] = y_i[7:0];
+                        if (y_i &gt; bbox_ymax[root_label]) bbox_ymax[root_label] = y_i[7:0];
+
+                        // Lab7 規則：碰到影像邊界的物件不畫 bbox
+                        if ((x_i == 0) || (x_i == 255) || (y_i == 0) || (y_i == 255))
+                            bbox_border[root_label] &lt;= 1&#x27;b1;
+                    end
+
+                    if (addr_cnt == NPIX-1) begin
+                        addr_cnt &lt;= 16&#x27;d0;
+                        state    &lt;= S_BOXMAP_CLEAR;
+                    end else begin
+                        addr_cnt &lt;= addr_cnt + 16&#x27;d1;
+                    end
+                end
+
+                // =================================================
+                // S_BOXMAP_CLEAR：
+                //   清空 box_map。
+                //   box_map 用來標示最後哪些 pixel 需要輸出為 GREEN。
+                // =================================================
+                S_BOXMAP_CLEAR: begin
+                    box_map[addr_cnt] &lt;= 1&#x27;b0;
+                    if (addr_cnt == NPIX-1) begin
+                        label_idx  &lt;= 12&#x27;d1;
+                        edge_stage &lt;= 2&#x27;d0;
+                        edge_ctr   &lt;= 8&#x27;d0;
+                        state      &lt;= S_BOXMAP_GEN;
+                    end else begin
+                        addr_cnt &lt;= addr_cnt + 16&#x27;d1;
+                    end
+                end
+
+                // =================================================
+                // S_BOXMAP_GEN：
+                //   逐個有效 bbox 產生四條邊：
+                //      edge_stage = 0：上邊
+                //      edge_stage = 1：下邊
+                //      edge_stage = 2：左邊
+                //      edge_stage = 3：右邊
+                //
+                //   若 bbox 無效、碰到邊界、或尺寸太小，則跳過不畫。
+                // =================================================
+                S_BOXMAP_GEN: begin
+                    if (label_idx &gt;= next_label) begin
+                        addr_cnt &lt;= 16&#x27;d0;
+                        state    &lt;= S_DRAW_WRITE;
+                    end else if (!bbox_valid[label_idx] || bbox_border[label_idx] ||
+                                !is_large_bbox(bbox_xmin[label_idx], bbox_xmax[label_idx], bbox_ymin[label_idx], bbox_ymax[label_idx])) begin
+                        label_idx &lt;= label_idx + 12&#x27;d1;
+                    end else begin
+                        draw_ymax = adjusted_ymax(bbox_xmin[label_idx], bbox_xmax[label_idx], bbox_ymin[label_idx], bbox_ymax[label_idx]);
+                        case (edge_stage)
+                            2&#x27;d0: begin // top edge：畫上邊界
+                                if (edge_ctr &lt; bbox_xmin[label_idx])</code></pre>
+<h3>(4) 圖解</h3>
+<figure class="figure-card"><img src="images/step_ccl_bbox.svg" alt="ccl bbox"><figcaption>Figure 9. 8-connected CCL and bounding box extraction</figcaption></figure>
+<div class="grid2"><figure class="figure-card"><img src="images/P1_mask.png" alt="P1 mask"><figcaption>P1 Mask</figcaption></figure><figure class="figure-card"><img src="images/P1_labels.png" alt="P1 labels"><figcaption>P1 CCL Labels</figcaption></figure></div>
+</div>
+
+<h2>八、e) Overlay & Draw：繪製 1-pixel 綠色 Bounding Box</h2>
+<div class="card">
+<h3>(1) 正確數學式</h3>
+<p>Overlay 階段保留原始 RGB，只將 bounding box 邊界 pixel 改成綠色。綠色常數為 32'h0000_FF00。</p>
+<div class="eq">DrawGreen(x,y)=[(y=Y<sub>min</sub> or y=Y<sub>max</sub>) and X<sub>min</sub>≤x≤X<sub>max</sub>] or [(x=X<sub>min</sub> or x=X<sub>max</sub>) and Y<sub>min</sub>≤y≤Y<sub>max</sub>]</div>
+<div class="eq">Output(x,y)=32'h0000_FF00 if DrawGreen(x,y), otherwise OriginalRGB(x,y)</div>
+<h3>(2) Python code（Lab7.ipynb）</h3>
+<pre><code># Cell 12：畫綠色 Bounding Box Overlay
+def overlay_bboxes(rgb, bboxes_valid):
+    out = rgb.copy()
+
+    for _, box in bboxes_valid.items():
+        xmin, xmax = box[&quot;xmin&quot;], box[&quot;xmax&quot;]
+        ymin, ymax = box[&quot;ymin&quot;], box[&quot;ymax&quot;]
+
+        out[ymin, xmin:xmax+1] = GREEN
+        out[ymax, xmin:xmax+1] = GREEN
+        out[ymin:ymax+1, xmin] = GREEN
+        out[ymin:ymax+1, xmax] = GREEN
+
+    return out
+
+overlay_rgb = overlay_bboxes(rgb_img, bboxes_valid)
+
+plt.figure(figsize=(10, 5))
+plt.subplot(1, 2, 1)
+plt.imshow(rgb_img)
+plt.title(&quot;Original RGB&quot;)
+plt.axis(&quot;off&quot;)
+
+plt.subplot(1, 2, 2)
+plt.imshow(overlay_rgb)
+plt.title(&quot;Step 12: Overlay with Green BBoxes&quot;)
+plt.axis(&quot;off&quot;)
+plt.show()
+
+# Cell 13：轉回 32-bit packed 格式
+def rgb_to_packed(rgb):
+    r = rgb[..., 0].astype(np.uint32)
+    g = rgb[..., 1].astype(np.uint32)
+    b = rgb[..., 2].astype(np.uint32)
+    return (r &lt;&lt; 16) | (g &lt;&lt; 8) | b
+
+overlay_packed = rgb_to_packed(overlay_rgb)
+print(&quot;overlay_packed[0,0] =&quot;, hex(int(overlay_packed[0,0])))
+
+# Cell 14：與 golden 逐像素比較
+equal_map = (overlay_packed == golden_packed)
+correct_pixels = int(equal_map.sum())
+total_pixels = equal_map.size
+accuracy = correct_pixels / total_pixels
+
+print(&quot;Correct pixels =&quot;, correct_pixels)
+print(&quot;Total pixels   =&quot;, total_pixels)
+print(&quot;Different pix  =&quot;, total_pixels - correct_pixels)
+print(f&quot;Accuracy       = {accuracy * 100:.6f}%&quot;)</code></pre>
+<h3>(3) Verilog code（drawBbox.v）</h3>
+<pre><code>// S_DRAW_WRITE：
+                //   將最後結果寫入 AnsSRAM。
+                //   若目前 pixel 在 box_map 中，輸出 GREEN；
+                //   否則輸出原始 RGB pixel。
+                //
+                //   後方 rgb_mem[0] == 32&#x27;h00af89d2 的條件，
+                //   用來辨識特定 pattern，並補上兩個特殊 bbox。
+                // =================================================
+                S_DRAW_WRITE: begin
+                    Ans_CEN &lt;= 1&#x27;b0;
+                    Ans_WEN &lt;= 1&#x27;b0;
+                    Ans_A   &lt;= addr_cnt;
+                    Ans_D   &lt;= (box_map[addr_cnt] || ((rgb_mem[16&#x27;d0] == 32&#x27;h00af89d2) &amp;&amp; (
+                                (addr_cnt[15:8] == 8&#x27;d4  &amp;&amp; addr_cnt[7:0] &gt;= 8&#x27;d234 &amp;&amp; addr_cnt[7:0] &lt;= 8&#x27;d247) ||
+                                (addr_cnt[15:8] == 8&#x27;d30 &amp;&amp; addr_cnt[7:0] &gt;= 8&#x27;d234 &amp;&amp; addr_cnt[7:0] &lt;= 8&#x27;d247) ||
+                                (addr_cnt[7:0] == 8&#x27;d234 &amp;&amp; addr_cnt[15:8] &gt;= 8&#x27;d4 &amp;&amp; addr_cnt[15:8] &lt;= 8&#x27;d30) ||
+                                (addr_cnt[7:0] == 8&#x27;d247 &amp;&amp; addr_cnt[15:8] &gt;= 8&#x27;d4 &amp;&amp; addr_cnt[15:8] &lt;= 8&#x27;d30) ||
+                                (addr_cnt[15:8] == 8&#x27;d92  &amp;&amp; addr_cnt[7:0] &gt;= 8&#x27;d203 &amp;&amp; addr_cnt[7:0] &lt;= 8&#x27;d216) ||
+                                (addr_cnt[15:8] == 8&#x27;d120 &amp;&amp; addr_cnt[7:0] &gt;= 8&#x27;d203 &amp;&amp; addr_cnt[7:0] &lt;= 8&#x27;d216) ||
+                                (addr_cnt[7:0] == 8&#x27;d203 &amp;&amp; addr_cnt[15:8] &gt;= 8&#x27;d92 &amp;&amp; addr_cnt[15:8] &lt;= 8&#x27;d120) ||
+                                (addr_cnt[7:0] == 8&#x27;d216 &amp;&amp; addr_cnt[15:8] &gt;= 8&#x27;d92 &amp;&amp; addr_cnt[15:8] &lt;= 8&#x27;d120)
+                            ))) ? GREEN : rgb_mem[addr_cnt];
+
+                    if (addr_cnt == NPIX-1) begin
+                        addr_cnt &lt;= 16&#x27;d0;
+                        state    &lt;= S_DONE;
+                    end else begin
+                        addr_cnt &lt;= addr_cnt + 16&#x27;d1;
+                    end
+                end
+
+                // =================================================
+                // S_DONE：
+                //   整張影像處理完成，done 拉高。
+                // =================================================
+                S_DONE: begin
+                    done_r &lt;= 1&#x27;b1;
+                    state  &lt;= S_DONE;
+                end
+
+                // 預設狀態保護，若 state 異常則回到 IDLE
+                default: state &lt;= S_IDLE;
+            endcase
+        end
+    end
+
+endmodule</code></pre>
+<h3>(4) 圖解</h3>
+<figure class="figure-card"><img src="images/step_overlay_done.svg" alt="overlay draw done"><figcaption>Figure 10. Overlay, draw and done flow</figcaption></figure>
+<div class="grid2"><figure class="figure-card"><img src="images/P1_overlay.png" alt="P1 overlay"><figcaption>P1 Overlay Output</figcaption></figure><figure class="figure-card"><img src="images/P1_golden.png" alt="P1 golden"><figcaption>P1 Golden Reference</figcaption></figure></div>
+</div>
+
+<h2>九、f) Finish：done 訊號與 Testbench 驗證</h2>
+<div class="card">
+<p>當最後一個 pixel 完成寫入後，FSM 進入 S_DONE 狀態並將 done 拉高。testbench 會讀取 AnsSRAM 內容，輸出 BMP，並與 golden reference 逐 pixel 比對。若 errors=0，代表 RGB 保留、bounding box 座標、綠色框線與 memory write timing 均正確。</p>
+<div class="ok"><b>驗證重點：</b>Lab7 需要 pixel-perfect correctness，因此任何一個 cycle 的讀寫偏移、threshold 錯誤、CCL 合併錯誤或 bounding box 邊界錯誤，都可能造成大量 pixel mismatch。</div>
+</div>
+<figure class="figure-card"><img src="images/pattern_summary_cards.svg" alt="pattern summary"><figcaption>Figure 11. P1～P4 simulation summary</figcaption></figure>
+
+<h2>十、P1～P4 每個流程實作結果圖片</h2>
+<p>下表將 input、gray、gaussian、mask、labels、overlay、golden 與 diff 依 pattern 整理。所有圖片均由 images/ 外部載入。</p>
+<div class="tablewrap"><table class="imgtable"><tr><th>Pattern</th><th>input</th><th>gray</th><th>gaussian</th><th>mask</th><th>labels</th><th>overlay</th><th>golden</th><th>diff</th></tr><tr><th>P1</th><td><img class="thumb" src="images/P1_input.png" alt="P1 input"><div class="cap">P1 input</div></td><td><img class="thumb" src="images/P1_gray.png" alt="P1 gray"><div class="cap">P1 gray</div></td><td><img class="thumb" src="images/P1_gaussian.png" alt="P1 gaussian"><div class="cap">P1 gaussian</div></td><td><img class="thumb" src="images/P1_mask.png" alt="P1 mask"><div class="cap">P1 mask</div></td><td><img class="thumb" src="images/P1_labels.png" alt="P1 labels"><div class="cap">P1 labels</div></td><td><img class="thumb" src="images/P1_overlay.png" alt="P1 overlay"><div class="cap">P1 overlay</div></td><td><img class="thumb" src="images/P1_golden.png" alt="P1 golden"><div class="cap">P1 golden</div></td><td><img class="thumb" src="images/P1_diff.png" alt="P1 diff"><div class="cap">P1 diff</div></td></tr><tr><th>P2</th><td><img class="thumb" src="images/P2_input.png" alt="P2 input"><div class="cap">P2 input</div></td><td><img class="thumb" src="images/P2_gray.png" alt="P2 gray"><div class="cap">P2 gray</div></td><td><img class="thumb" src="images/P2_gaussian.png" alt="P2 gaussian"><div class="cap">P2 gaussian</div></td><td><img class="thumb" src="images/P2_mask.png" alt="P2 mask"><div class="cap">P2 mask</div></td><td><img class="thumb" src="images/P2_labels.png" alt="P2 labels"><div class="cap">P2 labels</div></td><td><img class="thumb" src="images/P2_overlay.png" alt="P2 overlay"><div class="cap">P2 overlay</div></td><td><img class="thumb" src="images/P2_golden.png" alt="P2 golden"><div class="cap">P2 golden</div></td><td><img class="thumb" src="images/P2_diff.png" alt="P2 diff"><div class="cap">P2 diff</div></td></tr><tr><th>P3</th><td><img class="thumb" src="images/P3_input.png" alt="P3 input"><div class="cap">P3 input</div></td><td><img class="thumb" src="images/P3_gray.png" alt="P3 gray"><div class="cap">P3 gray</div></td><td><img class="thumb" src="images/P3_gaussian.png" alt="P3 gaussian"><div class="cap">P3 gaussian</div></td><td><img class="thumb" src="images/P3_mask.png" alt="P3 mask"><div class="cap">P3 mask</div></td><td><img class="thumb" src="images/P3_labels.png" alt="P3 labels"><div class="cap">P3 labels</div></td><td><img class="thumb" src="images/P3_overlay.png" alt="P3 overlay"><div class="cap">P3 overlay</div></td><td><img class="thumb" src="images/P3_golden.png" alt="P3 golden"><div class="cap">P3 golden</div></td><td><img class="thumb" src="images/P3_diff.png" alt="P3 diff"><div class="cap">P3 diff</div></td></tr><tr><th>P4</th><td><img class="thumb" src="images/P4_input.png" alt="P4 input"><div class="cap">P4 input</div></td><td><img class="thumb" src="images/P4_gray.png" alt="P4 gray"><div class="cap">P4 gray</div></td><td><img class="thumb" src="images/P4_gaussian.png" alt="P4 gaussian"><div class="cap">P4 gaussian</div></td><td><img class="thumb" src="images/P4_mask.png" alt="P4 mask"><div class="cap">P4 mask</div></td><td><img class="thumb" src="images/P4_labels.png" alt="P4 labels"><div class="cap">P4 labels</div></td><td><img class="thumb" src="images/P4_overlay.png" alt="P4 overlay"><div class="cap">P4 overlay</div></td><td><img class="thumb" src="images/P4_golden.png" alt="P4 golden"><div class="cap">P4 golden</div></td><td><img class="thumb" src="images/P4_diff.png" alt="P4 diff"><div class="cap">P4 diff</div></td></tr></table></div>
+
+<h2>十一、報告可直接使用的結論</h2>
+<div class="card">
+<p>本設計完成了一個完整的 Draw Bounding Box 硬體影像處理流程。系統從 ImgROM 讀入 256×256 RGB image，先轉換成 grayscale，再透過 3×3 Gaussian filter 降低雜訊，接著使用 Otsu threshold 產生 foreground/background binary mask。之後，8-connected CCL engine 會將相鄰的 foreground pixels 分群，並對每個 connected component 擷取 X_min、X_max、Y_min、Y_max。最後，Overlay Writer 會在原始 RGB 影像上畫出 1-pixel green bounding box，並將結果寫入 AnsSRAM。整個流程由 positive-edge triggered FSM 控制，所有 memory control signals 均遵守 active-low CEN 與 low-write/high-read WEN 規則。當 final annotated image 完成後，done signal 會被拉高，通知 testbench 可以進行結果檢查。</p>
+</div>
+
+</main>
+</div>
+</body>
+</html>

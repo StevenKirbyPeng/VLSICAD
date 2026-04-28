@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760" viewBox="0 0 1500 760">
+<defs>
+<marker id="a" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#334155"/></marker>
+<style>
+.title{font-family:Arial,'Microsoft JhengHei';font-size:34px;font-weight:800;fill:#174b78}
+.t{font-family:Arial,'Microsoft JhengHei';font-size:21px;font-weight:800;fill:#172033}
+.s{font-family:Arial,'Microsoft JhengHei';font-size:15px;fill:#475569}
+.box{stroke:#5482bd;stroke-width:2.4;rx:18;filter:drop-shadow(0 7px 7px rgba(30,64,175,.14))}
+.ar{stroke:#334155;stroke-width:3;fill:none;marker-end:url(#a)}
+</style>
+</defs>
+<rect width="1500" height="760" fill="#f8fbff"/>
+<text x="55" y="60" class="title">Q3：drawBbox.v Synthesis 最終提交流程</text>
+
+<rect x="75" y="135" width="215" height="115" fill="#dbeafe" class="box"/>
+<text x="112" y="180" class="t">RTL 設計</text>
+<text x="105" y="212" class="s">drawBbox.v</text>
+<text x="105" y="237" class="s">FSM + Datapath</text>
+
+<path d="M290 192 H355" class="ar"/>
+
+<rect x="355" y="135" width="245" height="115" fill="#dcfce7" class="box"/>
+<text x="390" y="180" class="t">時序限制</text>
+<text x="385" y="212" class="s">Clock period ≤ 10ns</text>
+<text x="385" y="237" class="s">dont_touch clk</text>
+
+<path d="M600 192 H665" class="ar"/>
+
+<rect x="665" y="135" width="245" height="115" fill="#ffedd5" class="box"/>
+<text x="700" y="180" class="t">Design Compiler</text>
+<text x="700" y="212" class="s">compile / optimize</text>
+<text x="700" y="237" class="s">timing + area reports</text>
+
+<path d="M910 192 H975" class="ar"/>
+
+<rect x="975" y="135" width="245" height="115" fill="#f3e8ff" class="box"/>
+<text x="1010" y="180" class="t">合成輸出</text>
+<text x="1005" y="212" class="s">drawBbox_syn.v</text>
+<text x="1005" y="237" class="s">drawBbox_syn.sdf</text>
+
+<path d="M1220 192 H1285" class="ar"/>
+
+<rect x="1285" y="135" width="155" height="115" fill="#fee2e2" class="box"/>
+<text x="1315" y="180" class="t">驗證</text>
+<text x="1305" y="212" class="s">SYN Sim</text>
+<text x="1305" y="237" class="s">P1~P4 PASS</text>
+
+<rect x="110" y="340" width="1280" height="120" rx="20" fill="#fff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="150" y="385" class="t">滿分重點</text>
+<text x="150" y="420" class="s">Synthesis 不只是產生 netlist，還要證明 critical path 能滿足 10ns constraint，且 gate-level simulation 與 RTL simulation 功能一致。</text>
+
+<rect x="110" y="515" width="1280" height="120" rx="20" fill="#ecfdf5" stroke="#22c55e" stroke-width="2"/>
+<text x="150" y="560" class="t">驗證結論</text>
+<text x="150" y="595" class="s">若 RTL P1~P4 errors = 0 且 SYN P1~P4 errors = 0，即可證明合成前後功能等價；若 slack ≥ 0，代表 timing closure 成功。</text>
+</svg>

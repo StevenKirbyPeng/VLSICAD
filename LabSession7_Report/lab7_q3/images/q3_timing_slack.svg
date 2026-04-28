@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="680" viewBox="0 0 1400 680">
+<defs>
+<style>
+.title{font-family:Arial,'Microsoft JhengHei';font-size:34px;font-weight:800;fill:#174b78}
+.t{font-family:Arial,'Microsoft JhengHei';font-size:21px;font-weight:800;fill:#172033}
+.s{font-family:Arial,'Microsoft JhengHei';font-size:16px;fill:#475569}
+.eq{font-family:'Times New Roman';font-size:23px;fill:#0f172a}
+.box{stroke:#5482bd;stroke-width:2.4;rx:18;filter:drop-shadow(0 7px 7px rgba(30,64,175,.14))}
+</style>
+</defs>
+<rect width="1400" height="680" fill="#f8fbff"/>
+<text x="55" y="60" class="title">Timing Constraint 與 Slack 判斷</text>
+
+<rect x="95" y="135" width="360" height="145" fill="#dbeafe" class="box"/>
+<text x="135" y="185" class="t">Clock Period</text>
+<text x="135" y="225" class="eq">Tclk ≤ 10 ns</text>
+<text x="135" y="255" class="s">代表電路每個 cycle 最多只能用 10ns 完成。</text>
+
+<rect x="520" y="135" width="360" height="145" fill="#dcfce7" class="box"/>
+<text x="560" y="185" class="t">Critical Path</text>
+<text x="560" y="225" class="eq">Tpath ≤ Tclk</text>
+<text x="560" y="255" class="s">最長組合路徑必須小於時脈週期。</text>
+
+<rect x="945" y="135" width="360" height="145" fill="#ffedd5" class="box"/>
+<text x="985" y="185" class="t">Slack</text>
+<text x="985" y="225" class="eq">Slack = Required − Arrival</text>
+<text x="985" y="255" class="s">Slack ≥ 0 代表 timing pass。</text>
+
+<rect x="160" y="390" width="1080" height="120" rx="20" fill="#fff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="205" y="435" class="t">報告寫法</text>
+<text x="205" y="470" class="s">本設計透過 FSM 分階段執行影像處理，避免 RGB、Gaussian、Otsu、CCL 與 Draw 全部集中在單一 combinational path 中。</text>
+</svg>

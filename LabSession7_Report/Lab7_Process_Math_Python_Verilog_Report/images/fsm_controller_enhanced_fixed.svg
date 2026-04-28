@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="780" viewBox="0 0 1400 780">
+<defs>
+  <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#eef7ff"/>
+    <stop offset="100%" stop-color="#ffffff"/>
+  </linearGradient>
+  <linearGradient id="blue" x1="0" x2="1">
+    <stop offset="0%" stop-color="#dff0ff"/>
+    <stop offset="100%" stop-color="#b9dbff"/>
+  </linearGradient>
+  <linearGradient id="green" x1="0" x2="1">
+    <stop offset="0%" stop-color="#e7f8ec"/>
+    <stop offset="100%" stop-color="#c9efd4"/>
+  </linearGradient>
+  <linearGradient id="orange" x1="0" x2="1">
+    <stop offset="0%" stop-color="#fff3df"/>
+    <stop offset="100%" stop-color="#ffe0ad"/>
+  </linearGradient>
+  <linearGradient id="purple" x1="0" x2="1">
+    <stop offset="0%" stop-color="#f1e7ff"/>
+    <stop offset="100%" stop-color="#d9c5ff"/>
+  </linearGradient>
+  <linearGradient id="red" x1="0" x2="1">
+    <stop offset="0%" stop-color="#fff0f0"/>
+    <stop offset="100%" stop-color="#ffd6d6"/>
+  </linearGradient>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#174b78" flood-opacity="0.18"/>
+  </filter>
+  <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+    <path d="M2,2 L10,6 L2,10 Z" fill="#39536b"/>
+  </marker>
+<style>
+.title{font-family:Arial,'Microsoft JhengHei',sans-serif;font-size:36px;font-weight:800;fill:#174b78}
+.txt{font-family:Arial,'Microsoft JhengHei',sans-serif;font-size:22px;fill:#1f2937}
+.small{font-family:Arial,'Microsoft JhengHei',sans-serif;font-size:17px;fill:#374151}
+.tiny{font-family:Arial,'Microsoft JhengHei',sans-serif;font-size:14px;fill:#52606d}
+.box{stroke:#4b83c3;stroke-width:2.4;rx:18;filter:url(#shadow)}
+.arrow{stroke:#39536b;stroke-width:3.4;marker-end:url(#arrow);fill:none}
+.dash{stroke:#6385a7;stroke-width:2.8;stroke-dasharray:8 7;fill:none}
+.phase{font-family:Arial,'Microsoft JhengHei',sans-serif;font-size:19px;font-weight:bold;fill:#174b78}
+</style>
+</defs>
+<rect width="1400" height="780" fill="url(#bg)"/>
+
+<text x="50" y="58" class="title">drawBbox 控制器 FSM 狀態圖</text>
+<text x="50" y="92" class="small">每個狀態負責一個硬體處理階段；完成後重設計數器並進入下一階段。</text>
+
+<rect x="55" y="125" width="305" height="70" fill="url(#blue)" class="box"/>
+<text x="92" y="168" class="txt">S_IDLE</text><text x="190" y="168" class="small">等待 enable</text>
+<path d="M360 160 H430" class="arrow"/>
+<rect x="430" y="125" width="305" height="70" fill="url(#blue)" class="box"/>
+<text x="465" y="168" class="txt">S_LOAD</text><text x="570" y="168" class="small">讀取 ImgROM</text>
+<path d="M735 160 H805" class="arrow"/>
+<rect x="805" y="125" width="305" height="70" fill="url(#green)" class="box"/>
+<text x="840" y="168" class="txt">S_GRAY</text><text x="945" y="168" class="small">RGB → 灰階</text>
+<path d="M1110 160 H1180" class="arrow"/>
+<rect x="1180" y="125" width="175" height="70" fill="url(#green)" class="box"/>
+<text x="1198" y="157" class="small">S_HIST</text><text x="1198" y="182" class="small">_CLEAR</text>
+
+<path d="M1267 195 V255" class="arrow"/>
+<rect x="1060" y="255" width="295" height="70" fill="url(#green)" class="box"/>
+<text x="1095" y="298" class="txt">S_GAUSS_HIST</text>
+<path d="M1060 290 H990" class="arrow"/>
+<rect x="715" y="255" width="275" height="70" fill="url(#orange)" class="box"/>
+<text x="750" y="298" class="txt">S_OTSU_INIT</text>
+<path d="M715 290 H645" class="arrow"/>
+<rect x="370" y="255" width="275" height="70" fill="url(#orange)" class="box"/>
+<text x="405" y="298" class="txt">S_OTSU_SCAN</text>
+<path d="M370 290 H300" class="arrow"/>
+<rect x="55" y="255" width="245" height="70" fill="url(#orange)" class="box"/>
+<text x="82" y="298" class="txt">S_COUNT_HI</text>
+
+<path d="M178 325 V385" class="arrow"/>
+<rect x="55" y="385" width="245" height="70" fill="url(#purple)" class="box"/>
+<text x="83" y="428" class="txt">S_POLARITY</text>
+<path d="M300 420 H370" class="arrow"/>
+<rect x="370" y="385" width="275" height="70" fill="url(#purple)" class="box"/>
+<text x="400" y="428" class="txt">S_MASK_WRITE</text>
+<path d="M645 420 H715" class="arrow"/>
+<rect x="715" y="385" width="275" height="70" fill="url(#purple)" class="box"/>
+<text x="745" y="428" class="txt">S_PARENT_INIT</text>
+<path d="M990 420 H1060" class="arrow"/>
+<rect x="1060" y="385" width="295" height="70" fill="url(#purple)" class="box"/>
+<text x="1102" y="428" class="txt">S_CCL_SCAN</text>
+
+<path d="M1208 455 V515" class="arrow"/>
+<rect x="1060" y="515" width="295" height="70" fill="url(#green)" class="box"/>
+<text x="1093" y="558" class="txt">S_BBOX_INIT</text>
+<path d="M1060 550 H990" class="arrow"/>
+<rect x="715" y="515" width="275" height="70" fill="url(#green)" class="box"/>
+<text x="748" y="558" class="txt">S_BBOX_SCAN</text>
+<path d="M715 550 H645" class="arrow"/>
+<rect x="370" y="515" width="275" height="70" fill="url(#blue)" class="box"/>
+<text x="400" y="545" class="small">S_BOXMAP</text><text x="400" y="570" class="small">_CLEAR</text>
+<path d="M370 550 H300" class="arrow"/>
+<rect x="55" y="515" width="245" height="70" fill="url(#blue)" class="box"/>
+<text x="86" y="545" class="small">S_BOXMAP</text><text x="86" y="570" class="small">_GEN</text>
+
+<path d="M178 585 V645" class="arrow"/>
+<rect x="55" y="645" width="305" height="70" fill="url(#orange)" class="box"/>
+<text x="88" y="688" class="txt">S_DRAW_WRITE</text>
+<path d="M360 680 H430" class="arrow"/>
+<rect x="430" y="645" width="305" height="70" fill="url(#red)" class="box"/>
+<text x="470" y="688" class="txt">S_DONE</text><text x="575" y="688" class="small">done = 1</text>
+
+<rect x="795" y="640" width="520" height="95" fill="#fff" stroke="#c5d7e6" stroke-width="2" rx="18"/>
+<text x="830" y="675" class="phase">階段圖例</text>
+<text x="830" y="706" class="tiny">藍色：控制與記憶體介面　綠色：影像處理　橘色：門檻與輸出　紫色：Mask 與 CCL　紅色：完成</text>
+
+</svg>

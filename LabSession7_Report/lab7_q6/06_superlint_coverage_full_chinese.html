@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab7 第 6 題 SuperLint Coverage 滿分版</title>
+<script>
+window.MathJax = {tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]}, svg:{fontCache:'global'}};
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+<style>
+:root{--bg:#f5f7fb;--ink:#172033;--muted:#64748b;--card:#fff;--line:#dbe4f0;--blue:#2563eb;--green:#16a34a;--red:#dc2626;--amber:#d97706;--code:#0f172a}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(120deg,#eef6ff,#f8fbff 42%,#fff);color:var(--ink);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;line-height:1.8}.wrap{max-width:1180px;margin:auto;padding:38px 22px 64px}.hero{background:linear-gradient(135deg,#0f172a,#1e3a8a 60%,#0e7490);color:white;border-radius:28px;padding:34px;box-shadow:0 20px 48px rgba(15,23,42,.22)}h1{margin:0 0 10px;font-size:2.15rem;line-height:1.25}.subtitle{font-size:1.05rem;color:#dbeafe;max-width:920px}.badge{display:inline-block;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);padding:6px 12px;border-radius:999px;margin:8px 8px 0 0;font-weight:700}.section{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:26px;margin-top:22px;box-shadow:0 10px 30px rgba(15,23,42,.06)}h2{font-size:1.55rem;margin:0 0 14px;color:#0f172a;border-left:7px solid var(--blue);padding-left:12px}h3{font-size:1.18rem;margin:22px 0 8px;color:#1e3a8a}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.card{background:#fbfdff;border:1px solid var(--line);border-radius:18px;padding:18px}.ok{background:#ecfdf5;border-left:7px solid var(--green);padding:14px 18px;border-radius:14px}.warn{background:#fff7ed;border-left:7px solid var(--amber);padding:14px 18px;border-radius:14px}.danger{background:#fef2f2;border-left:7px solid var(--red);padding:14px 18px;border-radius:14px}.formula{background:#f8fbff;border:1px dashed #9bbad6;border-radius:16px;padding:16px;margin:14px 0;text-align:center;overflow:auto}.table-wrap{overflow:auto;border-radius:16px;border:1px solid var(--line)}table{border-collapse:collapse;width:100%;background:white}th,td{border-bottom:1px solid var(--line);padding:12px 14px;text-align:left;vertical-align:top}th{background:#eaf2ff;color:#173a68}tr:last-child td{border-bottom:none}.pass{color:#15803d;font-weight:900}.wait{color:#b45309;font-weight:900}.fail{color:#b91c1c;font-weight:900}pre{background:var(--code);color:#e5e7eb;border-radius:16px;padding:18px;overflow:auto;line-height:1.55;border:1px solid #263449}code{font-family:Consolas,"Courier New",monospace;font-size:.92rem}figure{margin:18px 0;background:#fbfdff;border:1px solid var(--line);border-radius:18px;padding:12px;text-align:center}figure img{max-width:100%;border-radius:12px}.cap,figcaption{font-size:.9rem;color:#64748b;font-weight:700;margin-top:6px}.flow{display:flex;flex-wrap:wrap;gap:10px}.pill{background:#eff6ff;border:1px solid #bfdbfe;border-radius:999px;padding:8px 12px;font-weight:800;color:#1e3a8a}.small{font-size:.92rem;color:var(--muted)}.footer{text-align:center;margin-top:26px;color:#64748b}.print-note{background:#f1f5f9;border:1px solid #cbd5e1;border-radius:18px;padding:16px}@media(max-width:850px){.grid2,.grid3{grid-template-columns:1fr}.hero{padding:24px}h1{font-size:1.65rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="hero">
+<h1>六、Show SuperLint Coverage（Including All Files）滿分版</h1>
+<div class="subtitle">本頁用於回答 Lab7 第 6 題：附上 SuperLint coverage，並清楚說明檢查時已包含所有需要的 Verilog / SystemVerilog 檔案。報告重點不是只貼圖，而是要讓助教看得出：檔案有納入、coverage 達標、錯誤已排除、warning 有處理或合理說明。</div>
+<div><span class="badge">SuperLint ≥ 90%</span><span class="badge">All files included</span><span class="badge">Error = 0</span><span class="badge">Report-ready Chinese</span></div>
+</header>
+
+<section class="section">
+<h2>一、題目要求與本題回答重點</h2>
+<p>本題要求顯示 SuperLint coverage，而且必須包含所有檔案。對 Lab7 來說，SuperLint 的目的不是驗證影像結果，而是檢查 RTL 程式是否符合硬體設計與 coding style 的基本規範，例如是否有未連接訊號、未使用變數、latch 風險、不可合成語法、位元寬度不一致與 case/if 條件不完整等問題。</p>
+<div class="ok"><b>報告寫法重點：</b>我在 SuperLint project 中加入所有本次設計相關檔案，包含主設計 <code>drawBbox.v</code>、clock/cycle 設定 <code>CYCLE_MAX.sv</code>、testbench <code>tb.sv</code>，以及若設計中有額外拆出的 RTL submodule，也必須一併加入檢查。完成檢查後，確認 total coverage 達到作業要求的 90% 以上，且沒有會造成 compilation / synthesis failure 的 error。</div>
+<figure><img src="assets/superlint_coverage_flow.svg" alt="SuperLint coverage flow"><figcaption>圖 1、SuperLint coverage 檢查流程：加入所有檔案、執行檢查、確認 coverage、附上結果。</figcaption></figure>
+</section>
+
+<section class="section">
+<h2>二、SuperLint Coverage 結果截圖區</h2>
+<p>正式提交時，請將實際 SuperLint 結果截圖放在 <code>assets/superlint_coverage.png</code>。若目前資料夾沒有實際截圖，本頁會用下方示意圖標示應該呈現的資訊。真正繳交時建議使用真實 GUI / report screenshot 取代示意圖。</p>
+<picture>
+<source srcset="assets/superlint_coverage.png" type="image/png">
+<img src="assets/superlint_coverage_placeholder.svg" alt="SuperLint coverage placeholder" style="width:100%;border-radius:18px;border:1px solid #dbe4f0;background:white;padding:8px">
+</picture>
+<div class="warn"><b>請填入實際數值：</b>如果你的 SuperLint report 已經有實際 coverage 百分比，請把下表的「依實際報告填入」改成你的數值，例如 93.2%、96.5% 或 100%。我沒有在附件中看到真實 SuperLint coverage 報告截圖，所以這裡保留為可直接替換的滿分報告格式。</div>
+</section>
+
+<section class="section">
+<h2>三、All Files Included 檢查表</h2>
+<div class="table-wrap"><table>
+<tr><th>檔案</th><th>是否納入 SuperLint</th><th>用途</th><th>檢查重點</th></tr>
+<tr><td><code>drawBbox.v</code></td><td class="pass">是，必須納入</td><td>Lab7 主 RTL，包含 RGB 讀取、灰階、Gaussian、Otsu、mask、8-connected CCL、bbox 與 overlay。</td><td>狀態機是否完整、記憶體介面是否正確、位元寬度是否一致、是否有 latch / unreachable state。</td></tr>
+<tr><td><code>CYCLE_MAX.sv</code></td><td class="pass">是，建議納入</td><td>設定 clock period 與最大 cycle。</td><td>確認 macro 定義正確，例如 <code>CYCLE_TIME</code> 與 <code>MAX_CYCLE</code> 不影響模擬與 synthesis 設定。</td></tr>
+<tr><td><code>tb.sv</code></td><td class="pass">是，本題要求 including all files 時可納入</td><td>測試平台，用來連接 ImgROM、UrSRAM、AnsSRAM 並檢查輸出結果。</td><td>testbench 可能含不可合成語法，若 SuperLint 專案區分 RTL/testbench，需標示其檢查類別。</td></tr>
+<tr><td>其他 submodule</td><td class="pass">若有，全部納入</td><td>例如 rgb2gray、gaussian、otsu、ccl、bbox、draw 等拆檔設計。</td><td>避免漏掉子模組，否則 coverage 不能代表完整設計。</td></tr>
+<tr><td><code>drawBbox_syn.v</code></td><td class="wait">Post-synthesis 階段再視需求納入</td><td>Design Compiler 產生的 gate-level netlist。</td><td>若題目要求 RTL SuperLint，通常以 RTL 檔為主；若助教要求所有交付 Verilog，則也可附 post-syn 檢查說明。</td></tr>
+</table></div>
+</section>
+
+<section class="section">
+<h2>四、SuperLint Coverage Summary</h2>
+<div class="table-wrap"><table>
+<tr><th>項目</th><th>結果</th><th>報告說明</th></tr>
+<tr><td>Total Coverage</td><td class="wait">依實際 SuperLint report 填入，目標 ≥ 90%</td><td>Lab7 grading policy 要求 SuperLint coverage 至少 90%。因此本題需要清楚顯示 coverage 百分比。</td></tr>
+<tr><td>Included Files</td><td class="pass">drawBbox.v / CYCLE_MAX.sv / tb.sv / additional RTL if any</td><td>所有本次設計與驗證相關檔案均納入檢查，避免只檢查單一檔案造成 coverage 失真。</td></tr>
+<tr><td>Error Count</td><td class="pass">0 為理想結果</td><td>若有 error，必須修正到 0；error 通常代表語法、連接或嚴重規則違反。</td></tr>
+<tr><td>Warning Count</td><td class="wait">依實際 report 填入</td><td>warning 若存在，需逐項確認不影響功能、合成與 memory interface。若能修正，應優先修正。</td></tr>
+<tr><td>Lint Status</td><td class="pass">PASS / Clean Enough for Submission</td><td>當 coverage 達標且無 critical error，即可作為報告佐證。</td></tr>
+</table></div>
+</section>
+
+<section class="section">
+<h2>五、正確數學式（已修正）與 SuperLint 關聯</h2>
+<p>SuperLint 雖然不會判斷影像演算法是否數學正確，但數學式會影響 RTL 的位元寬度、除法/位移、乘法器大小與 overflow 風險。因此本題報告可以補充以下修正版公式，說明 RTL 並不是隨意寫成黑盒子，而是依照明確公式實作。</p>
+<h3>1、RGB 轉灰階與 ties-to-even rounding</h3>
+<div class="formula">\[
+Gray = \operatorname{round\_even}\left(0.299R+0.587G+0.114B\right)
+\]</div>
+<div class="formula">\[
+Gray \approx \operatorname{round\_even}\left(\frac{77R+150G+29B}{256}\right)
+\]</div>
+<p>硬體中使用整數近似，將乘法係數改成 77、150、29，最後除以 256。因為 256 是 2 的次方，所以可使用右移 8 bits。若餘數大於 128 則進位；若餘數等於 128，只有當商數為奇數時才進位，這就是 round-to-nearest, ties-to-even。</p>
+<h3>2、Gaussian 3×3 Filter</h3>
+<div class="formula">\[
+G(x,y)=\operatorname{round\_even}\left(\frac{1}{16}
+\begin{bmatrix}1&2&1\\2&4&2\\1&2&1\end{bmatrix} * Gray(x,y)\right)
+\]</div>
+<p>總權重為 16，因此 RTL 可用 <code>&gt;&gt; 4</code> 取代除法。邊界採用 Reflect101，也就是反射但不重複邊界點，可避免邊界被 0 padding 拉暗。</p>
+<h3>3、Otsu Threshold</h3>
+<div class="formula">\[
+\sigma_B^2(T)=W_b(T)W_f(T)\left(\mu_b(T)-\mu_f(T)\right)^2
+\]</div>
+<div class="formula">\[
+W_b(T)=\frac{\sum_{i=0}^{T}h(i)}{N},\quad
+W_f(T)=\frac{\sum_{i=T+1}^{255}h(i)}{N}
+\]</div>
+<div class="formula">\[
+\mu_b(T)=\frac{\sum_{i=0}^{T}i\cdot h(i)}{\sum_{i=0}^{T}h(i)},\quad
+\mu_f(T)=\frac{\sum_{i=T+1}^{255}i\cdot h(i)}{\sum_{i=T+1}^{255}h(i)}
+\]</div>
+<p>RTL 不一定要直接做浮點運算，可以改用整數累加與等價 score 比較，避免浮點不可合成與除法資源過大。</p>
+<h3>4、Mask、Auto-Polarity、CCL 與 BBox</h3>
+<div class="formula">\[
+Mask(x,y)=\begin{cases}1,&G(x,y)>T\\0,&G(x,y)\le T\end{cases}
+\]</div>
+<div class="formula">\[
+BBox_k=(x_{min,k},x_{max,k},y_{min,k},y_{max,k})
+\]</div>
+<div class="formula">\[
+Output(x,y)=\begin{cases}
+32'h0000\_FF00,&(x,y)\in \partial BBox_k\\
+RGB(x,y),&\text{otherwise}
+\end{cases}
+\]</div>
+</section>
+
+<section class="section">
+<h2>六、Python Code（Lab7.ipynb 對應流程）</h2>
+<p>Python notebook 的角色是建立 golden reference / debug reference。它可以用比較直觀的方式驗證灰階、Gaussian、Otsu、mask、CCL、BBox 與 overlay 結果，再回頭比對 Verilog RTL 的輸出是否一致。</p>
+<pre><code># Lab7.ipynb 對應流程：SuperLint 不檢查 Python，但 Python 可作為演算法參考模型
+import numpy as np
+from PIL import Image
+
+IMG_H, IMG_W = 256, 256
+GREEN = np.array([0, 255, 0], dtype=np.uint8)
+
+def round_even_div(n, d):
+    q, r = divmod(int(n), int(d))
+    half = d // 2
+    if r > half:
+        return q + 1
+    if r == half and (q % 2 == 1):
+        return q + 1
+    return q
+
+def rgb_to_gray(rgb):
+    r = rgb[:, :, 0].astype(np.int32)
+    g = rgb[:, :, 1].astype(np.int32)
+    b = rgb[:, :, 2].astype(np.int32)
+    s = 77*r + 150*g + 29*b
+    # vectorized ties-to-even
+    q = s >> 8
+    rem = s & 255
+    q = q + ((rem > 128) | ((rem == 128) & ((q & 1) == 1)))
+    return q.astype(np.uint8)
+
+def reflect101_index(i, n=256):
+    if i < 0:
+        return -i
+    if i >= n:
+        return 2*n - 2 - i
+    return i
+
+def gaussian3x3(gray):
+    kernel = np.array([[1,2,1],[2,4,2],[1,2,1]], dtype=np.int32)
+    out = np.zeros_like(gray, dtype=np.uint8)
+    for y in range(IMG_H):
+        for x in range(IMG_W):
+            s = 0
+            for dy in range(-1, 2):
+                for dx in range(-1, 2):
+                    yy = reflect101_index(y+dy, IMG_H)
+                    xx = reflect101_index(x+dx, IMG_W)
+                    s += int(gray[yy, xx]) * int(kernel[dy+1, dx+1])
+            out[y, x] = round_even_div(s, 16)
+    return out
+
+def otsu_threshold(img):
+    hist = np.bincount(img.ravel(), minlength=256).astype(np.float64)
+    total = img.size
+    sum_total = np.dot(np.arange(256), hist)
+    wb, sum_b = 0.0, 0.0
+    best_t, best_score = 0, -1.0
+    for t in range(256):
+        wb += hist[t]
+        sum_b += t * hist[t]
+        wf = total - wb
+        if wb == 0 or wf == 0:
+            continue
+        mu_b = sum_b / wb
+        mu_f = (sum_total - sum_b) / wf
+        score = (wb / total) * (wf / total) * (mu_b - mu_f)**2
+        if score > best_score:
+            best_score, best_t = score, t
+    return best_t
+</code></pre>
+</section>
+
+<section class="section">
+<h2>七、Verilog Code：與 SuperLint 相關的關鍵片段</h2>
+<p>以下不是把完整程式貼入報告，而是擷取能說明設計品質與 SuperLint 檢查重點的核心片段。正式報告建議保留片段即可，避免整份 code 直接貼滿版面。</p>
+<h3>1、灰階 ties-to-even rounding</h3>
+<pre><code>function [7:0] gray_round_rgb;
+    input [31:0] pix;
+    integer rr, gg, bb;
+    integer s, q, rem;
+    begin
+        rr = pix[23:16];
+        gg = pix[15:8];
+        bb = pix[7:0];
+        s  = rr*77 + gg*150 + bb*29;
+        q  = s >> 8;
+        rem = s & 8'hFF;
+
+        if (rem > 128)
+            q = q + 1;
+        else if ((rem == 128) && (q[0] == 1'b1))
+            q = q + 1;
+
+        gray_round_rgb = q[7:0];
+    end
+endfunction</code></pre>
+<h3>2、Gaussian 使用 shift 取代除法</h3>
+<pre><code>// kernel = [1 2 1; 2 4 2; 1 2 1], sum = 16
+q = s >> 4;
+rem = s & 4'hF;
+if (rem > 8)
+    q = q + 1;
+else if ((rem == 8) && (q[0] == 1'b1))
+    q = q + 1;</code></pre>
+<h3>3、8-connected CCL 檢查四個已掃描鄰居</h3>
+<pre><code>n_w  = (x_i == 0) ? 12'd0 : label_mem[addr_cnt - 16'd1];
+n_nw = ((x_i == 0) || (y_i == 0)) ? 12'd0 : label_mem[addr_cnt - 16'd257];
+n_n  = (y_i == 0) ? 12'd0 : label_mem[addr_cnt - 16'd256];
+n_ne = ((x_i == 255) || (y_i == 0)) ? 12'd0 : label_mem[addr_cnt - 16'd255];</code></pre>
+<h3>4、Final overlay 綠框輸出</h3>
+<pre><code>localparam [31:0] GREEN = 32'h0000_FF00;
+
+Ans_D <= (box_map[addr_cnt]) ? GREEN : rgb_mem[addr_cnt];</code></pre>
+</section>
+
+<section class="section">
+<h2>八、SuperLint Warning 修正策略</h2>
+<div class="grid2">
+<div class="card"><h3>1、位元寬度不一致</h3><p>若 SuperLint 顯示 width mismatch，需確認 address、counter、label、histogram accumulator 是否有足夠位元。例如 256×256 pixel 共 65536，因此 pixel address 需要 16 bits。</p></div>
+<div class="card"><h3>2、未使用訊號</h3><p>若有 debug register 或暫存變數未使用，應移除或在報告中說明。未使用訊號不一定影響功能，但會降低程式乾淨程度。</p></div>
+<div class="card"><h3>3、Latch 風險</h3><p>組合邏輯若沒有完整 assignment，可能推導 latch。FSM 中建議在 state transition 或 combinational block 設定 default value。</p></div>
+<div class="card"><h3>4、不可合成語法</h3><p>testbench 可使用 <code>$display</code>、<code>$finish</code> 等 system task，但 RTL 主要模組應避免不可合成語法。若 SuperLint 對 tb.sv 報 warning，需要區分 testbench 與 synthesizable RTL。</p></div>
+</div>
+</section>
+
+<section class="section">
+<h2>九、圖解：SuperLint 與 Lab7 整體設計的關係</h2>
+<figure><img src="assets/algorithm_pipeline_enhanced.svg" alt="algorithm pipeline"><figcaption>圖 2、Lab7 演算法 pipeline：SuperLint 用來確認 RTL 實作此流程時沒有基本硬體設計錯誤。</figcaption></figure>
+<figure><img src="assets/internal_architecture_enhanced.svg" alt="internal architecture"><figcaption>圖 3、內部架構圖：SuperLint 應涵蓋控制器、datapath、memory interface 與各階段暫存器。</figcaption></figure>
+<figure><img src="assets/memory_interface_enhanced.svg" alt="memory interface"><figcaption>圖 4、Memory interface：需檢查 CEN/WEN/address/data 寬度與方向是否一致。</figcaption></figure>
+</section>
+
+<section class="section">
+<h2>十、可直接放入報告的中文回答</h2>
+<div class="print-note">
+<p>本次 Lab7 設計完成後，我使用 SuperLint 對所有相關檔案進行靜態檢查。檢查時不是只加入單一 RTL，而是將 <code>drawBbox.v</code>、<code>CYCLE_MAX.sv</code>、<code>tb.sv</code>，以及若有額外拆分之 submodule 一併納入 SuperLint project。此做法可以確保 coverage 結果代表完整設計，而不是只反映部分檔案。</p>
+<p>SuperLint coverage 的主要目的，是確認 RTL 在 coding style、位元寬度、module 連接、狀態機完整性、記憶體介面與潛在 latch 等方面沒有嚴重問題。本設計中的主要硬體流程包含 RGB 轉灰階、Gaussian filter、Otsu threshold、binary mask、auto-polarity correction、8-connected CCL、bounding box extraction 與 final overlay。透過 SuperLint 檢查，可以輔助確認這些階段在 Verilog 實作上符合基本硬體設計規範。</p>
+<p>Coverage 結果需達到作業要求的 90% 以上。若報告中仍有 warning，我會逐項確認其來源：若屬於位元寬度不一致、未使用訊號或可能造成 latch 的 warning，則優先修正；若屬於 testbench 中 system task 或模擬專用語法，則在報告中說明其不屬於 synthesizable RTL，不影響最終硬體功能。最後，SuperLint 檢查結果與 RTL simulation 結果一起作為設計正確性的佐證。</p>
+</div>
+</section>
+
+<section class="section">
+<h2>十一、提交前檢查清單</h2>
+<div class="table-wrap"><table>
+<tr><th>檢查項目</th><th>狀態</th><th>說明</th></tr>
+<tr><td>是否附上 SuperLint coverage 截圖</td><td class="wait">需放入實際截圖</td><td>建議檔名：<code>assets/superlint_coverage.png</code>。</td></tr>
+<tr><td>是否顯示 coverage percentage</td><td class="pass">必須顯示</td><td>需達到 90% 以上。</td></tr>
+<tr><td>是否包含所有檔案</td><td class="pass">必須確認</td><td>主 RTL、設定檔、testbench、所有 submodule。</td></tr>
+<tr><td>是否有 Error</td><td class="pass">應為 0</td><td>有 error 需先修正。</td></tr>
+<tr><td>Warning 是否處理</td><td class="wait">依 report 說明</td><td>可修正者修正；不可避免者說明原因。</td></tr>
+<tr><td>RTL simulation 結果</td><td class="pass">P1～P4 PASS / errors = 0</td><td>與 SuperLint 結果共同證明設計完整性。</td></tr>
+</table></div>
+</section>
+
+<div class="footer">Lab7 Draw Bounding Box ｜ 第 6 題 SuperLint Coverage 滿分版 HTML ｜ 圖片採外部 assets 載入</div>
+</div>
+</body>
+</html>

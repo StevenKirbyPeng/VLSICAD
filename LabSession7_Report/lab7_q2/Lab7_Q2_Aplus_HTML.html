@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab7 Q2 A+ Answer｜Compile and Verify</title>
+<style>
+:root{--card:#fff;--ink:#162033;--blue:#1e5aa8;--blue2:#3b82f6;--line:#d7e4f2;--code:#0f172a;}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(135deg,#eaf3ff,#f8fbff 45%,#eefbf4);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:var(--ink);line-height:1.9}
+.container{max-width:1280px;margin:26px auto;background:rgba(255,255,255,.97);border:1px solid #dce7f4;border-radius:26px;box-shadow:0 18px 55px rgba(15,23,42,.13);overflow:hidden}
+.hero{padding:44px 52px;background:linear-gradient(135deg,#102a43,#1e5aa8 58%,#00a36c);color:#fff}
+.hero h1{margin:0 0 12px;font-size:2.2rem;line-height:1.25}
+.hero p{margin:0;color:#eaf6ff;max-width:1050px}
+.badges{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.badge{padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);font-weight:700}
+main{padding:34px 48px}
+h2{color:#164b80;border-left:8px solid var(--blue2);padding-left:14px;margin:34px 0 16px;font-size:1.55rem}
+h3{color:#155e38;margin:18px 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px;margin:18px 0;box-shadow:0 8px 24px rgba(15,23,42,.06)}
+.figure-card{background:#fbfdff;border:1px solid var(--line);border-radius:20px;padding:14px;margin:18px 0;text-align:center}
+.figure-card img{max-width:100%;border-radius:14px;border:1px solid #d7e4f2;background:#fff}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.eq{background:#f8fbff;border:1px solid #d7e4f2;border-radius:16px;padding:14px 18px;margin:12px 0;font-family:"Times New Roman",serif;font-size:1.18rem;text-align:center;overflow:auto}
+pre{background:var(--code);color:#e5e7eb;border-radius:16px;padding:18px;overflow:auto;line-height:1.55;border:1px solid #263449;max-height:520px}
+code{font-family:Consolas,"Courier New",monospace;font-size:.88rem}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:18px;background:#fff;margin:16px 0}
+table{border-collapse:collapse;width:100%;min-width:900px}
+th,td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:10px;vertical-align:top}
+th{background:#eaf4ff;color:#174b78;white-space:nowrap}
+.ok{background:#ecfdf5;border-left:7px solid #22c55e;border-radius:14px;padding:14px 16px;margin:18px 0}
+.note{background:#fff7df;border-left:7px solid #f59e0b;border-radius:14px;padding:14px 16px;margin:18px 0}
+ul{padding-left:24px}
+@media(max-width:900px){main,.hero{padding-left:24px;padding-right:24px}.grid2,.grid4{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+<section class="hero">
+<h1>Q2 A+ Version｜Compile the Verilog Code and Verify Operation</h1>
+<p>本頁是 Lab7 報告第 2 題滿分版回答，說明如何透過 ModelSim 編譯與模擬驗證 drawBbox 模組功能正確，並整理 P1～P4 PASS、Errors = 0、TOTAL errors = 0 的實作結果。</p>
+<div class="badges"><span class="badge">ModelSim Compile</span><span class="badge">Errors = 0</span><span class="badge">P1–P4 PASS</span><span class="badge">TOTAL errors = 0</span><span class="badge">24011725 ns</span></div>
+</section>
+
+<main>
+
+<h2>1. 題目要求與本題重點</h2>
+<div class="card">
+<p><b>Original requirement:</b> Compile the verilog code to verify the operations of this module works properly.</p>
+<p>本題要求不是只說「有編譯」，而是要證明 Verilog/SystemVerilog 檔案能成功 compile，且模組在 testbench 中能正常運作。對 Lab7 而言，正確的驗證方式是使用 ModelSim 編譯 drawBbox.v、CYCLE_MAX.sv、tb.sv 與測試檔，接著執行 P1～P4 simulation，最後確認每個 pattern 的 pixel comparison 都通過。</p>
+<div class="ok"><b>A+ 重點：</b>Compile 成功只代表語法與模組連接沒有致命錯誤；P1～P4 全部 PASS 且 total errors = 0，才代表系統功能真正正確。</div>
+</div>
+
+<h2>2. A+ 英文回答（可直接貼報告）</h2>
+<div class="card">
+<p>
+The Verilog/SystemVerilog source files were compiled and verified using ModelSim. The compiled files include the main RTL module <b>drawBbox.v</b>, the cycle definition file <b>CYCLE_MAX.sv</b>, the testbench <b>tb.sv</b>, and the full pattern testbench. The compilation completed successfully with <b>0 errors</b>, indicating that the RTL source code, module declarations, and testbench connections were syntactically correct and could be elaborated by the simulator.
+</p>
+<p>
+After compilation, the simulation was executed for all four test patterns. The design successfully completed the full image-processing pipeline for each pattern, including RGB loading, grayscale conversion, Gaussian filtering, Otsu thresholding, mask generation, 8-connected CCL, bounding-box extraction, and final green bounding-box overlay writing. The terminal results show that Pattern 1, Pattern 2, Pattern 3, and Pattern 4 all passed the simulation. The total number of errors was 0, proving that the module operates correctly in the system and produces pixel-perfect output compared with the golden reference.
+</p>
+</div>
+
+<h2>3. 中文說明版（報告說明可用）</h2>
+<div class="card">
+<p>
+本設計已使用 ModelSim 完成 Verilog 程式編譯與功能模擬驗證。編譯檔案包含 drawBbox.v、CYCLE_MAX.sv、tb.sv 與完整測試檔。編譯結果顯示 Errors = 0，代表程式語法、模組宣告與 testbench 連接皆正確。接著執行 P1～P4 四組 pattern 模擬，結果全部顯示 Simulation PASS，且 P1、P2、P3、P4 的錯誤數皆為 0。因此可以確認本模組不只成功編譯，也能在 testbench 系統中正確完成影像處理與 bounding box 輸出。
+</p>
+</div>
+
+<h2>4. Compile and Simulation Flow 圖解</h2>
+<figure class="figure-card">
+<img src="images/q2_compile_simulation_flow.svg" alt="Q2 compile and simulation flow">
+<figcaption>Figure 1. ModelSim compile and simulation verification flow</figcaption>
+</figure>
+
+<h2>5. ModelSim 指令與驗證方式</h2>
+<div class="card">
+<p>本次驗證流程可分成 compile 與 simulate 兩個階段。Compile 階段使用 vlog 讀入 RTL 與 testbench；simulate 階段使用 vsim 載入 work.tb 並 run -all 執行完整測試。</p>
+<pre><code>vlog -reportprogress 300 "+define+p2" drawBbox.v CYCLE_MAX.sv tb.sv tb_all_p1_p4_full.sv
+vsim -c -suppress 12023,3015 work.tb -do "run -all; quit -sim"</code></pre>
+<div class="note">
+<b>說明：</b>實際指令中的 +define+p1、+define+p2、+define+p3、+define+p4 可用來選擇不同 pattern。若使用 tb_all_p1_p4_full.sv，則可一次跑完 P1～P4。
+</div>
+</div>
+
+<h2>6. Terminal Result 摘要</h2>
+<div class="card">
+<pre><code># vlog -reportprogress 300 &quot;+define+p2&quot; drawBbox.v CYCLE_MAX.sv tb.sv tb_all_p1_p4_full.sv
+# -- Compiling module drawBbox
+# -- Compiling module tb
+# -- Compiling module RGBMEM
+# Top level modules:
+#     tb
+# Errors: 0, Warnings: 4
+
+# Running Pattern 1
+# P1 Simulation PASS!!
+# Running Pattern 2
+# P2 Simulation PASS!!
+# Running Pattern 3
+# P3 Simulation PASS!!
+# Running Pattern 4
+# P4 Simulation PASS!!
+
+# P1 errors = 0
+# P2 errors = 0
+# P3 errors = 0
+# P4 errors = 0
+# TOTAL errors = 0
+# ALL P1~P4 PASS!!
+# Time: 24011725 ns</code></pre>
+</div>
+
+<figure class="figure-card">
+<img src="images/pattern_summary_cards.svg" alt="P1 to P4 PASS summary">
+<figcaption>Figure 2. P1～P4 simulation pass summary</figcaption>
+</figure>
+
+<h2>7. 結果表格整理</h2>
+<div class="card">
+<div class="tablewrap">
+<table>
+<tr><th>項目</th><th>結果</th><th>說明</th></tr>
+<tr><td>Compile status</td><td>PASS</td><td>ModelSim 成功編譯所有 Verilog/SystemVerilog 檔案。</td></tr>
+<tr><td>Compile errors</td><td>0</td><td>無語法錯誤或無法 elaboration 的錯誤。</td></tr>
+<tr><td>Warnings</td><td>4</td><td>主要為 module overwrite 類型警告，不影響本次 simulation pass。</td></tr>
+<tr><td>Top module</td><td>tb</td><td>testbench 成功載入 drawBbox 與 RGBMEM。</td></tr>
+<tr><td>Pattern 1</td><td>PASS, errors = 0</td><td>輸出與 golden reference 完全一致。</td></tr>
+<tr><td>Pattern 2</td><td>PASS, errors = 0</td><td>輸出與 golden reference 完全一致。</td></tr>
+<tr><td>Pattern 3</td><td>PASS, errors = 0</td><td>輸出與 golden reference 完全一致。</td></tr>
+<tr><td>Pattern 4</td><td>PASS, errors = 0</td><td>輸出與 golden reference 完全一致。</td></tr>
+<tr><td>Total errors</td><td>0</td><td>ALL P1～P4 PASS。</td></tr>
+<tr><td>Simulation time</td><td>24011725 ns</td><td>完整 P1～P4 模擬完成時間。</td></tr>
+</table>
+</div>
+</div>
+
+<h2>8. 為什麼這可以證明模組正常？</h2>
+<div class="card">
+<p>Lab7 的輸出是 256×256 影像，因此 testbench 會逐 pixel 比對輸出結果與 golden reference。若 bounding box 座標錯誤、綠色邊界偏移、memory write timing 錯誤、mask/CCL 錯誤或 RGB 保留錯誤，都會造成 pixel mismatch。因此 P1～P4 的 errors 全部為 0，代表整個 pipeline 從輸入到輸出都正確。</p>
+<div class="eq">Correctness = pixel-by-pixel comparison(Output Image, Golden Image)</div>
+<div class="eq">P1 errors + P2 errors + P3 errors + P4 errors = 0</div>
+</div>
+
+<h2>9. 與 RTL 設計對應的 Verilog Code</h2>
+<div class="grid2">
+<div class="card">
+<h3>FSM State 定義</h3>
+<pre><code>output reg [31:0]  Ans_D,     // AnsSRAM 寫入資料
+    output reg [15:0]  Ans_A      // AnsSRAM address
+);
+
+    // ============================================================
+    // 常數定義
+    // ============================================================
+
+    localparam [31:0] GREEN = 32&#x27;h0000_FF00; // bounding box 使用的綠色常數
+    localparam integer IMG_W = 256;          // 影像寬度
+    localparam integer IMG_H = 256;          // 影像高度
+    localparam integer NPIX  = 65536;        // 總 pixel 數 = 256 * 256
+    localparam integer MAX_LABELS = 4096;    // CCL 最多允許的 provisional labels 數量
+
+    // ============================================================
+    // FSM 狀態定義
+    // ============================================================
+    // 整個影像處理流程以 FSM 依序執行，每個 state 負責一個處理階段。
+    localparam [5:0]
+        S_IDLE         = 6&#x27;d0,   // 等待 enable
+        S_LOAD         = 6&#x27;d1,   // 從 ImgROM 讀入整張 RGB 影像
+        S_GRAY         = 6&#x27;d2,   // RGB 轉 grayscale
+        S_HIST_CLEAR   = 6&#x27;d3,   // 清除 histogram
+        S_GAUSS_HIST   = 6&#x27;d4,   // Gaussian filter 並建立 histogram
+        S_OTSU_INIT    = 6&#x27;d5,   // Otsu threshold 初始化
+        S_OTSU_SCAN    = 6&#x27;d6,   // 掃描 0~255 找最佳 threshold
+        S_COUNT_HI     = 6&#x27;d7,   // 統計大於 threshold 的 pixel 數量
+        S_POLARITY     = 6&#x27;d8,   // 判斷是否需要 foreground/background 反轉
+        S_MASK_WRITE   = 6&#x27;d9,   // 產生 binary mask，並寫入 UrSRAM
+        S_PARENT_INIT  = 6&#x27;d10,  // 初始化 union-find parent 與 bbox 暫存
+        S_CCL_SCAN     = 6&#x27;d11,  // Connected Component Labeling 第一階段
+        S_BBOX_INIT    = 6&#x27;d12,  // 初始化 bounding box 資料
+        S_BBOX_SCAN    = 6&#x27;d13,  // 掃描 label 結果並計算 bbox
+        S_BOXMAP_CLEAR = 6&#x27;d14,  // 清除 box_map
+        S_BOXMAP_GEN   = 6&#x27;d15,  // 根據 bbox 座標產生要畫綠框的位置
+        S_DRAW_WRITE   = 6&#x27;d16,  // 將原圖或綠框 pixel 寫入 AnsSRAM
+        S_DONE         = 6&#x27;d17;  // 完成
+
+    // FSM current state
+    reg [5:0] state;
+
+    // done_r 是 done 的暫存版本
+    reg done_r;</code></pre>
+</div>
+<div class="card">
+<h3>done 完成狀態</h3>
+<pre><code>S_BBOX_INIT    = 6&#x27;d12,  // 初始化 bounding box 資料
+        S_BBOX_SCAN    = 6&#x27;d13,  // 掃描 label 結果並計算 bbox
+        S_BOXMAP_CLEAR = 6&#x27;d14,  // 清除 box_map
+        S_BOXMAP_GEN   = 6&#x27;d15,  // 根據 bbox 座標產生要畫綠框的位置
+        S_DRAW_WRITE   = 6&#x27;d16,  // 將原圖或綠框 pixel 寫入 AnsSRAM
+        S_DONE         = 6&#x27;d17;  // 完成
+
+    // FSM current state
+    reg [5:0] state;
+
+    // done_r 是 done 的暫存版本
+    reg done_r;
+    assign done = done_r;
+
+    // ============================================================
+    // 影像與中間結果記憶體
+    // ============================================================
+
+    reg [31:0] rgb_mem   [0:NPIX-1]; // 儲存原始 RGB pixel
+    reg [7:0]  gray_mem  [0:NPIX-1]; // 儲存灰階結果
+    reg [7:0]  gauss_mem [0:NPIX-1]; // 儲存 Gaussian filter 後結果
+    reg        mask_mem  [0:NPIX-1]; // binary mask：1=foreground，0=background
+    reg        box_map   [0:NPIX-1]; // 標記哪些 pixel 要被畫成綠框
+    reg [11:0] label_mem [0:NPIX-1]; // CCL label map
+
+    // grayscale histogram，灰階值 0~255 各自的 pixel 數
+    reg [31:0] hist [0:255];
+
+    // ============================================================
+    // CCL / Union-Find / Bounding Box 相關暫存
+    // ============================================================
+
+    reg [11:0] parent [0:MAX_LABELS-1]; // union-find parent table
+
+    reg        bbox_valid   [0:MAX_LABELS-1]; // 該 label 是否有效
+    reg        bbox_border  [0:MAX_LABELS-1]; // 該 component 是否碰到影像邊界
+    reg [7:0]  bbox_xmin    [0:MAX_LABELS-1]; // bbox 最小 x
+    reg [7:0]  bbox_xmax    [0:MAX_LABELS-1]; // bbox 最大 x
+    reg [7:0]  bbox_ymin    [0:MAX_LABELS-1]; // bbox 最小 y
+    reg [7:0]  bbox_ymax    [0:MAX_LABELS-1]; // bbox 最大 y</code></pre>
+</div>
+</div>
+
+<h2>10. Testbench / Cycle 對應片段</h2>
+<div class="grid2">
+<div class="card">
+<h3>tb.sv 驗證邏輯片段</h3>
+<pre><code>.Ur_WEN(Ur_WEN),
+    .Ur_D(Ur_D),
+    .Ur_A(Ur_A),
+
+    //AnsSRAM
+    .Ans_Q(Ans_Q),
+    .Ans_CEN(Ans_CEN),
+    .Ans_WEN(Ans_WEN),
+    .Ans_D(Ans_D),
+    .Ans_A(Ans_A)
+);
+
+task terminal_result;
+    begin
+    err =0;
+    for(i=0;i&lt;total_result_pixels;i=i+1)begin
+        if(ANS[i] !== AnsSRAM.memory[i] )begin
+            err++ ;
+            $write(&quot;Result[%0d][%0d], your answer:%08h, correct answer:%08h\n&quot;, i/width,i%width, AnsSRAM.memory[i], ANS[i]);
+        end
+    end
+
+    error_pixels=0;
+
+    if(err == 0)begin
+     
+        $display(&quot;\n&quot;);
+        $display(&quot;\n&quot;);
+        $display(&quot;        ****************************               &quot;);
+        $display(&quot;        **                        **       |\__||  &quot;);
+        $display(&quot;        **  Congratulations !!    **      / O.O  | &quot;);
+        $display(&quot;        **                        **    /_____   | &quot;);
+        $display(&quot;        **  Simulation PASS!!     **   /^ ^ ^ \\  |&quot;);
+        $display(&quot;        **                        **  |^ ^ ^ ^ |w| &quot;);
+        $display(&quot;        ****************************   \\m___m__|_|&quot;);
+        $display(&quot;\n&quot;);
+        `ifdef p4
+        $display(&quot;\n&quot;);
+        $display(&quot;\n&quot;);
+        $display(&quot;\n&quot;);
+        $display(&quot;                FINALLY TIME TO SLEEP!!!!!!!!!!!!!!!!&quot;);
+        $display(&quot;             _____|~~\_____      _____________&quot;);
+        $display(&quot;        _-~               \\    |    \\&quot;);
+        $display(&quot;        _-    | )     \\    |__/   \\   \\&quot;);
+        $display(&quot;        _-         )   |   |  |     \\  \\&quot;);
+        $display(&quot;        _-    | )     /    |--|      |  |&quot;);
+        $display(&quot;        __-_______________ /__/_______|  |_________&quot;);
+        $display(&quot;        (                |----         |  |&quot;);
+        $display(&quot;        `---------------&#x27;--\\\\       .`--&#x27;&quot;);
+        $display(&quot;                                      `||||&quot;);
+        `endif
+
+
+        $display(&quot;\n&quot;);
+        $display(&quot;-------------------------------------------------------------&quot;);
+  
+    
+    end
+    else begin
+        $display(&quot;-------------------------------------------------------------&quot;);
+        $display(&quot;\n&quot;);
+        $display(&quot;        ****************************               &quot;);
+        $display(&quot;        **                        **       |\__||  &quot;);
+        $display(&quot;        **  OOPS!!                **      / X,X  | &quot;);
+        $display(&quot;        **                        **    /_____   | &quot;);
+        $display(&quot;        **  Simulation Failed!!   **   /^ ^ ^ \\  |&quot;);
+        $display(&quot;        **                        **  |^ ^ ^ ^ |w| &quot;);
+        $display(&quot;        ****************************   \\m___m__|_|&quot;);
+        $display(&quot;         Totally has %d errors                     &quot;, err); 
+        $display(&quot;\n&quot;);</code></pre>
+</div>
+<div class="card">
+<h3>CYCLE_MAX.sv 片段</h3>
+<pre><code>`define CYCLE_TIME 10.0 // ns, modify according to your design
+`define MAX_CYCLE 600000000 //  modify if needed</code></pre>
+</div>
+</div>
+
+<h2>11. 輸出圖片結果（外部載入）</h2>
+<div class="grid4">
+<figure class="figure-card"><img src="images/P1_overlay.png" alt="P1 Overlay Result"><figcaption>P1 Overlay Result</figcaption></figure>
+<figure class="figure-card"><img src="images/P2_overlay.png" alt="P2 Overlay Result"><figcaption>P2 Overlay Result</figcaption></figure>
+<figure class="figure-card"><img src="images/P3_overlay.png" alt="P3 Overlay Result"><figcaption>P3 Overlay Result</figcaption></figure>
+<figure class="figure-card"><img src="images/P4_overlay.png" alt="P4 Overlay Result"><figcaption>P4 Overlay Result</figcaption></figure>
+</div>
+<div class="ok">
+<b>A+ 結論句：</b>The Verilog code was successfully compiled and simulated. All P1–P4 patterns passed with zero errors, proving that the completed drawBbox module works properly in the system.
+</div>
+
+<h2>12. 最終精簡版答案</h2>
+<div class="card">
+<p>
+The Verilog code was compiled and verified using ModelSim. The main RTL file drawBbox.v, the cycle definition file CYCLE_MAX.sv, the testbench tb.sv, and the full P1–P4 testbench were successfully compiled with 0 errors. After compilation, the simulation was executed for all four patterns. The terminal results show that P1, P2, P3, and P4 all passed, and the total number of errors was 0. This confirms that the module operates correctly in the system and produces pixel-perfect output compared with the golden reference.
+</p>
+</div>
+
+</main>
+</div>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1450" height="700" viewBox="0 0 1450 700">
+<defs>
+<marker id="a" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#334155"/></marker>
+<style>
+.title{font-family:Arial,'Microsoft JhengHei';font-size:34px;font-weight:800;fill:#174b78}
+.t{font-family:Arial,'Microsoft JhengHei';font-size:21px;font-weight:800;fill:#172033}
+.s{font-family:Arial,'Microsoft JhengHei';font-size:15px;fill:#475569}
+.box{stroke:#5482bd;stroke-width:2.4;rx:18;filter:drop-shadow(0 7px 7px rgba(30,64,175,.14))}
+.ar{stroke:#334155;stroke-width:3;fill:none;marker-end:url(#a)}
+</style>
+</defs>
+<rect width="1450" height="700" fill="#f8fbff"/>
+<text x="55" y="60" class="title">Synthesis Optimization：為了通過 10ns 的設計策略</text>
+
+<rect x="80" y="145" width="245" height="115" fill="#fee2e2" class="box"/>
+<text x="115" y="190" class="t">可能問題</text>
+<text x="112" y="222" class="s">critical path 太長</text>
+<text x="112" y="247" class="s">area 過大</text>
+
+<path d="M325 202 H400" class="ar"/>
+
+<rect x="400" y="145" width="245" height="115" fill="#dbeafe" class="box"/>
+<text x="435" y="190" class="t">FSM 分段</text>
+<text x="430" y="222" class="s">每個 state 做一段運算</text>
+<text x="430" y="247" class="s">降低單 cycle 複雜度</text>
+
+<path d="M645 202 H720" class="ar"/>
+
+<rect x="720" y="145" width="245" height="115" fill="#dcfce7" class="box"/>
+<text x="755" y="190" class="t">整數化運算</text>
+<text x="750" y="222" class="s">shift 取代除法器</text>
+<text x="750" y="247" class="s">減少邏輯延遲</text>
+
+<path d="M965 202 H1040" class="ar"/>
+
+<rect x="1040" y="145" width="285" height="115" fill="#ffedd5" class="box"/>
+<text x="1075" y="190" class="t">Resource Sharing</text>
+<text x="1070" y="222" class="s">共用 counter / buffer</text>
+<text x="1070" y="247" class="s">降低 cell area</text>
+
+<rect x="155" y="395" width="1140" height="120" rx="20" fill="#fff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="195" y="440" class="t">最佳化結論</text>
+<text x="195" y="475" class="s">本設計將影像處理流程拆成多個 state，並使用位移與整數運算降低除法成本，使設計更容易滿足 10ns timing constraint。</text>
+</svg>

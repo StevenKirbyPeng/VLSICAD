@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520">
+<style>.bg{fill:#f8fafc}.card{fill:white;stroke:#cbd5e1;stroke-width:2}.axis{stroke:#94a3b8;stroke-width:1}.sig{fill:none;stroke:#2563eb;stroke-width:3}.sig2{fill:none;stroke:#16a34a;stroke-width:3}.sig3{fill:none;stroke:#dc2626;stroke-width:3}.txt{font-family:Arial,'Noto Sans TC',sans-serif;fill:#0f172a;font-size:18px;font-weight:700}.sub{font-family:Arial,'Noto Sans TC',sans-serif;fill:#475569;font-size:14px}.label{font-family:Consolas,monospace;fill:#0f172a;font-size:15px}.phase{fill:#eff6ff;stroke:#93c5fd}.phase2{fill:#ecfdf5;stroke:#86efac}.phase3{fill:#fff7ed;stroke:#fdba74}</style>
+<rect class="bg" x="0" y="0" width="1200" height="520"/>
+<rect class="card" x="30" y="24" width="1140" height="470" rx="22"/>
+<text class="txt" x="60" y="60">Waveform 觀察重點：Reset → Enable → FSM State → Memory Read/Write → Done</text>
+<text class="sub" x="60" y="86">此圖為報告用波形標註圖，對應 ModelSim/nWave 中應加入與觀察的訊號群組。</text>
+<g transform="translate(170,120)">
+<line class="axis" x1="0" y1="0" x2="930" y2="0"/><line class="axis" x1="0" y1="65" x2="930" y2="65"/><line class="axis" x1="0" y1="130" x2="930" y2="130"/><line class="axis" x1="0" y1="195" x2="930" y2="195"/><line class="axis" x1="0" y1="260" x2="930" y2="260"/>
+<text class="label" x="-120" y="5">clk</text><path class="sig" d="M0 18 L20 18 L20 -18 L40 -18 L40 18 L60 18 L60 -18 L80 -18 L80 18 L100 18 L100 -18 L120 -18 L120 18 L140 18 L140 -18 L160 -18 L160 18 L180 18 L180 -18 L200 -18 L200 18 L220 18 L220 -18 L240 -18 L240 18 L260 18 L260 -18 L280 -18 L280 18 L300 18 L300 -18 L320 -18 L320 18 L340 18 L340 -18 L360 -18 L360 18 L380 18 L380 -18 L400 -18 L400 18 L420 18 L420 -18 L440 -18 L440 18 L460 18 L460 -18 L480 -18 L480 18 L500 18 L500 -18 L520 -18 L520 18 L540 18 L540 -18 L560 -18 L560 18 L580 18 L580 -18 L600 -18 L600 18 L620 18 L620 -18 L640 -18 L640 18 L660 18 L660 -18 L680 -18 L680 18 L700 18 L700 -18 L720 -18 L720 18 L740 18 L740 -18 L760 -18 L760 18 L780 18 L780 -18 L800 -18 L800 18 L820 18 L820 -18 L840 -18 L840 18 L860 18 L860 -18 L880 -18 L880 18 L900 18 L900 -18 L920 -18"/>
+<text class="label" x="-120" y="70">rst</text><path class="sig3" d="M0 45 L85 45 L85 85 L930 85"/>
+<text class="label" x="-120" y="135">enable</text><path class="sig2" d="M0 150 L110 150 L110 110 L930 110"/>
+<text class="label" x="-120" y="200">state</text><path class="sig" d="M0 195 L120 195 L120 180 L250 180 L250 195 L380 195 L380 180 L520 180 L520 195 L700 195 L700 180 L850 180 L850 195 L930 195"/>
+<text class="label" x="-120" y="265">done</text><path class="sig2" d="M0 280 L855 280 L855 240 L930 240"/>
+<rect class="phase" x="120" y="305" width="130" height="54" rx="10"/><text class="sub" x="135" y="335">LOAD/GRAY</text>
+<rect class="phase2" x="250" y="305" width="270" height="54" rx="10"/><text class="sub" x="275" y="335">GAUSS/HIST/OTSU/MASK</text>
+<rect class="phase3" x="520" y="305" width="330" height="54" rx="10"/><text class="sub" x="550" y="335">CCL/BBOX/BOXMAP/DRAW</text>
+<rect class="phase2" x="850" y="305" width="80" height="54" rx="10"/><text class="sub" x="870" y="335">DONE</text>
+</g>
+</svg>
