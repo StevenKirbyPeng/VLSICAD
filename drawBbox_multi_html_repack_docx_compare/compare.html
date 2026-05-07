@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Version Difference</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<script src="assets/js/main.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Version Difference</span>
+  <h1>前面版本的差異</h1>
+  <p class="lead">此頁整合自「比較的方法.docx」中的前面版本差異表。</p>
+  <div class="topnav"><a class="btn" href="index.html">回首頁</a><a class="btn" href="comparison_method.html">比較的方法完整頁</a></div>
+</header>
+<section class="section">
+<table>
+<thead><tr><th>比較項目</th><th>drawBbox.v 單一 FSM 版</th><th>drawBbox_declaration_comments_v1.v</th><th>drawBbox_single_submit.v</th></tr></thead>
+<tbody><tr><td>架構</td><td>單一大型 FSM</td><td>Top FSM + 子模組</td><td>單一檔案 + Top FSM + 子模組</td></tr>
+<tr><td>檔案形式</td><td>通常是一個 top module</td><td>多檔或模組化版本</td><td>把所有 module 合併成一個 .v</td></tr>
+<tr><td>Top FSM</td><td>很多 state</td><td>ST_IDLE → ST_THRES → ST_POL → ST_CCL → ST_BOX</td><td>ST_IDLE → ST_THRES → ST_POL → ST_CCL → ST_BOX</td></tr>
+<tr><td>Threshold</td><td>top FSM 內完成</td><td>threshold_v21_fast</td><td>threshold</td></tr>
+<tr><td>Gaussian</td><td>top FSM 內 line buffer</td><td>threshold module</td><td>threshold module，用 3×3 window fetch</td></tr>
+<tr><td>Polarity</td><td>top FSM 內完成</td><td>polarity_v21_fast</td><td>polarity</td></tr>
+<tr><td>CCL</td><td>top FSM 內 union-find</td><td>ccl_v21_fast</td><td>ccl，使用 eq_table</td></tr>
+<tr><td>BBox</td><td>CCL 同步更新</td><td>boxing module 掃 label</td><td>boxing module 掃 label</td></tr>
+<tr><td>Overlay</td><td>top FSM 內畫框</td><td>boxing module</td><td>boxing module</td></tr>
+<tr><td>Special Box Compensation</td><td>有</td><td>視版本而定</td><td>這份未看到明確 special compensation</td></tr>
+<tr><td>Memory ownership</td><td>單一 FSM 集中控制</td><td>top mux 分配</td><td>top mux 分配</td></tr>
+<tr><td>報告表達</td><td>適合 state-level FSM 圖</td><td>適合 module-level block diagram</td><td>適合 submission-friendly module-level flow</td></tr></tbody>
+</table>
+</section>
+
+</div>
+<div class="footer">drawBbox multi-page repack site · original Verilog files are copied unchanged in assets/code/</div>
+</body>
+</html>

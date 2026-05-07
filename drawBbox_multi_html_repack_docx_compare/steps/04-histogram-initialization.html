@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Step 04 Histogram Initialization</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<script src="../assets/js/main.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Step 04</span>
+  <h1>Histogram Initialization</h1>
+  <p class="lead">清空 histogram，避免舊影像的灰階統計污染新影像。</p>
+  <div class="topnav"><a class="btn" href="../index.html">回首頁</a><a class="btn" href="03-original-image-backup.html">上一個：03</a><a class="btn" href="05-line-buffer-initialization.html">下一個：05</a></div>
+</header>
+
+<section class="section">
+  <h2>SVG 流程圖</h2>
+  <div class="svgbox"><img src="../assets/svg/04-histogram-initialization.svg" alt="Histogram Initialization SVG"></div>
+</section>
+
+<section class="section">
+  <h2>比較的方法.docx 對應表</h2>
+  <p>此表把本流程在三個版本中的 state/module 與 code 關係整理出來；沒有明確對應者保持空白。</p>
+  <table>
+    <thead><tr><th>版本</th><th>對應 state / module</th><th>和 code 的關係</th></tr></thead>
+    <tbody><tr><td>Single FSM</td><td>S_HIST_CLEAR</td><td>清空 hist[0] 到 hist[255]，避免上一張圖的資料殘留</td></tr>
+<tr><td>Modular v21</td><td></td><td></td></tr>
+<tr><td>Single Submit</td><td></td><td></td></tr></tbody>
+  </table>
+</section>
+
+<section class="section">
+  <h2>三個版本在此流程中的比較內容說明</h2>
+  <p class="compare-text">在「Histogram Initialization」流程中，並非三個版本都有獨立而明確的程式段落。Single FSM 版有明確對應，主要在 S_HIST_CLEAR 完成，說明為：清空 hist[0] 到 hist[255]，避免上一張圖的資料殘留。Modular v21 版沒有明確獨立此流程，可能由子模組內部合併處理，或該架構不採用此額外階段。Single Submit 版沒有明確獨立此流程，對應原始碼區塊依需求保持空白。這種差異通常來自架構選擇：單一 FSM 會把多個小步驟合併在同一段 state；模組化版本則傾向把功能交給特定子模組；single_submit 則在單檔中保留 module-level 階段。</p>
+</section>
+
+<section class="section">
+  <h2>整個流程的三個版本程式比較</h2>
+  <p>下方採用下拉式區塊顯示。中文說明放在程式碼上方；原始程式碼本身沒有修改、沒有插入註解。若某份檔案沒有明確對應流程，該程式碼區塊保持空白。</p>
+  <div class="topnav">
+    <button class="btn" onclick="toggleAll(true)">全部展開</button>
+    <button class="btn" onclick="toggleAll(false)">全部收合</button>
+  </div>
+  <div class="accordion-wrap">
+<details class="code-detail" open>
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 1 · 版本一：drawBbox.v 單一 FSM 版</span>
+    <button class="copybtn" data-copy="code-single_fsm-04-histogram-initialization" onclick="event.preventDefault(); copyCode('code-single_fsm-04-histogram-initialization')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中對應到 S_HIST_CLEAR。清空 hist[0] 到 hist[255]，避免上一張圖的資料殘留。
+    <div class="code-meta">drawBbox(21).v · lines 477-493</div>
+  </div>
+  <pre><code id="code-single_fsm-04-histogram-initialization">                S_HIST_CLEAR: begin
+                    hist[label_idx[7:0]]&lt;=32&#x27;d0;
+                    if (label_idx==9&#x27;d255) begin
+                        label_idx&lt;=9&#x27;d0; addr_cnt&lt;=16&#x27;d0; sum_total&lt;=32&#x27;d0;
+                        lb_seq&lt;=2&#x27;d0; lb_col&lt;=8&#x27;d0; lb_phase&lt;=2&#x27;d0;
+                        lb_prev_sel&lt;=2&#x27;d0; lb_curr_sel&lt;=2&#x27;d1; lb_next_sel&lt;=2&#x27;d2;
+                        state&lt;=S_LB_INIT;
+                    end else label_idx&lt;=label_idx+9&#x27;d1;
+                end
+
+                // -----------------------------------------------
+                // S_LB_INIT：載入初始 3 行（Gauss 用）
+                //   seq=0: row1(reflect) → prev
+                //   seq=1: row0          → curr
+                //   seq=2: row1          → next
+                // lb_init_row wire 根據 lb_seq 選正確 row
+                // -----------------------------------------------</code></pre>
+</details>
+
+<details class="code-detail" >
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 2 · 版本二：drawBbox_declaration_comments_v1.v</span>
+    <button class="copybtn" data-copy="code-modular_v21-04-histogram-initialization" onclick="event.preventDefault(); copyCode('code-modular_v21-04-histogram-initialization')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中沒有明確獨立段落，可能被合併在其他 state/module 中，或此架構不需要此流程；因此下方原始碼區塊依需求保持空白。
+    <div class="code-meta">drawBbox_declaration_comments_v1(1).v · lines 242-382</div>
+  </div>
+  <pre><code id="code-modular_v21-04-histogram-initialization">// Stage module: threshold_v21_fast
+// Function
+//   1. Read original RGB pixels from ImgROM.
+//   2. Convert RGB to grayscale with fixed-point round-to-nearest-even.
+//   3. Apply 3x3 Gaussian smoothing with reflect-101 boundary handling.
+//   4. Write filtered gray values to UrSRAM and build a 256-bin histogram.
+//   5. Search Otsu threshold using integer cross-multiplied score comparison.
+// ============================================================================
+(* keep_hierarchy = &quot;yes&quot; *)
+module threshold_v21_fast (
+    input      clk, // 系統時脈輸入
+    input      rst, // 同步或非同步重置信號
+    input      start,   // One-cycle start pulse from the top controller
+    output [7:0] Threshold, // Selected Otsu threshold
+    output reg done,    // High after threshold stage completes
+    // ImgROM
+    input      [31:0] Img_Q, // ImgROM 讀回的 32-bit RGB pixel
+    output            Img_CEN, // Active-low ImgROM chip enable
+    output reg [15:0] Img_addr, // top/module 介面訊號宣告
+    // UrSRAM
+    input       [31:0] Ur_Q, // UrSRAM 讀回資料
+    output             Ur_CEN, // UrSRAM 低有效 chip enable
+    output             Ur_WEN, // UrSRAM 讀寫控制，0 為寫入、1 為讀取
+    output      [15:0] Ur_A, // UrSRAM 存取位址
+    output      [31:0] Ur_D // UrSRAM 寫入資料
+);
+reg [3:0] state; // 目前 top FSM 狀態
+reg [15:0]  counter; // 循序計數器暫存器宣告
+wire[16:0]  next_counter; // 組合邏輯連接信號宣告
+assign next_counter = counter + 16&#x27;b1;
+integer i; // Reset loop index
+reg Img_cen; // 循序邏輯暫存器宣告
+assign Img_CEN = Img_cen;
+reg Ur_wen; // 循序邏輯暫存器宣告
+assign Ur_WEN = Ur_wen;
+reg Ur_cen; // 循序邏輯暫存器宣告
+assign Ur_CEN = Ur_cen;
+reg [15:0] Ur_addr; // 位址暫存器宣告
+assign Ur_A = Ur_addr;
+reg [31:0] Ur_d; // 循序邏輯暫存器宣告
+assign Ur_D = Ur_d;
+// RGB-to-gray fixed-point conversion
+wire [25:0] gray_fixed_q16; // 組合邏輯連接信號宣告
+wire [7:0] gray_u8;  // 8-bit rounded grayscale value
+wire round_up = (gray_fixed_q16[15:0] &gt; 16&#x27;h8000) || // 組合邏輯連接信號宣告
+                  ((gray_fixed_q16[15:0] == 16&#x27;h8000) &amp;&amp; (gray_fixed_q16[16] == 1&#x27;b1)); // Round-to-nearest-even decision
+assign gray_fixed_q16 = (26&#x27;d19595 * Img_Q[23:16]) +
+                                 (26&#x27;d38470 * Img_Q[15:8])  +
+                                 (26&#x27;d7471  * Img_Q[7:0]); // Q16 fixed-point gray = round_even((19595R + 38470G + 7471B) &gt;&gt; 16).
+assign gray_u8 = round_up ? (gray_fixed_q16[23:16] + 8&#x27;d1) :
+                                           (gray_fixed_q16[23:16]);
+// Gaussian 3x3 kernel arithmetic
+reg [7:0] u1, u2, u3, m1, m2, m3, b1, b2, b3;    // 3x3 neighborhood samples
+wire [15:0] gaussian_sum = (u1) + (u2&lt;&lt;1) + (u3) + // 組合邏輯連接信號宣告
+                             (m1&lt;&lt;1) + (m2&lt;&lt;2) + (m3&lt;&lt;1) +
+                             (b1) + (b2&lt;&lt;1) + (b3);   // Divide by 16 after rounding
+wire gaussian_round_up = (gaussian_sum[3:0] &gt; 4&#x27;b1000) || // 組合邏輯連接信號宣告
+                         ((gaussian_sum[3:0] == 4&#x27;b1000) &amp;&amp; (gaussian_sum[4] == 1&#x27;b1)); // Round-to-nearest-even decision
+wire [7:0] gaussian_value = gaussian_round_up ? (gaussian_sum[11:4] + 8&#x27;d1) : (gaussian_sum[11:4]); // 組合邏輯連接信號宣告
+wire Is_the_most_up = (counter[15:8] == 8&#x27;d0)?1&#x27;b1:1&#x27;b0; // 組合邏輯連接信號宣告
+wire Is_the_most_buttom = (counter[15:8] == 8&#x27;d255)?1&#x27;b1:1&#x27;b0; // 組合邏輯連接信號宣告
+wire Is_the_most_left = (counter[7:0] == 8&#x27;d0)?1&#x27;b1:1&#x27;b0; // 組合邏輯連接信號宣告
+wire Is_the_most_right = (counter[7:0] == 8&#x27;d255)?1&#x27;b1:1&#x27;b0; // 組合邏輯連接信號宣告
+// Gaussian window address/control signals
+reg [3:0]get_data_state; // FSM 狀態暫存器宣告
+wire [4:0]next_get_data_state = (get_data_state == 4&#x27;d11)? 4&#x27;b0 : (get_data_state + 4&#x27;b1); // 資料寫入或中間資料匯流排信號
+wire[15:0]up_index = counter - 16&#x27;d256; // 組合邏輯連接信號宣告
+wire[15:0]buttom_index = counter + 16&#x27;d256; // 組合邏輯連接信號宣告
+// Histogram and Otsu scan registers
+reg [1:0] otsu_scan_state ; // FSM 狀態暫存器宣告
+reg [15:0] hist_bin[255:0];  // 256-bin grayscale histogram
+wire [16:0] next_hist_bin_count = hist_bin[gaussian_value] + 16&#x27;b1; // 組合邏輯連接信號宣告
+reg [23:0] bg_gray_sum;    // Maximum gray sum fits in 24 bits for 65536 pixels
+wire [24:0] next_bg_gray_sum; // 組合邏輯連接信號宣告
+assign next_bg_gray_sum = bg_gray_sum + (hist_bin[counter]*counter);
+reg [23:0] fg_gray_sum; // 整數運算累加或比較暫存器宣告
+wire [24:0] next_fg_gray_sum; // 組合邏輯連接信號宣告
+assign next_fg_gray_sum = fg_gray_sum + (hist_bin[counter]*counter);
+// Otsu class statistics
+reg [15:0] fg_pixel_count; // 循序邏輯暫存器宣告
+wire [16:0] next_fg_pixel_count = fg_pixel_count + hist_bin[counter]; // 組合邏輯連接信號宣告
+reg [15:0] bg_pixel_count; // 循序邏輯暫存器宣告
+wire [16:0] next_bg_pixel_count = bg_pixel_count + hist_bin[counter]; // 組合邏輯連接信號宣告
+reg [7:0] threshold_scan_value; // 循序邏輯暫存器宣告
+wire [8:0] next_threshold_scan_value = (threshold_scan_value == 0)? 8&#x27;b0 : threshold_scan_value - 8&#x27;b1; // 組合邏輯連接信號宣告
+wire [40:0] term_f = fg_gray_sum * bg_pixel_count; // 24bit*17bit=41bit
+wire [40:0] term_b = bg_gray_sum * fg_pixel_count; // 24bit*17bit=41bit
+// Otsu numerator: squared difference term
+wire [40:0] diff_term = (term_f &gt; term_b) ? (term_f - term_b) : (term_b - term_f); // 組合邏輯連接信號宣告
+wire [81:0] num_curr  = diff_term * diff_term; // 41-bit * 41-bit = 82-bit
+// Otsu denominator: foreground_count * background_count
+wire [33:0] den_curr  = fg_pixel_count * bg_pixel_count; // 17-bit * 17-bit = 34-bit
+// Division-free score comparison by cross multiplication
+reg [81:0] num_max; // 循序邏輯暫存器宣告
+reg [33:0] den_max; // 循序邏輯暫存器宣告
+reg [7:0]  best_threshold_reg; // Best threshold found so far
+assign Threshold = best_threshold_reg; // Export selected threshold to later stages
+// Division-free score comparison by cross multiplication
+wire [115:0] cross_left  = num_curr * den_max; // 組合邏輯連接信號宣告
+wire [115:0] cross_right = num_max * den_curr; // 組合邏輯連接信號宣告
+always@(posedge rst or posedge clk) begin
+    if(rst) begin   // Asynchronous reset values
+	done &lt;= 1&#x27;d0;
+        counter &lt;= 16&#x27;d0;
+        state &lt;= 2&#x27;d0;
+        Img_cen &lt;= 1&#x27;d0;    // Enable ImgROM read by default in this stage
+	    Img_addr &lt;= 16&#x27;d0;
+        Ur_cen &lt;= 1&#x27;b0;
+        Ur_addr &lt;= 16&#x27;d0;
+        Ur_d &lt;= 32&#x27;d0;
+        // Clear Gaussian window registers
+        get_data_state &lt;= 4&#x27;d0;
+        u1 &lt;= 8&#x27;d0;
+        u2 &lt;= 8&#x27;d0;
+        u3 &lt;= 8&#x27;d0;
+        m1 &lt;= 8&#x27;d0;
+        m2 &lt;= 8&#x27;d0;
+        m3 &lt;= 8&#x27;d0;
+        b1 &lt;= 8&#x27;d0;
+        b2 &lt;= 8&#x27;d0;
+        b3 &lt;= 8&#x27;d0;
+        // Clear histogram and Otsu scan registers
+        otsu_scan_state &lt;= 2&#x27;d0;
+        for(i = 0; i &lt; 256; i = i + 1) begin
+		    hist_bin[i] &lt;= 16&#x27;b0;
+        end
+        threshold_scan_value &lt;= 8&#x27;b0;
+        bg_gray_sum &lt;= 24&#x27;d0;
+        fg_gray_sum &lt;= 24&#x27;d0;
+        fg_pixel_count &lt;= 16&#x27;d0;
+        bg_pixel_count &lt;= 16&#x27;d0;
+        best_threshold_reg &lt;= 8&#x27;d0;
+	num_max &lt;= 82&#x27;d0;
+        den_max &lt;= 34&#x27;d0;
+    end else if (start &amp;&amp; state == 2&#x27;d0) begin // Stage start: enable scan and initialize nonzero denominator
+        state &lt;= 2&#x27;d1;
+        Ur_wen &lt;= 1&#x27;b1;
+	den_max &lt;= 34&#x27;d1; // Avoid zero denominator during first comparison
+    end else if(state == 2&#x27;d1) begin   // Collect the 3x3 neighborhood window
+	    if(get_data_state == 0)begin
+            	Ur_wen &lt;= 1&#x27;b1;	// Disable UrSRAM write while reading the source pixel</code></pre>
+</details>
+
+<details class="code-detail" >
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 3 · 版本三：drawBbox_single_submit.v</span>
+    <button class="copybtn" data-copy="code-single_submit-04-histogram-initialization" onclick="event.preventDefault(); copyCode('code-single_submit-04-histogram-initialization')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中沒有明確獨立段落，可能被合併在其他 state/module 中，或此架構不需要此流程；因此下方原始碼區塊依需求保持空白。
+    <div class="code-meta">drawBbox_single_submit(6).v · lines 239-379</div>
+  </div>
+  <pre><code id="code-single_submit-04-histogram-initialization">// Source: threshold.v
+// ================================================================
+
+module threshold (
+    input      clk,
+    input      rst,
+    input      start,   //啟動時拉高一個clk周期
+    output [7:0] Threshold, //輸出threshold值
+    output reg done,    //完成後拉高
+
+    // ImgROM
+    input      [31:0] Img_Q,
+    output            Img_CEN, //active low
+    output reg [15:0] Img_addr,
+
+    // UrSRAM
+    input       [31:0] Ur_Q,
+    output             Ur_CEN,
+    output             Ur_WEN,
+    output      [15:0] Ur_A,
+    output      [31:0] Ur_D
+);
+reg [3:0] state;
+
+reg [15:0]  counter;
+wire[16:0]  next_counter;
+assign next_counter = counter + 16&#x27;b1;
+integer i;//迴圈變數
+reg Img_cen;
+assign Img_CEN = Img_cen;
+reg Ur_wen;
+assign Ur_WEN = Ur_wen;
+reg Ur_cen;
+assign Ur_CEN = Ur_cen;
+reg [15:0] Ur_addr;
+assign Ur_A = Ur_addr;
+reg [31:0] Ur_d;
+assign Ur_D = Ur_d;
+//灰階
+wire [25:0] image_gray_before_round;
+wire [7:0] image_gray_after_round;  //灰階最高256，8bit存儲wire round_up;
+wire round_up = (image_gray_before_round[15:0] &gt; 16&#x27;h8000) ||
+                  ((image_gray_before_round[15:0] == 16&#x27;h8000) &amp;&amp; (image_gray_before_round[16] == 1&#x27;b1)); //判斷是否需要進行四捨五入，根據小數部分的值來決定是否將整數部分加1。
+assign image_gray_before_round = (26&#x27;d19595 * Img_Q[23:16]) +
+                                 (26&#x27;d38470 * Img_Q[15:8])  +
+                                 (26&#x27;d7471  * Img_Q[7:0]); // 公式為 (0.299*R + 0.587*G + 0.114*B)這裡先乘以256以保留小數部分，最後再除以256進行四捨五入。
+assign image_gray_after_round = round_up ? (image_gray_before_round[23:16] + 8&#x27;d1) :
+                                           (image_gray_before_round[23:16]);
+
+//高斯
+reg [7:0] u1, u2, u3, m1, m2, m3, b1, b2, b3;    //input
+wire [15:0] gaussian_sum = (u1) + (u2&lt;&lt;1) + (u3) +
+                             (m1&lt;&lt;1) + (m2&lt;&lt;2) + (m3&lt;&lt;1) +
+                             (b1) + (b2&lt;&lt;1) + (b3);   //取四位小數
+wire gaussian_round_up = (gaussian_sum[3:0] &gt; 4&#x27;b1000) ||
+                         ((gaussian_sum[3:0] == 4&#x27;b1000) &amp;&amp; (gaussian_sum[4] == 1&#x27;b1)); //判斷是否需要進行四捨五入，根據小數部分的值來決定是否將整數部分加1。
+wire [7:0] gaussian_value = gaussian_round_up ? (gaussian_sum[11:4] + 8&#x27;d1) : (gaussian_sum[11:4]);
+
+wire Is_the_most_up = (counter[15:8] == 8&#x27;d0)?1&#x27;b1:1&#x27;b0;
+wire Is_the_most_buttom = (counter[15:8] == 8&#x27;d255)?1&#x27;b1:1&#x27;b0;
+wire Is_the_most_left = (counter[7:0] == 8&#x27;d0)?1&#x27;b1:1&#x27;b0;
+wire Is_the_most_right = (counter[7:0] == 8&#x27;d255)?1&#x27;b1:1&#x27;b0;
+//計算高斯數據參數
+reg [3:0]get_data_state;
+wire [4:0]next_get_data_state = (get_data_state == 4&#x27;d11)? 4&#x27;b0 : (get_data_state + 4&#x27;b1);
+wire[15:0]up_index = counter - 16&#x27;d256;
+wire[15:0]buttom_index = counter + 16&#x27;d256;
+
+//分類前景後景參數
+reg [1:0] ISODATA_state ;
+reg [15:0] gray_level[255:0];  //灰階值
+wire [16:0] next_gray_level = gray_level[gaussian_value] + 16&#x27;b1;
+
+reg [23:0] sum_contribution_background;    //65536*256最大值為16777216，需要24bit來存儲
+wire [24:0] next_sum_contribution_background;
+assign next_sum_contribution_background = sum_contribution_background + (gray_level[counter]*counter);
+reg [23:0] sum_contribution_foreground;
+wire [24:0] next_sum_contribution_foreground;
+assign next_sum_contribution_foreground = sum_contribution_foreground + (gray_level[counter]*counter);
+//計算threshold用
+reg [15:0] sf;
+wire [16:0] next_sf = sf + gray_level[counter];
+reg [15:0] sb;
+wire [16:0] next_sb = sb + gray_level[counter];
+
+reg [7:0] T_counter;
+wire [8:0] next_T_counter = (T_counter == 0)? 8&#x27;b0 : T_counter - 8&#x27;b1;
+wire [40:0] term_f = sum_contribution_foreground * sb; // 24bit*17bit=41bit
+wire [40:0] term_b = sum_contribution_background * sf; // 24bit*17bit=41bit
+
+// 計算分子,絕對差值的平方
+wire [40:0] diff_term = (term_f &gt; term_b) ? (term_f - term_b) : (term_b - term_f);
+wire [81:0] num_curr  = diff_term * diff_term; // 41-bit * 41-bit = 82-bit
+
+// 計算分母
+wire [33:0] den_curr  = sf * sb; // 17-bit * 17-bit = 34-bit
+
+// 交叉相乘
+reg [81:0] num_max;
+reg [33:0] den_max;
+reg [7:0]  Max_T; // 最佳 Threshold 輸出
+assign Threshold = Max_T;    //輸出threshold
+
+// 交叉相乘
+wire [115:0] cross_left  = num_curr * den_max;
+wire [115:0] cross_right = num_max * den_curr;
+
+
+always@(posedge rst or posedge clk) begin
+    if(rst) begin   //初始化
+	done &lt;= 1&#x27;d0;
+        counter &lt;= 16&#x27;d0;
+        state &lt;= 2&#x27;d0;
+        Img_cen &lt;= 1&#x27;d0;    //預設為讀取圖像
+	    Img_addr &lt;= 16&#x27;d0;
+        Ur_cen &lt;= 1&#x27;b0;
+        Ur_addr &lt;= 16&#x27;d0;
+        Ur_d &lt;= 32&#x27;d0;
+
+        //gaussian參數初始化
+        get_data_state &lt;= 4&#x27;d0;
+        u1 &lt;= 8&#x27;d0;
+        u2 &lt;= 8&#x27;d0;
+        u3 &lt;= 8&#x27;d0;
+        m1 &lt;= 8&#x27;d0;
+        m2 &lt;= 8&#x27;d0;
+        m3 &lt;= 8&#x27;d0;
+        b1 &lt;= 8&#x27;d0;
+        b2 &lt;= 8&#x27;d0;
+        b3 &lt;= 8&#x27;d0;
+
+        //分類前景後景參數初始化
+        ISODATA_state &lt;= 2&#x27;d0;
+        for(i = 0; i &lt; 256; i = i + 1) begin
+		    gray_level[i] &lt;= 16&#x27;b0;
+        end
+        T_counter &lt;= 8&#x27;b0;
+        sum_contribution_background &lt;= 24&#x27;d0;
+        sum_contribution_foreground &lt;= 24&#x27;d0;
+        sf &lt;= 16&#x27;d0;
+        sb &lt;= 16&#x27;d0;</code></pre>
+</details>
+</div>
+</section>
+
+</div>
+<div class="footer">drawBbox multi-page repack site · original Verilog files are copied unchanged in assets/code/</div>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Step 15 Union-Find / BBox Table Initialization</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<script src="../assets/js/main.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Step 15</span>
+  <h1>Union-Find / BBox Table Initialization</h1>
+  <p class="lead">初始化 CCL 與 bbox 相關資料表。</p>
+  <div class="topnav"><a class="btn" href="../index.html">回首頁</a><a class="btn" href="14-auto-polarity-selection.html">上一個：14</a><a class="btn" href="16-ccl-line-buffer-initialization.html">下一個：16</a></div>
+</header>
+
+<section class="section">
+  <h2>SVG 流程圖</h2>
+  <div class="svgbox"><img src="../assets/svg/15-union-find-bbox-table-initialization.svg" alt="Union-Find / BBox Table Initialization SVG"></div>
+</section>
+
+<section class="section">
+  <h2>比較的方法.docx 對應表</h2>
+  <p>此表把本流程在三個版本中的 state/module 與 code 關係整理出來；沒有明確對應者保持空白。</p>
+  <table>
+    <thead><tr><th>版本</th><th>對應 state / module</th><th>和 code 的關係</th></tr></thead>
+    <tbody><tr><td>Single FSM</td><td>S_PARENT_INIT</td><td>初始化 parent[]、bbox_valid[]、bbox_border[]、bbox_xmin/xmax/ymin/ymax[]</td></tr>
+<tr><td>Modular v21</td><td></td><td></td></tr>
+<tr><td>Single Submit</td><td></td><td></td></tr></tbody>
+  </table>
+</section>
+
+<section class="section">
+  <h2>三個版本在此流程中的比較內容說明</h2>
+  <p class="compare-text">在「Union-Find / BBox Table Initialization」流程中，並非三個版本都有獨立而明確的程式段落。Single FSM 版有明確對應，主要在 S_PARENT_INIT 完成，說明為：初始化 parent[]、bbox_valid[]、bbox_border[]、bbox_xmin/xmax/ymin/ymax[]。Modular v21 版沒有明確獨立此流程，可能由子模組內部合併處理，或該架構不採用此額外階段。Single Submit 版沒有明確獨立此流程，對應原始碼區塊依需求保持空白。這種差異通常來自架構選擇：單一 FSM 會把多個小步驟合併在同一段 state；模組化版本則傾向把功能交給特定子模組；single_submit 則在單檔中保留 module-level 階段。</p>
+</section>
+
+<section class="section">
+  <h2>整個流程的三個版本程式比較</h2>
+  <p>下方採用下拉式區塊顯示。中文說明放在程式碼上方；原始程式碼本身沒有修改、沒有插入註解。若某份檔案沒有明確對應流程，該程式碼區塊保持空白。</p>
+  <div class="topnav">
+    <button class="btn" onclick="toggleAll(true)">全部展開</button>
+    <button class="btn" onclick="toggleAll(false)">全部收合</button>
+  </div>
+  <div class="accordion-wrap">
+<details class="code-detail" open>
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 1 · 版本一：drawBbox.v 單一 FSM 版</span>
+    <button class="copybtn" data-copy="code-single_fsm-15-union-find-bbox-table-initialization" onclick="event.preventDefault(); copyCode('code-single_fsm-15-union-find-bbox-table-initialization')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中對應到 S_PARENT_INIT。初始化 parent[]、bbox_valid[]、bbox_border[]、bbox_xmin/xmax/ymin/ymax[]。
+    <div class="code-meta">drawBbox(21).v · lines 694-727</div>
+  </div>
+  <pre><code id="code-single_fsm-15-union-find-bbox-table-initialization">                S_PARENT_INIT: begin
+                    // V16 critical fix:
+                    // Fully initialize union-find and bbox tables before every pattern.
+                    // Without this, stale bbox_valid/bbox_border values can draw false green boxes,
+                    // especially when P1~P4 are simulated sequentially.
+                    parent[label_idx]      &lt;= label_idx;
+                    bbox_valid[label_idx]  &lt;= 1&#x27;b0;
+                    bbox_border[label_idx] &lt;= 1&#x27;b0;
+                    bbox_xmin[label_idx]   &lt;= 8&#x27;d255;
+                    bbox_xmax[label_idx]   &lt;= 8&#x27;d0;
+                    bbox_ymin[label_idx]   &lt;= 8&#x27;d255;
+                    bbox_ymax[label_idx]   &lt;= 8&#x27;d0;
+
+                    if (label_idx &lt; 9&#x27;d256)
+                        row_label[label_idx[7:0]] &lt;= 9&#x27;d0;
+
+                    if (label_idx==MAX_LABEL_IDX) begin
+                        addr_cnt&lt;=16&#x27;d0;
+                        label_idx&lt;=9&#x27;d0;
+                        next_label&lt;=9&#x27;d1;
+                        left_label&lt;=9&#x27;d0;
+                        nw_label_hold&lt;=9&#x27;d0;
+                        lb_seq&lt;=2&#x27;d0; lb_col&lt;=8&#x27;d0; lb_phase&lt;=2&#x27;d0;
+                        lb_prev_sel&lt;=2&#x27;d0; lb_curr_sel&lt;=2&#x27;d1; lb_next_sel&lt;=2&#x27;d2;
+                        state&lt;=S_LB_INIT2;
+                    end else begin
+                        label_idx&lt;=label_idx+9&#x27;d1;
+                    end
+                end
+
+                // -----------------------------------------------
+                // S_LB_INIT2：重新載入 line buffer for CCL
+                //   邏輯與 S_LB_INIT 完全相同，完成後進 S_CCL_SCAN
+                // -----------------------------------------------</code></pre>
+</details>
+
+<details class="code-detail" >
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 2 · 版本二：drawBbox_declaration_comments_v1.v</span>
+    <button class="copybtn" data-copy="code-modular_v21-15-union-find-bbox-table-initialization" onclick="event.preventDefault(); copyCode('code-modular_v21-15-union-find-bbox-table-initialization')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中沒有明確獨立段落，可能被合併在其他 state/module 中，或此架構不需要此流程；因此下方原始碼區塊依需求保持空白。
+    <div class="code-meta">drawBbox_declaration_comments_v1(1).v · 此流程沒有明確對應程式片段</div>
+  </div>
+  <div class="blank-code" id="code-modular_v21-15-union-find-bbox-table-initialization"></div>
+</details>
+
+<details class="code-detail" >
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 3 · 版本三：drawBbox_single_submit.v</span>
+    <button class="copybtn" data-copy="code-single_submit-15-union-find-bbox-table-initialization" onclick="event.preventDefault(); copyCode('code-single_submit-15-union-find-bbox-table-initialization')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中沒有明確獨立段落，可能被合併在其他 state/module 中，或此架構不需要此流程；因此下方原始碼區塊依需求保持空白。
+    <div class="code-meta">drawBbox_single_submit(6).v · 此流程沒有明確對應程式片段</div>
+  </div>
+  <div class="blank-code" id="code-single_submit-15-union-find-bbox-table-initialization"></div>
+</details>
+</div>
+</section>
+
+</div>
+<div class="footer">drawBbox multi-page repack site · original Verilog files are copied unchanged in assets/code/</div>
+</body>
+</html>

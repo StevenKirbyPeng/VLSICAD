@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Comparison Method</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<script src="assets/js/main.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">比較的方法.docx 完整整合</span>
+  <h1>三個版本的流程對應方法</h1>
+  <p class="lead">此頁把「比較的方法.docx」中的所有流程對照內容放入多網頁系統，包含單一 FSM 版、declaration_comments 版、single_submit 版，以及前面版本差異。</p>
+  <div class="topnav"><a class="btn" href="index.html">回首頁</a><a class="btn" href="compare.html">三版本差異表</a></div>
+</header>
+
+<section class="section">
+<h2>drawBbox(21).v</h2>
+<table>
+<thead><tr><th>流程名稱</th><th>對應 state / module</th><th>和 code 的關係</th></tr></thead>
+<tbody><tr><td>Input</td><td>S_LOAD</td><td>S_LOAD 會打開 ImgROM，用 Img_A 依序讀入 256×256 的 RGB pixel</td></tr>
+<tr><td>RGB-to-Gray</td><td>S_LOAD</td><td>在 S_LOAD 中呼叫 gray_round_rgb(Img_Q)，把 RGB 轉成灰階</td></tr>
+<tr><td>Original Image Backup</td><td>S_LOAD</td><td>同一個 state 把原始 Img_Q 寫入 AnsSRAM，之後畫框會直接畫在原圖上</td></tr>
+<tr><td>Histogram Initialization</td><td>S_HIST_CLEAR</td><td>清空 hist[0] 到 hist[255]，避免上一張圖的資料殘留</td></tr>
+<tr><td>Line Buffer Initialization</td><td>S_LB_INIT</td><td>從 UrSRAM 讀灰階資料，載入 3-row line buffer，準備做 Gaussian</td></tr>
+<tr><td>Gaussian Filtering</td><td>S_GAUSS_HIST</td><td>呼叫 gaussian_lb(x_i)，用 3×3 Gaussian kernel 計算平滑後的灰階值</td></tr>
+<tr><td>Line Buffer Row Update</td><td>S_LB_ROW</td><td>每掃完一列，就從 UrSRAM 載入下一列，並旋轉 lb_prev_sel / lb_curr_sel / lb_next_sel</td></tr>
+<tr><td>Histogram Construction</td><td>S_GAUSS_HIST</td><td>Gaussian 後的值 base_i 會累加到 hist[base_i]</td></tr>
+<tr><td>Otsu Initialization</td><td>S_OTSU_INIT</td><td>初始化 Otsu 需要的 wb_acc、sum_b_acc、otsu_idx、best_num、best_den</td></tr>
+<tr><td>Otsu Thresholding</td><td>S_OTSU_SCAN → S_OTSU_CMP2</td><td>用多個 state 分段計算 Otsu，最後得到最佳 threshold otsu_t</td></tr>
+<tr><td>High-Pixel Counting</td><td>S_COUNT_HI</td><td>統計 histogram 中大於 otsu_t 的 pixel 數量</td></tr>
+<tr><td>Auto-Polarity Selection</td><td>S_POLARITY</td><td>根據 count_hi &gt; 32768 判斷是否設定 invert_sel</td></tr>
+<tr><td>Union-Find / BBox Table Initialization</td><td>S_PARENT_INIT</td><td>初始化 parent[]、bbox_valid[]、bbox_border[]、bbox_xmin/xmax/ymin/ymax[]</td></tr>
+<tr><td>CCL Line Buffer Initialization</td><td>S_LB_INIT2</td><td>CCL 前重新載入 3-row line buffer，因為 CCL 也要用 Gaussian 後的 mask</td></tr>
+<tr><td>Binary Mask Generation</td><td>S_CCL_SCAN</td><td>在 CCL 掃描時即時計算 ccl_base &gt; otsu_t，再根據 invert_sel 決定 foreground</td></tr>
+<tr><td>Connected Component Labeling</td><td>S_CCL_SCAN</td><td>檢查 W, NW, N, NE 四個鄰居，執行 8-connected CCL</td></tr>
+<tr><td>Line Buffer Row Update</td><td>S_LB_ROW2</td><td>CCL 每掃完一列，就更新 CCL 用的 line buffer</td></tr>
+<tr><td>Bounding Box Extraction</td><td>S_CCL_SCAN</td><td>在 CCL 過程中呼叫 update_bbox_task()，同步更新 bbox</td></tr>
+<tr><td>Root Label Merge</td><td>S_BBOX_INIT</td><td>CCL 完成後，把被 union 的 label 的 bbox 合併回 root label</td></tr>
+<tr><td>Border Object Rejection</td><td>S_BOXMAP_GEN</td><td>如果 bbox_border[label_idx] = 1，代表物件碰到邊界，直接跳過不畫</td></tr>
+<tr><td>Large Object Filtering</td><td>S_BOXMAP_GEN</td><td>呼叫 is_large_bbox()，只保留寬高都大於等於 16 的 bbox</td></tr>
+<tr><td>Bounding Box Overlay</td><td>S_BOXMAP_GEN</td><td>把合格 bbox 的上下左右邊寫成 GREEN = 32&#x27;h0000_FF00 到 AnsSRAM</td></tr>
+<tr><td>Special Box Compensation</td><td>S_BOXMAP_GEN</td><td>如果 first_pixel == 32&#x27;h00af89d2，額外畫兩個固定位置的補償框</td></tr>
+<tr><td>Done</td><td>S_DONE</td><td>done_r &lt;= 1&#x27;b1，表示 RTL 處理完成</td></tr>
+<tr><td>Golden Image Comparison</td><td>Testbench</td><td>不在 drawBbox.v 裡，是 testbench 在 done 後比對輸出與 golden image</td></tr></tbody>
+</table>
+</section>
+
+
+<section class="section">
+<h2>drawBbox_declaration_comments_v1(1).v</h2>
+<table>
+<thead><tr><th>流程名稱</th><th>對應 state / module</th><th>和 code 的關係</th></tr></thead>
+<tbody><tr><td>Input</td><td>ST_THRES / threshold_v21_fast</td><td>threshold module 從 ImgROM 讀入原始 RGB pixel</td></tr>
+<tr><td>RGB-to-Gray</td><td>threshold_v21_fast</td><td>使用 Q16 係數把 RGB 轉成 gray：19595R + 38470G + 7471B</td></tr>
+<tr><td>Gaussian Filtering</td><td>threshold_v21_fast</td><td>使用 3×3 Gaussian kernel [1 2 1; 2 4 2; 1 2 1] / 16</td></tr>
+<tr><td>Histogram Construction</td><td>threshold_v21_fast</td><td>Gaussian 後的灰階值會累加到 hist_bin[gaussian_value]</td></tr>
+<tr><td>Otsu Thresholding</td><td>threshold_v21_fast</td><td>掃描 threshold candidate，使用 cross multiplication 比較 Otsu score</td></tr>
+<tr><td>High-Pixel Counting</td><td>ST_POL / polarity_v21_fast</td><td>根據 threshold 統計高於 threshold 的 pixel 數量</td></tr>
+<tr><td>Auto-Polarity Selection</td><td>polarity_v21_fast</td><td>依照亮暗 pixel 數量決定 polarity</td></tr>
+<tr><td>Binary Mask Generation</td><td>ST_CCL / ccl_v21_fast</td><td>CCL 階段根據 threshold 與 polarity 產生 foreground/background</td></tr>
+<tr><td>Connected Component Labeling</td><td>ccl_v21_fast</td><td>使用 label buffer 和 equivalence table 做 CCL</td></tr>
+<tr><td>Equivalence Table Merge</td><td>ccl_v21_fast</td><td>用 eq_table 合併等價 label</td></tr>
+<tr><td>Label Result Write</td><td>ccl_v21_fast</td><td>把 label 結果寫入 AnsSRAM</td></tr>
+<tr><td>Bounding Box Extraction</td><td>ST_BOX / boxing_v21_fast</td><td>掃描 AnsSRAM 的 label 結果，找出每個 label 的 min_x/max_x/min_y/max_y</td></tr>
+<tr><td>Original Image Copy</td><td>boxing_v21_fast</td><td>從 ImgROM 讀原圖，複製到 AnsSRAM</td></tr>
+<tr><td>Border Object Rejection</td><td>boxing_v21_fast</td><td>若 bbox 碰到影像邊界，則跳過不畫</td></tr>
+<tr><td>Large Object Filtering</td><td>boxing_v21_fast</td><td>只保留寬高大於條件的 bbox</td></tr>
+<tr><td>Bounding Box Overlay</td><td>boxing_v21_fast</td><td>將 bbox 四條邊寫成 32&#x27;h0000_FF00 綠色</td></tr>
+<tr><td>Done</td><td>box_done</td><td>boxing 完成後，top module 的 done = box_done</td></tr>
+<tr><td>Golden Image Comparison</td><td>Testbench</td><td>不在 RTL 裡，由 testbench 在 done 後比對 golden image</td></tr></tbody>
+</table>
+</section>
+
+
+<section class="section">
+<h2>drawBbox_single_submit(6).v</h2>
+<table>
+<thead><tr><th>流程名稱</th><th>對應 state / module</th><th>和 code 的關係</th></tr></thead>
+<tbody><tr><td>Input</td><td>ST_THRES / threshold</td><td>threshold module 透過 Img_addr 從 ImgROM 讀取原始 RGB pixel</td></tr>
+<tr><td>RGB-to-Gray</td><td>threshold</td><td>使用 19595R + 38470G + 7471B 的 Q16 權重公式，把 RGB 轉成 gray</td></tr>
+<tr><td>Gaussian Window Fetch</td><td>threshold state 1</td><td>用 get_data_state 依序取得 u1~b3 九個鄰近 pixel</td></tr>
+<tr><td>Gaussian Filtering</td><td>threshold state 2</td><td>用 [1 2 1; 2 4 2; 1 2 1] / 16 計算 gaussian_value</td></tr>
+<tr><td>Gaussian Gray Write to UrSRAM</td><td>threshold state 2</td><td>把 gaussian_value 寫入 UrSRAM</td></tr>
+<tr><td>Histogram Construction</td><td>threshold state 2</td><td>使用 gray_level[gaussian_value] &lt;= gray_level[gaussian_value] + 1 統計 histogram</td></tr>
+<tr><td>Otsu Thresholding</td><td>threshold state 3</td><td>掃描 threshold candidate，使用 cross multiplication 比較 Otsu score</td></tr>
+<tr><td>High-Pixel Counting</td><td>ST_POL / polarity</td><td>讀取 UrSRAM 的 Gaussian gray，和 threshold 比較並計數</td></tr>
+<tr><td>Auto-Polarity Selection</td><td>polarity DONE</td><td>根據 counter 結果輸出 polarity</td></tr>
+<tr><td>Binary Mask Generation</td><td>ST_CCL / ccl</td><td>根據 img_Q[7:0]、threshold、polarity 產生 bin_img_Q</td></tr>
+<tr><td>Connected Component Labeling Pass 1</td><td>ccl READ_PASS_1 / WRITE_PASS_1</td><td>讀取 binary image，檢查鄰居 label，產生初步 label</td></tr>
+<tr><td>Equivalence Table Merge</td><td>ccl WRITE_PASS_1</td><td>使用 eq_table 合併不同 label 的等價關係</td></tr>
+<tr><td>Label Result Write Pass 1</td><td>ccl WRITE_PASS_1</td><td>把 pass 1 的 label 寫入 AnsSRAM</td></tr>
+<tr><td>Equivalence Table Flatten</td><td>ccl FLATTEN_TABLE</td><td>將 eq_table 轉成連續 root label</td></tr>
+<tr><td>Label Result Rewrite Pass 2</td><td>ccl READ_PASS_2 / WRITE_PASS_2</td><td>讀回 AnsSRAM label，再用 flatten 後的 eq_table 改寫成 root label</td></tr>
+<tr><td>Bounding Box Extraction</td><td>ST_BOX / boxing SCAN</td><td>掃描 AnsSRAM label map，更新每個 label 的 min_x/max_x/min_y/max_y</td></tr>
+<tr><td>Original Image Copy</td><td>boxing COPY</td><td>從 ImgROM 讀原始 RGB，寫回 AnsSRAM 作為最後輸出底圖</td></tr>
+<tr><td>Border Object Rejection</td><td>boxing BOX_IDLE</td><td>如果 bbox 碰到邊界，例如 min_x = 0 或 max_x = 255，就跳過</td></tr>
+<tr><td>Small Object Filtering</td><td>boxing BOX_IDLE</td><td>如果寬高太小，例如寬或高沒有大於 10，就跳過</td></tr>
+<tr><td>Bounding Box Overlay</td><td>boxing BOX_WRITE_1~4</td><td>將 bbox 的上下左右邊寫成 32&#x27;h0000_FF00 綠色</td></tr>
+<tr><td>Done</td><td>boxing DONE / box_done</td><td>done &lt;= 1&#x27;b1，top-level done = box_done</td></tr>
+<tr><td>Golden Image Comparison</td><td>Testbench</td><td>不在 RTL 內，是 testbench 在 done 後比對 golden image</td></tr></tbody>
+</table>
+</section>
+
+<section class="section">
+<h2>前面版本的差異</h2>
+<table>
+<thead><tr><th>比較項目</th><th>drawBbox.v 單一 FSM 版</th><th>drawBbox_declaration_comments_v1.v</th><th>drawBbox_single_submit.v</th></tr></thead>
+<tbody><tr><td>架構</td><td>單一大型 FSM</td><td>Top FSM + 子模組</td><td>單一檔案 + Top FSM + 子模組</td></tr>
+<tr><td>檔案形式</td><td>通常是一個 top module</td><td>多檔或模組化版本</td><td>把所有 module 合併成一個 .v</td></tr>
+<tr><td>Top FSM</td><td>很多 state</td><td>ST_IDLE → ST_THRES → ST_POL → ST_CCL → ST_BOX</td><td>ST_IDLE → ST_THRES → ST_POL → ST_CCL → ST_BOX</td></tr>
+<tr><td>Threshold</td><td>top FSM 內完成</td><td>threshold_v21_fast</td><td>threshold</td></tr>
+<tr><td>Gaussian</td><td>top FSM 內 line buffer</td><td>threshold module</td><td>threshold module，用 3×3 window fetch</td></tr>
+<tr><td>Polarity</td><td>top FSM 內完成</td><td>polarity_v21_fast</td><td>polarity</td></tr>
+<tr><td>CCL</td><td>top FSM 內 union-find</td><td>ccl_v21_fast</td><td>ccl，使用 eq_table</td></tr>
+<tr><td>BBox</td><td>CCL 同步更新</td><td>boxing module 掃 label</td><td>boxing module 掃 label</td></tr>
+<tr><td>Overlay</td><td>top FSM 內畫框</td><td>boxing module</td><td>boxing module</td></tr>
+<tr><td>Special Box Compensation</td><td>有</td><td>視版本而定</td><td>這份未看到明確 special compensation</td></tr>
+<tr><td>Memory ownership</td><td>單一 FSM 集中控制</td><td>top mux 分配</td><td>top mux 分配</td></tr>
+<tr><td>報告表達</td><td>適合 state-level FSM 圖</td><td>適合 module-level block diagram</td><td>適合 submission-friendly module-level flow</td></tr></tbody>
+</table>
+</section>
+
+</div>
+<div class="footer">drawBbox multi-page repack site · original Verilog files are copied unchanged in assets/code/</div>
+</body>
+</html>

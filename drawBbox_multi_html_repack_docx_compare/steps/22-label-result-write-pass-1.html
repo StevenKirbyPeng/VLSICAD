@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Step 22 Label Result Write Pass 1</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<script src="../assets/js/main.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Step 22</span>
+  <h1>Label Result Write Pass 1</h1>
+  <p class="lead">將第一階段 provisional label 寫入記憶體。</p>
+  <div class="topnav"><a class="btn" href="../index.html">回首頁</a><a class="btn" href="21-label-result-write.html">上一個：21</a><a class="btn" href="23-equivalence-table-flatten.html">下一個：23</a></div>
+</header>
+
+<section class="section">
+  <h2>SVG 流程圖</h2>
+  <div class="svgbox"><img src="../assets/svg/22-label-result-write-pass-1.svg" alt="Label Result Write Pass 1 SVG"></div>
+</section>
+
+<section class="section">
+  <h2>比較的方法.docx 對應表</h2>
+  <p>此表把本流程在三個版本中的 state/module 與 code 關係整理出來；沒有明確對應者保持空白。</p>
+  <table>
+    <thead><tr><th>版本</th><th>對應 state / module</th><th>和 code 的關係</th></tr></thead>
+    <tbody><tr><td>Single FSM</td><td></td><td></td></tr>
+<tr><td>Modular v21</td><td>ccl_v21_fast</td><td>把 label 結果寫入 AnsSRAM</td></tr>
+<tr><td>Single Submit</td><td>ccl WRITE_PASS_1</td><td>把 pass 1 的 label 寫入 AnsSRAM</td></tr></tbody>
+  </table>
+</section>
+
+<section class="section">
+  <h2>三個版本在此流程中的比較內容說明</h2>
+  <p class="compare-text">在「Label Result Write Pass 1」流程中，並非三個版本都有獨立而明確的程式段落。Single FSM 版沒有獨立顯示此流程，可能被合併在其他 state 中，或不需要此階段。Modular v21 版有明確對應，主要在 ccl_v21_fast 完成，說明為：把 label 結果寫入 AnsSRAM。Single Submit 版有明確對應，主要在 ccl WRITE_PASS_1 完成，說明為：把 pass 1 的 label 寫入 AnsSRAM。這種差異通常來自架構選擇：單一 FSM 會把多個小步驟合併在同一段 state；模組化版本則傾向把功能交給特定子模組；single_submit 則在單檔中保留 module-level 階段。</p>
+</section>
+
+<section class="section">
+  <h2>整個流程的三個版本程式比較</h2>
+  <p>下方採用下拉式區塊顯示。中文說明放在程式碼上方；原始程式碼本身沒有修改、沒有插入註解。若某份檔案沒有明確對應流程，該程式碼區塊保持空白。</p>
+  <div class="topnav">
+    <button class="btn" onclick="toggleAll(true)">全部展開</button>
+    <button class="btn" onclick="toggleAll(false)">全部收合</button>
+  </div>
+  <div class="accordion-wrap">
+<details class="code-detail" open>
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 1 · 版本一：drawBbox.v 單一 FSM 版</span>
+    <button class="copybtn" data-copy="code-single_fsm-22-label-result-write-pass-1" onclick="event.preventDefault(); copyCode('code-single_fsm-22-label-result-write-pass-1')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中沒有明確獨立段落，可能被合併在其他 state/module 中，或此架構不需要此流程；因此下方原始碼區塊依需求保持空白。
+    <div class="code-meta">drawBbox(21).v · 此流程沒有明確對應程式片段</div>
+  </div>
+  <div class="blank-code" id="code-single_fsm-22-label-result-write-pass-1"></div>
+</details>
+
+<details class="code-detail" >
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 2 · 版本二：drawBbox_declaration_comments_v1.v</span>
+    <button class="copybtn" data-copy="code-modular_v21-22-label-result-write-pass-1" onclick="event.preventDefault(); copyCode('code-modular_v21-22-label-result-write-pass-1')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中對應到 ccl_v21_fast。把 label 結果寫入 AnsSRAM。
+    <div class="code-meta">drawBbox_declaration_comments_v1(1).v · 此流程沒有明確對應程式片段</div>
+  </div>
+  <div class="blank-code" id="code-modular_v21-22-label-result-write-pass-1"></div>
+</details>
+
+<details class="code-detail" >
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 3 · 版本三：drawBbox_single_submit.v</span>
+    <button class="copybtn" data-copy="code-single_submit-22-label-result-write-pass-1" onclick="event.preventDefault(); copyCode('code-single_submit-22-label-result-write-pass-1')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中對應到 ccl WRITE_PASS_1。把 pass 1 的 label 寫入 AnsSRAM。
+    <div class="code-meta">drawBbox_single_submit(6).v · lines 712-716</div>
+  </div>
+  <pre><code id="code-single_submit-22-label-result-write-pass-1">        WRITE_PASS_1:begin
+            if(WRITE_PASS_1_finish) next_state = FLATTEN_TABLE;
+            else if(WRITE_PASS_1_read) next_state = READ_PASS_1;
+            else next_state = WRITE_PASS_1;
+        end</code></pre>
+</details>
+</div>
+</section>
+
+</div>
+<div class="footer">drawBbox multi-page repack site · original Verilog files are copied unchanged in assets/code/</div>
+</body>
+</html>

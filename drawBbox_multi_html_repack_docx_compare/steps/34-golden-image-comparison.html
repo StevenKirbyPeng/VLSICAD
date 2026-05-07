@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Step 34 Golden Image Comparison</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<script src="../assets/js/main.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Step 34</span>
+  <h1>Golden Image Comparison</h1>
+  <p class="lead">testbench 在 done 後比對輸出與 golden image。</p>
+  <div class="topnav"><a class="btn" href="../index.html">回首頁</a><a class="btn" href="33-done.html">上一個：33</a></div>
+</header>
+
+<section class="section">
+  <h2>SVG 流程圖</h2>
+  <div class="svgbox"><img src="../assets/svg/34-golden-image-comparison.svg" alt="Golden Image Comparison SVG"></div>
+</section>
+
+<section class="section">
+  <h2>比較的方法.docx 對應表</h2>
+  <p>此表把本流程在三個版本中的 state/module 與 code 關係整理出來；沒有明確對應者保持空白。</p>
+  <table>
+    <thead><tr><th>版本</th><th>對應 state / module</th><th>和 code 的關係</th></tr></thead>
+    <tbody><tr><td>Single FSM</td><td>Testbench</td><td>不在 drawBbox.v 裡，是 testbench 在 done 後比對輸出與 golden image</td></tr>
+<tr><td>Modular v21</td><td>Testbench</td><td>不在 RTL 裡，由 testbench 在 done 後比對 golden image</td></tr>
+<tr><td>Single Submit</td><td>Testbench</td><td>不在 RTL 內，是 testbench 在 done 後比對 golden image</td></tr></tbody>
+  </table>
+</section>
+
+<section class="section">
+  <h2>三個版本在此流程中的比較內容說明</h2>
+  <p class="compare-text">此流程屬於 testbench 驗證階段，三份 RTL 檔案本身都不會真正執行 golden image comparison。它們的責任都是在內部完成影像處理與畫框，最後拉高 done；testbench 再根據 AnsSRAM 或輸出 BMP 與 golden image 進行比對。因此在本頁的三個原始程式碼區塊中，若沒有明確 testbench 程式碼，會依規則保持空白。</p>
+</section>
+
+<section class="section">
+  <h2>整個流程的三個版本程式比較</h2>
+  <p>下方採用下拉式區塊顯示。中文說明放在程式碼上方；原始程式碼本身沒有修改、沒有插入註解。若某份檔案沒有明確對應流程，該程式碼區塊保持空白。</p>
+  <div class="topnav">
+    <button class="btn" onclick="toggleAll(true)">全部展開</button>
+    <button class="btn" onclick="toggleAll(false)">全部收合</button>
+  </div>
+  <div class="accordion-wrap">
+<details class="code-detail" open>
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 1 · 版本一：drawBbox.v 單一 FSM 版</span>
+    <button class="copybtn" data-copy="code-single_fsm-34-golden-image-comparison" onclick="event.preventDefault(); copyCode('code-single_fsm-34-golden-image-comparison')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中對應到 Testbench。不在 drawBbox.v 裡，是 testbench 在 done 後比對輸出與 golden image。
+    <div class="code-meta">drawBbox(21).v · 此流程沒有明確對應程式片段</div>
+  </div>
+  <div class="blank-code" id="code-single_fsm-34-golden-image-comparison"></div>
+</details>
+
+<details class="code-detail" >
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 2 · 版本二：drawBbox_declaration_comments_v1.v</span>
+    <button class="copybtn" data-copy="code-modular_v21-34-golden-image-comparison" onclick="event.preventDefault(); copyCode('code-modular_v21-34-golden-image-comparison')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中對應到 Testbench。不在 RTL 裡，由 testbench 在 done 後比對 golden image。
+    <div class="code-meta">drawBbox_declaration_comments_v1(1).v · 此流程沒有明確對應程式片段</div>
+  </div>
+  <div class="blank-code" id="code-modular_v21-34-golden-image-comparison"></div>
+</details>
+
+<details class="code-detail" >
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 3 · 版本三：drawBbox_single_submit.v</span>
+    <button class="copybtn" data-copy="code-single_submit-34-golden-image-comparison" onclick="event.preventDefault(); copyCode('code-single_submit-34-golden-image-comparison')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中對應到 Testbench。不在 RTL 內，是 testbench 在 done 後比對 golden image。
+    <div class="code-meta">drawBbox_single_submit(6).v · 此流程沒有明確對應程式片段</div>
+  </div>
+  <div class="blank-code" id="code-single_submit-34-golden-image-comparison"></div>
+</details>
+</div>
+</section>
+
+</div>
+<div class="footer">drawBbox multi-page repack site · original Verilog files are copied unchanged in assets/code/</div>
+</body>
+</html>

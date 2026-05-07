@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1450 270">
+<defs>
+<linearGradient id="g" x1="0" x2="1"><stop offset="0%" stop-color="#6ee7b7"/><stop offset="100%" stop-color="#79e6ff"/></linearGradient>
+<filter id="s"><feDropShadow dx="0" dy="9" stdDeviation="9" flood-color="#000" flood-opacity=".28"/></filter>
+<style>.t{font:800 28px Arial;fill:#eef5ff}.l{font:800 14px Arial;fill:#08111f}.n{font:800 12px Arial;fill:#0b1630}</style>
+</defs>
+<rect width="1450" height="270" rx="30" fill="#0b1630"/>
+<text x="725.0" y="42" text-anchor="middle" class="t">Module-Level Top FSM</text>
+<rect x="38.0" y="86" width="180.9" height="94" rx="18" fill="url(#g)" filter="url(#s)"/>
+<circle cx="62.0" cy="110" r="15" fill="rgba(255,255,255,.55)"/>
+<text x="62.0" y="114" text-anchor="middle" class="n">1</text>
+<text x="128.4" y="138" text-anchor="middle" class="l">ST_IDLE</text>
+<path d="M 222.9 133 L 232.9 133" stroke="#dbeafe" stroke-width="4" stroke-linecap="round"/>
+<path d="M 232.9 133 l -9 -7 v 14 z" fill="#dbeafe"/>
+<rect x="236.9" y="86" width="180.9" height="94" rx="18" fill="url(#g)" filter="url(#s)"/>
+<circle cx="260.9" cy="110" r="15" fill="rgba(255,255,255,.55)"/>
+<text x="260.9" y="114" text-anchor="middle" class="n">2</text>
+<text x="327.3" y="138" text-anchor="middle" class="l">ST_THRES</text>
+<path d="M 421.7 133 L 431.7 133" stroke="#dbeafe" stroke-width="4" stroke-linecap="round"/>
+<path d="M 431.7 133 l -9 -7 v 14 z" fill="#dbeafe"/>
+<rect x="435.7" y="86" width="180.9" height="94" rx="18" fill="url(#g)" filter="url(#s)"/>
+<circle cx="459.7" cy="110" r="15" fill="rgba(255,255,255,.55)"/>
+<text x="459.7" y="114" text-anchor="middle" class="n">3</text>
+<text x="526.1" y="138" text-anchor="middle" class="l">ST_POL</text>
+<path d="M 620.6 133 L 630.6 133" stroke="#dbeafe" stroke-width="4" stroke-linecap="round"/>
+<path d="M 630.6 133 l -9 -7 v 14 z" fill="#dbeafe"/>
+<rect x="634.6" y="86" width="180.9" height="94" rx="18" fill="url(#g)" filter="url(#s)"/>
+<circle cx="658.6" cy="110" r="15" fill="rgba(255,255,255,.55)"/>
+<text x="658.6" y="114" text-anchor="middle" class="n">4</text>
+<text x="725.0" y="138" text-anchor="middle" class="l">ST_CCL</text>
+<path d="M 819.4 133 L 829.4 133" stroke="#dbeafe" stroke-width="4" stroke-linecap="round"/>
+<path d="M 829.4 133 l -9 -7 v 14 z" fill="#dbeafe"/>
+<rect x="833.4" y="86" width="180.9" height="94" rx="18" fill="url(#g)" filter="url(#s)"/>
+<circle cx="857.4" cy="110" r="15" fill="rgba(255,255,255,.55)"/>
+<text x="857.4" y="114" text-anchor="middle" class="n">5</text>
+<text x="923.9" y="138" text-anchor="middle" class="l">ST_BOX</text>
+<path d="M 1018.3 133 L 1028.3 133" stroke="#dbeafe" stroke-width="4" stroke-linecap="round"/>
+<path d="M 1028.3 133 l -9 -7 v 14 z" fill="#dbeafe"/>
+<rect x="1032.3" y="86" width="180.9" height="94" rx="18" fill="url(#g)" filter="url(#s)"/>
+<circle cx="1056.3" cy="110" r="15" fill="rgba(255,255,255,.55)"/>
+<text x="1056.3" y="114" text-anchor="middle" class="n">6</text>
+<text x="1122.7" y="138" text-anchor="middle" class="l">box_done</text>
+<path d="M 1217.1 133 L 1227.1 133" stroke="#dbeafe" stroke-width="4" stroke-linecap="round"/>
+<path d="M 1227.1 133 l -9 -7 v 14 z" fill="#dbeafe"/>
+<rect x="1231.1" y="86" width="180.9" height="94" rx="18" fill="url(#g)" filter="url(#s)"/>
+<circle cx="1255.1" cy="110" r="15" fill="rgba(255,255,255,.55)"/>
+<text x="1255.1" y="114" text-anchor="middle" class="n">7</text>
+<text x="1321.6" y="138" text-anchor="middle" class="l">Testbench</text>
+<text x="1321.6" y="158" text-anchor="middle" class="l">Compare</text>
+</svg>

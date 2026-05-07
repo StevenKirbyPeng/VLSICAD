@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Step 12 Otsu Thresholding</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<script src="../assets/js/main.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Step 12</span>
+  <h1>Otsu Thresholding</h1>
+  <p class="lead">掃描 threshold candidate 並找出最佳分割門檻。</p>
+  <div class="topnav"><a class="btn" href="../index.html">回首頁</a><a class="btn" href="11-otsu-initialization.html">上一個：11</a><a class="btn" href="13-high-pixel-counting.html">下一個：13</a></div>
+</header>
+
+<section class="section">
+  <h2>SVG 流程圖</h2>
+  <div class="svgbox"><img src="../assets/svg/12-otsu-thresholding.svg" alt="Otsu Thresholding SVG"></div>
+</section>
+
+<section class="section">
+  <h2>比較的方法.docx 對應表</h2>
+  <p>此表把本流程在三個版本中的 state/module 與 code 關係整理出來；沒有明確對應者保持空白。</p>
+  <table>
+    <thead><tr><th>版本</th><th>對應 state / module</th><th>和 code 的關係</th></tr></thead>
+    <tbody><tr><td>Single FSM</td><td>S_OTSU_SCAN → S_OTSU_CMP2</td><td>用多個 state 分段計算 Otsu，最後得到最佳 threshold otsu_t</td></tr>
+<tr><td>Modular v21</td><td>threshold_v21_fast</td><td>掃描 threshold candidate，使用 cross multiplication 比較 Otsu score</td></tr>
+<tr><td>Single Submit</td><td>threshold state 3</td><td>掃描 threshold candidate，使用 cross multiplication 比較 Otsu score</td></tr></tbody>
+  </table>
+</section>
+
+<section class="section">
+  <h2>三個版本在此流程中的比較內容說明</h2>
+  <p class="compare-text">在「Otsu Thresholding」流程中，三個版本都能對應到功能實作，但組織方式不同。Single FSM 版把功能集中在 S_OTSU_SCAN → S_OTSU_CMP2，屬於 state-level 的集中控制。Modular v21 版對應到 threshold_v21_fast，通常由 top FSM 啟動特定子模組處理。Single Submit 版對應到 threshold state 3，雖然整份 code 合併在同一個檔案中，但功能仍由相對應的 module 或 internal state 完成。因此比較重點不是功能有沒有做，而是硬體排程方式、記憶體控制權與模組邊界不同。</p>
+</section>
+
+<section class="section">
+  <h2>整個流程的三個版本程式比較</h2>
+  <p>下方採用下拉式區塊顯示。中文說明放在程式碼上方；原始程式碼本身沒有修改、沒有插入註解。若某份檔案沒有明確對應流程，該程式碼區塊保持空白。</p>
+  <div class="topnav">
+    <button class="btn" onclick="toggleAll(true)">全部展開</button>
+    <button class="btn" onclick="toggleAll(false)">全部收合</button>
+  </div>
+  <div class="accordion-wrap">
+<details class="code-detail" open>
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 1 · 版本一：drawBbox.v 單一 FSM 版</span>
+    <button class="copybtn" data-copy="code-single_fsm-12-otsu-thresholding" onclick="event.preventDefault(); copyCode('code-single_fsm-12-otsu-thresholding')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中對應到 S_OTSU_SCAN → S_OTSU_CMP2。用多個 state 分段計算 Otsu，最後得到最佳 threshold otsu_t。
+    <div class="code-meta">drawBbox(21).v · lines 595-607</div>
+  </div>
+  <pre><code id="code-single_fsm-12-otsu-thresholding">                S_OTSU_SCAN: begin
+                    // V19 stage 0: prepare histogram accumulators and first multiply.
+                    // wb_next/sum_b_next are registered and reused in the following Otsu stages.
+                    otsu_idx32  &lt;= {24&#x27;d0, otsu_idx};
+                    wb_next     &lt;= wb_acc + hist[otsu_idx];
+                    sum_b_next  &lt;= sum_b_acc + ({24&#x27;d0, otsu_idx} * hist[otsu_idx]);
+
+                    // lhs48 = sum_total * wb_next
+                    otsu_mul_a  &lt;= {98&#x27;d0, sum_total};
+                    otsu_mul_b  &lt;= {32&#x27;d0, (wb_acc + hist[otsu_idx])};
+                    state       &lt;= S_OTSU_LHS;
+                end
+</code></pre>
+</details>
+
+<details class="code-detail" >
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 2 · 版本二：drawBbox_declaration_comments_v1.v</span>
+    <button class="copybtn" data-copy="code-modular_v21-12-otsu-thresholding" onclick="event.preventDefault(); copyCode('code-modular_v21-12-otsu-thresholding')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中對應到 threshold_v21_fast。掃描 threshold candidate，使用 cross multiplication 比較 Otsu score。
+    <div class="code-meta">drawBbox_declaration_comments_v1(1).v · lines 1-116</div>
+  </div>
+  <pre><code id="code-modular_v21-12-otsu-thresholding">`timescale 1ns/1ps
+// ============================================================================
+// File        : drawBbox_report_style_clean_v1.v
+// Module      : drawBbox
+// Lab         : iVCAD Lab7 - Draw Bounding Box
+//
+// Design summary
+//   This RTL keeps a single public submit file while separating the image
+//   processing flow into four hardware stages.  The top module is responsible
+//   only for stage scheduling and SRAM/ROM ownership selection.  The arithmetic
+//   and image-processing operations stay inside their corresponding stage
+//   modules so that the synthesis tool can optimize smaller logic cones.
+//
+// Processing flow
+//   1. threshold_v21_fast : RGB-to-gray conversion, 3x3 Gaussian smoothing,
+//                           histogram accumulation, and Otsu threshold search.
+//   2. polarity_v21_fast  : foreground polarity decision using the number of
+//                           pixels above/below the selected threshold.
+//   3. ccl_v21_fast       : connected-component labeling and equivalence-table
+//                           resolution.
+//   4. boxing_v21_fast    : bounding-box coordinate extraction and green box
+//                           overlay on the final output image.
+//
+// Fixed-point arithmetic notes
+//   Grayscale conversion is implemented as an integer approximation of
+//       Gray = 0.299R + 0.587G + 0.114B
+//   using Q16 coefficients:
+//       Gray = round_even((19595R + 38470G + 7471B) / 65536)
+//
+//   Gaussian smoothing uses the separable 3x3 kernel
+//       [1 2 1; 2 4 2; 1 2 1] / 16
+//   and is implemented with shifts and additions instead of multipliers.
+//
+//   Otsu score comparison avoids direct division in the critical comparison by
+//   using cross multiplication:
+//       score(T) = numerator(T) / denominator(T)
+//       score(a) &gt;= score(b)  &lt;=&gt;  numerator(a)*denominator(b)
+//                                 &gt;= numerator(b)*denominator(a)
+//
+// Interface note
+//   The external top-module name and ports are intentionally unchanged so the
+//   original Lab7 testbench can instantiate this design without modification.
+// ============================================================================
+module drawBbox (
+    input      clk, // 系統時脈輸入
+    input      rst, // 同步或非同步重置信號
+    input      enable, // 啟動整體影像處理流程
+    output     done, // 輸出完成旗標
+    // ImgROM
+    input      [31:0] Img_Q, // ImgROM 讀回的 32-bit RGB pixel
+    output            Img_CEN, // ImgROM 低有效 chip enable
+    output reg [15:0] Img_A, // ImgROM 讀取位址
+    // UrSRAM
+    input       [31:0] Ur_Q, // UrSRAM 讀回資料
+    output             Ur_CEN, // UrSRAM 低有效 chip enable
+    output             Ur_WEN, // UrSRAM 讀寫控制，0 為寫入、1 為讀取
+    output      [15:0] Ur_A, // UrSRAM 存取位址
+    output      [31:0] Ur_D, // UrSRAM 寫入資料
+    // AnsSRAM
+    input      [31:0] Ans_Q, // AnsSRAM 讀回資料
+    output            Ans_CEN, // AnsSRAM 低有效 chip enable
+    output            Ans_WEN, // AnsSRAM 讀寫控制，0 為寫入、1 為讀取
+    output     [31:0] Ans_D, // AnsSRAM 寫入資料
+    output     [15:0] Ans_A // AnsSRAM 存取位址
+);
+// ---------------------------------------------------------------------------
+// Top-level stage controller
+//   The top FSM grants memory ownership to exactly one processing stage at a
+//   time.  Each stage receives a one-cycle start pulse only after the FSM has
+//   entered that stage, preventing a submodule from using a stale bus owner.
+// ---------------------------------------------------------------------------
+localparam ST_IDLE  = 3&#x27;d0; // FSM 狀態或常數參數宣告
+localparam ST_THRES = 3&#x27;d1; // FSM 狀態或常數參數宣告
+localparam ST_POL   = 3&#x27;d2; // FSM 狀態或常數參數宣告
+localparam ST_CCL   = 3&#x27;d3; // FSM 狀態或常數參數宣告
+localparam ST_BOX   = 3&#x27;d4; // FSM 狀態或常數參數宣告
+wire box_done; // bounding-box stage 完成旗標
+reg [2:0] state, next_state; // 目前 top FSM 狀態
+reg [2:0] state_d; // 前一拍 top FSM 狀態，用於產生 start pulse
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
+        state   &lt;= ST_IDLE;
+        state_d &lt;= ST_IDLE;
+    end else begin
+        state_d &lt;= state;
+        state   &lt;= next_state;
+    end
+end
+// Stage-aligned one-cycle start pulses.
+// A pulse is generated on the first cycle after the top controller changes
+// stage, so the memory mux and control path are already consistent.
+wire start_thres = (state == ST_THRES) &amp;&amp; (state_d != ST_THRES); // 子模組 one-cycle start pulse 控制信號
+wire start_pol   = (state == ST_POL)   &amp;&amp; (state_d != ST_POL); // 子模組 one-cycle start pulse 控制信號
+wire start_ccl   = (state == ST_CCL)   &amp;&amp; (state_d != ST_CCL); // 子模組 one-cycle start pulse 控制信號
+wire start_box   = (state == ST_BOX)   &amp;&amp; (state_d != ST_BOX); // 子模組 one-cycle start pulse 控制信號
+// ---------------------------------------------------------------------------
+// Stage 1: grayscale, Gaussian filter, histogram, and Otsu threshold search
+// ---------------------------------------------------------------------------
+wire [7:0] threshold; // Otsu 計算後的 8-bit threshold
+wire thres_done; // threshold stage 完成旗標
+wire thres_img_cen; // 記憶體 chip enable 控制信號
+wire [15:0] thres_img_addr; // 記憶體位址匯流排信號
+wire thres_ur_cen; // 記憶體 chip enable 控制信號
+wire thres_ur_wen; // SRAM 讀寫控制信號
+wire [15:0] thres_ur_a; // 記憶體位址匯流排信號
+wire [31:0] thres_ur_d; // 資料寫入或中間資料匯流排信號
+threshold_v21_fast thres(
+    .clk(clk),
+    .rst(rst),
+    .start(start_thres), // top-state aligned 1-cycle start pulse
+    .Threshold(threshold),
+    .done(thres_done),
+    .Img_Q(Img_Q),
+    .Img_CEN(thres_img_cen),
+    .Img_addr(thres_img_addr),
+    .Ur_Q(Ur_Q),</code></pre>
+</details>
+
+<details class="code-detail" >
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 3 · 版本三：drawBbox_single_submit.v</span>
+    <button class="copybtn" data-copy="code-single_submit-12-otsu-thresholding" onclick="event.preventDefault(); copyCode('code-single_submit-12-otsu-thresholding')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中對應到 threshold state 3。掃描 threshold candidate，使用 cross multiplication 比較 Otsu score。
+    <div class="code-meta">drawBbox_single_submit(6).v · 此流程沒有明確對應程式片段</div>
+  </div>
+  <div class="blank-code" id="code-single_submit-12-otsu-thresholding"></div>
+</details>
+</div>
+</section>
+
+</div>
+<div class="footer">drawBbox multi-page repack site · original Verilog files are copied unchanged in assets/code/</div>
+</body>
+</html>

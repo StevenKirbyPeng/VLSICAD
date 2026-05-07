@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Step 30 Small Object Filtering</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<script src="../assets/js/main.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Step 30</span>
+  <h1>Small Object Filtering</h1>
+  <p class="lead">排除過小或疑似雜訊的物件。</p>
+  <div class="topnav"><a class="btn" href="../index.html">回首頁</a><a class="btn" href="29-large-object-filtering.html">上一個：29</a><a class="btn" href="31-bounding-box-overlay.html">下一個：31</a></div>
+</header>
+
+<section class="section">
+  <h2>SVG 流程圖</h2>
+  <div class="svgbox"><img src="../assets/svg/30-small-object-filtering.svg" alt="Small Object Filtering SVG"></div>
+</section>
+
+<section class="section">
+  <h2>比較的方法.docx 對應表</h2>
+  <p>此表把本流程在三個版本中的 state/module 與 code 關係整理出來；沒有明確對應者保持空白。</p>
+  <table>
+    <thead><tr><th>版本</th><th>對應 state / module</th><th>和 code 的關係</th></tr></thead>
+    <tbody><tr><td>Single FSM</td><td></td><td></td></tr>
+<tr><td>Modular v21</td><td></td><td></td></tr>
+<tr><td>Single Submit</td><td>boxing BOX_IDLE</td><td>如果寬高太小，例如寬或高沒有大於 10，就跳過</td></tr></tbody>
+  </table>
+</section>
+
+<section class="section">
+  <h2>三個版本在此流程中的比較內容說明</h2>
+  <p class="compare-text">在「Small Object Filtering」流程中，並非三個版本都有獨立而明確的程式段落。Single FSM 版沒有獨立顯示此流程，可能被合併在其他 state 中，或不需要此階段。Modular v21 版沒有明確獨立此流程，可能由子模組內部合併處理，或該架構不採用此額外階段。Single Submit 版有明確對應，主要在 boxing BOX_IDLE 完成，說明為：如果寬高太小，例如寬或高沒有大於 10，就跳過。這種差異通常來自架構選擇：單一 FSM 會把多個小步驟合併在同一段 state；模組化版本則傾向把功能交給特定子模組；single_submit 則在單檔中保留 module-level 階段。</p>
+</section>
+
+<section class="section">
+  <h2>整個流程的三個版本程式比較</h2>
+  <p>下方採用下拉式區塊顯示。中文說明放在程式碼上方；原始程式碼本身沒有修改、沒有插入註解。若某份檔案沒有明確對應流程，該程式碼區塊保持空白。</p>
+  <div class="topnav">
+    <button class="btn" onclick="toggleAll(true)">全部展開</button>
+    <button class="btn" onclick="toggleAll(false)">全部收合</button>
+  </div>
+  <div class="accordion-wrap">
+<details class="code-detail" open>
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 1 · 版本一：drawBbox.v 單一 FSM 版</span>
+    <button class="copybtn" data-copy="code-single_fsm-30-small-object-filtering" onclick="event.preventDefault(); copyCode('code-single_fsm-30-small-object-filtering')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中沒有明確獨立段落，可能被合併在其他 state/module 中，或此架構不需要此流程；因此下方原始碼區塊依需求保持空白。
+    <div class="code-meta">drawBbox(21).v · 此流程沒有明確對應程式片段</div>
+  </div>
+  <div class="blank-code" id="code-single_fsm-30-small-object-filtering"></div>
+</details>
+
+<details class="code-detail" >
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 2 · 版本二：drawBbox_declaration_comments_v1.v</span>
+    <button class="copybtn" data-copy="code-modular_v21-30-small-object-filtering" onclick="event.preventDefault(); copyCode('code-modular_v21-30-small-object-filtering')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中沒有明確獨立段落，可能被合併在其他 state/module 中，或此架構不需要此流程；因此下方原始碼區塊依需求保持空白。
+    <div class="code-meta">drawBbox_declaration_comments_v1(1).v · 此流程沒有明確對應程式片段</div>
+  </div>
+  <div class="blank-code" id="code-modular_v21-30-small-object-filtering"></div>
+</details>
+
+<details class="code-detail" >
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 3 · 版本三：drawBbox_single_submit.v</span>
+    <button class="copybtn" data-copy="code-single_submit-30-small-object-filtering" onclick="event.preventDefault(); copyCode('code-single_submit-30-small-object-filtering')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中對應到 boxing BOX_IDLE。如果寬高太小，例如寬或高沒有大於 10，就跳過。
+    <div class="code-meta">drawBbox_single_submit(6).v · lines 841-1021</div>
+  </div>
+  <pre><code id="code-single_submit-30-small-object-filtering">                new_label &lt;= 10&#x27;d1;
+                buffer_count &lt;= 8&#x27;d0;
+                pixel_idx_write &lt;= 16&#x27;d0;
+                write_done &lt;= 1&#x27;b0;
+                write_finish &lt;= 1&#x27;b0;
+                flatten_idx &lt;= 10&#x27;d1;
+                ans_addr &lt;= 16&#x27;d0;
+                write_pass_2_done &lt;= 1&#x27;b0;
+                write_pass_2_finish &lt;= 1&#x27;b0;
+                consecutive_label &lt;= 10&#x27;d1;
+                ans_wen &lt;= 1&#x27;b1;
+                ans_cen &lt;= 1&#x27;b1;
+                ans_D &lt;= 32&#x27;d0;
+                labeler_done &lt;= 1&#x27;b0;
+                buffer_done &lt;= 1&#x27;b0;
+                flatten_done &lt;= 1&#x27;b0;
+                READ_PASS_1_done &lt;= 1&#x27;b0;
+                read_pass_2_done &lt;= 1&#x27;b0;
+                pass2_addr &lt;= 16&#x27;d0;
+read_1_pixel &lt;= 16&#x27;d0;
+buffer_count_read &lt;= 8&#x27;d0;
+            end
+            READ_PASS_1:begin
+                if(write_done_d) begin
+                    pixel_idx_write &lt;= pixel_idx_write + 16&#x27;d1;
+                    for(j = 0;j &lt; 256; j = j+1)begin
+                        line_buffer[j] &lt;= label_buffer[j];
+                        //line_buffer[j] &lt;= line_buffer[j+256]; // -----------------------
+                    end
+                end else begin
+                    img_cen &lt;= 1&#x27;b0;
+                    img_addr &lt;= read_1_pixel;
+                    if(read_1_pixel[7:0] &lt; 8&#x27;d255)read_1_pixel &lt;= read_1_pixel + 16&#x27;d1;
+                    //if(img_addr[7:0] &lt; 8&#x27;d255)img_addr &lt;= img_addr + 16&#x27;d1;
+                    // input img (waiting two clock let the signal in)
+                    // start from row1 of buffer because the first row of picture would all be 0
+                    if(!img_cen_d)begin
+                        if(buffer_count_read &lt; 8&#x27;d255)begin
+                            line_buffer[{1&#x27;b1,buffer_count_read}] &lt;= bin_img_Q;
+                            buffer_count_read &lt;= buffer_count_read + 8&#x27;d1;
+                            READ_PASS_1_done &lt;= 1&#x27;b0;
+                        end else begin
+                            line_buffer[{1&#x27;b1,8&#x27;d255}] &lt;= bin_img_Q;
+                            READ_PASS_1_done &lt;= 1&#x27;b1;
+                            buffer_count &lt;= 8&#x27;d0;
+                        end
+                    end
+                end
+            end
+            WRITE_PASS_1:begin
+                if(READ_PASS_1_done)begin
+                    buffer_count_read &lt;= 8&#x27;d0;
+                    READ_PASS_1_done &lt;= 1&#x27;b0;
+                    img_cen &lt;= 1&#x27;b1;
+                end else begin
+                    if(buffer_done)begin
+                        buffer_count &lt;= 8&#x27;d0;
+                        ans_wen &lt;= 1&#x27;b0;
+                        ans_cen &lt;= 1&#x27;b0;
+                        ans_addr &lt;= pixel_idx_write;
+                        ans_D &lt;= {22&#x27;d0, label_buffer[pixel_idx_write[7:0]]};
+                        //ans_D &lt;= {22&#x27;d0, line_buffer[pixel_idx_write[7:0]]}; // ---------------
+                        if(pixel_idx_write[7:0] &lt; 8&#x27;d255)begin
+                            pixel_idx_write &lt;= pixel_idx_write + 16&#x27;d1;
+                        end else begin
+                            write_done &lt;= 1&#x27;b1;
+                            buffer_done &lt;= 1&#x27;b0;
+                            read_1_pixel &lt;= read_1_pixel + 16&#x27;d1;
+                            //buffer_count &lt;= 8&#x27;d0;
+                        end
+                        if(ans_addr == 16&#x27;d65535)begin
+                            write_finish&lt;= 1&#x27;b1;
+                            ans_wen &lt;= 1&#x27;b1;
+                        end
+                    end else if (write_done) begin
+                        // 🛑 終極解藥：捕捉幽靈週期！ 🛑
+                        // 當硬體準備切換到 READ_PASS_1 時，會有一拍的延遲掉進這裡。
+                        // 我們在這裡把 write_done 降下來，並且「不執行任何 CCL 運算」，保護 eq_table！
+                        write_done &lt;= 1&#x27;b0;
+                    end else if (!write_finish) begin
+                        ans_wen &lt;= 1&#x27;b1;
+                        ans_cen &lt;= 1&#x27;b1;
+                        write_done &lt;= 1&#x27;b0;
+                        // neighbor are all 0, so give it a new label
+                        if(line_buffer[{1&#x27;b1,buffer_count}])begin
+                            if(!neighbor_N &amp;&amp; !neighbor_NE &amp;&amp; !neighbor_NW &amp;&amp; !neighbor_W)begin
+                                label_buffer[buffer_count] &lt;= new_label;
+                                //line_buffer[buffer_count] &lt;= new_label; // -------------
+                                //line_buffer[{1&#x27;b1,buffer_count}] &lt;= new_label;
+                                new_label &lt;= new_label + 10&#x27;d1;
+                            // neighbor at least one is nonzero, so give it the smallest label, and equive all nonzero label
+                            end else begin
+                                //line_buffer[{1&#x27;b1, buffer_count}] &lt;= min_neighbor;
+                                label_buffer[buffer_count] &lt;= min_neighbor;
+                                //line_buffer[buffer_count] &lt;= min_neighbor; // ---------------------
+                                /*if (neighbor_W  != 0 &amp;&amp; neighbor_W  != min_neighbor) eq_table[neighbor_W]  &lt;= min_neighbor;
+                                if (neighbor_NW != 0 &amp;&amp; neighbor_NW != min_neighbor) eq_table[neighbor_NW] &lt;= min_neighbor;
+                                if (neighbor_N  != 0 &amp;&amp; neighbor_N  != min_neighbor) eq_table[neighbor_N]  &lt;= min_neighbor;
+                                if (neighbor_NE != 0 &amp;&amp; neighbor_NE != min_neighbor) eq_table[neighbor_NE] &lt;= min_neighbor;*/
+                                // ✨ 終極完全體：保護樹根的 Heuristic 合併法
+                                if (neighbor_W  != 0 &amp;&amp; neighbor_W  != min_neighbor) eq_table[eq_table[neighbor_W]]  &lt;= min_neighbor;
+                                if (neighbor_NW != 0 &amp;&amp; neighbor_NW != min_neighbor) eq_table[eq_table[neighbor_NW]] &lt;= min_neighbor;
+                                if (neighbor_N  != 0 &amp;&amp; neighbor_N  != min_neighbor) eq_table[eq_table[neighbor_N]]  &lt;= min_neighbor;
+                                if (neighbor_NE != 0 &amp;&amp; neighbor_NE != min_neighbor) eq_table[eq_table[neighbor_NE]] &lt;= min_neighbor;
+                            end
+                        end else begin
+                            //line_buffer[buffer_count] &lt;= 10&#x27;d0; // ------------------------
+                            label_buffer[buffer_count] &lt;= 10&#x27;d0;
+                        end
+                        if(buffer_count &lt; 8&#x27;d255)begin
+                            //buffer_done &lt;= 1&#x27;b0;
+                            buffer_count &lt;= buffer_count + 8&#x27;d1;
+                        end else begin
+                            buffer_done &lt;= 1&#x27;b1;
+                        end
+                    end
+                end
+            end
+            FLATTEN_TABLE:begin
+            ans_cen &lt;= 1&#x27;b1;
+            ans_wen &lt;= 1&#x27;b1;
+                img_addr &lt;= 16&#x27;d0;
+                if(flatten_idx &lt; new_label)begin
+                    // Situation A : it is a root
+
+                    if (eq_table[flatten_idx] == flatten_idx) begin
+                        eq_table[flatten_idx] &lt;= consecutive_label;
+                        consecutive_label &lt;= consecutive_label + 16&#x27;d1;
+                    // Situation B : it points to previous one
+                    end else begin
+                        eq_table[flatten_idx] &lt;= eq_table[eq_table[flatten_idx]];
+                    end
+                    flatten_idx &lt;= flatten_idx + 10&#x27;d1;
+                end else begin
+                    flatten_done &lt;= 1&#x27;b1;
+                end
+                ans_addr &lt;= 16&#x27;d0;
+            end
+            READ_PASS_2:begin
+                ans_cen &lt;= 1&#x27;b0;
+                ans_wen &lt;= 1&#x27;b1;
+                ans_addr &lt;= pass2_addr;
+                write_pass_2_done &lt;= 1&#x27;b0;
+                read_pass_2_done &lt;= 1&#x27;b1;
+            end
+            WRITE_PASS_2:begin
+                read_pass_2_done &lt;= 1&#x27;b0;
+                if(read_pass_2_done_d)begin
+                    if(pass2_addr == 16&#x27;d65535)begin
+                        ans_wen &lt;= 1&#x27;b0;
+                        ans_cen &lt;= 1&#x27;b0;
+                        ans_D &lt;= {16&#x27;d0, eq_table[ans_Q[15:0]]};
+                        write_pass_2_finish &lt;= 1&#x27;b1;
+                    end else begin
+                        ans_wen &lt;= 1&#x27;b0;
+                        ans_cen &lt;= 1&#x27;b0;
+                        pass2_addr &lt;= pass2_addr + 16&#x27;d1;
+                        ans_D &lt;= {16&#x27;d0, eq_table[ans_Q[15:0]]};
+                        write_pass_2_done &lt;= 1&#x27;b1;
+                    end
+                end
+            end
+            DONE:begin
+                ans_cen &lt;= 1&#x27;b1;
+                ans_wen &lt;= 1&#x27;b1;
+                labeler_done&lt;= 1&#x27;b1;
+            end
+        endcase
+    end
+end
+
+endmodule
+
+// ================================================================
+// Source: boxing.v
+// ================================================================
+
+module boxing(
+    input      clk,
+    input      rst,
+    input      enable,</code></pre>
+</details>
+</div>
+</section>
+
+</div>
+<div class="footer">drawBbox multi-page repack site · original Verilog files are copied unchanged in assets/code/</div>
+</body>
+</html>

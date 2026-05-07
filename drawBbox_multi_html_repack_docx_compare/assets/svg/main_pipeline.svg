@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1450 270">
+<defs>
+<linearGradient id="g" x1="0" x2="1"><stop offset="0%" stop-color="#6ee7b7"/><stop offset="100%" stop-color="#79e6ff"/></linearGradient>
+<filter id="s"><feDropShadow dx="0" dy="9" stdDeviation="9" flood-color="#000" flood-opacity=".28"/></filter>
+<style>.t{font:800 28px Arial;fill:#eef5ff}.l{font:800 14px Arial;fill:#08111f}.n{font:800 12px Arial;fill:#0b1630}</style>
+</defs>
+<rect width="1450" height="270" rx="30" fill="#0b1630"/>
+<text x="725.0" y="42" text-anchor="middle" class="t">drawBbox Flow Part 1</text>
+<rect x="38.0" y="86" width="98.0" height="94" rx="18" fill="url(#g)" filter="url(#s)"/>
+<circle cx="62.0" cy="110" r="15" fill="rgba(255,255,255,.55)"/>
+<text x="62.0" y="114" text-anchor="middle" class="n">1</text>
+<text x="87.0" y="138" text-anchor="middle" class="l">Input</text>
+<path d="M 140.0 133 L 150.0 133" stroke="#dbeafe" stroke-width="4" stroke-linecap="round"/>
+<path d="M 150.0 133 l -9 -7 v 14 z" fill="#dbeafe"/>
+<rect x="154.0" y="86" width="98.0" height="94" rx="18" fill="url(#g)" filter="url(#s)"/>
+<circle cx="178.0" cy="110" r="15" fill="rgba(255,255,255,.55)"/>
+<text x="178.0" y="114" text-anchor="middle" class="n">2</text>
+<text x="203.0" y="138" text-anchor="middle" class="l">RGB-to-Gray</text>
+<path d="M 256.0 133 L 266.0 133" stroke="#dbeafe" stroke-width="4" stroke-linecap="round"/>
+<path d="M 266.0 133 l -9 -7 v 14 z" fill="#dbeafe"/>
+<rect x="270.0" y="86" width="98.0" height="94" rx="18" fill="url(#g)" filter="url(#s)"/>
+<circle cx="294.0" cy="110" r="15" fill="rgba(255,255,255,.55)"/>
+<text x="294.0" y="114" text-anchor="middle" class="n">3</text>
+<text x="319.0" y="138" text-anchor="middle" class="l">Original</text>
+<text x="319.0" y="158" text-anchor="middle" class="l">Image Backup</text>
+<path d="M 372.0 133 L 382.0 133" stroke="#dbeafe" stroke-width="4" stroke-linecap="round"/>
+<path d="M 382.0 133 l -9 -7 v 14 z" fill="#dbeafe"/>
+<rect x="386.0" y="86" width="98.0" height="94" rx="18" fill="url(#g)" filter="url(#s)"/>
+<circle cx="410.0" cy="110" r="15" fill="rgba(255,255,255,.55)"/>
+<text x="410.0" y="114" text-anchor="middle" class="n">4</text>
+<text x="435.0" y="138" text-anchor="middle" class="l">Histogram</text>
+<text x="435.0" y="158" text-anchor="middle" class="l">Initialization</text>
+<path d="M 488.0 133 L 498.0 133" stroke="#dbeafe" stroke-width="4" stroke-linecap="round"/>
+<path d="M 498.0 133 l -9 -7 v 14 z" fill="#dbeafe"/>
+<rect x="502.0" y="86" width="98.0" height="94" rx="18" fill="url(#g)" filter="url(#s)"/>
+<circle cx="526.0" cy="110" r="15" fill="rgba(255,255,255,.55)"/>
+<text x="526.0" y="114" text-anchor="middle" class="n">5</text>
+<text x="551.0" y="138" text-anchor="middle" class="l">Line</text>
+<text x="551.0" y="158" text-anchor="middle" class="l">Buffer Initialization</text>
+<path d="M 604.0 133 L 614.0 133" stroke="#dbeafe" stroke-width="4" stroke-linecap="round"/>
+<path d="M 614.0 133 l -9 -7 v 14 z" fill="#dbeafe"/>
+<rect x="618.0" y="86" width="98.0" height="94" rx="18" fill="url(#g)" filter="url(#s)"/>
+<circle cx="642.0" cy="110" r="15" fill="rgba(255,255,255,.55)"/>
+<text x="642.0" y="114" text-anchor="middle" class="n">6</text>
+<text x="667.0" y="138" text-anchor="middle" class="l">Gaussian</text>
+<text x="667.0" y="158" text-anchor="middle" class="l">Window Fetch</text>
+<path d="M 720.0 133 L 730.0 133" stroke="#dbeafe" stroke-width="4" stroke-linecap="round"/>
+<path d="M 730.0 133 l -9 -7 v 14 z" fill="#dbeafe"/>
+<rect x="734.0" y="86" width="98.0" height="94" rx="18" fill="url(#g)" filter="url(#s)"/>
+<circle cx="758.0" cy="110" r="15" fill="rgba(255,255,255,.55)"/>
+<text x="758.0" y="114" text-anchor="middle" class="n">7</text>
+<text x="783.0" y="138" text-anchor="middle" class="l">Gaussian</text>
+<text x="783.0" y="158" text-anchor="middle" class="l">Filtering</text>
+<path d="M 836.0 133 L 846.0 133" stroke="#dbeafe" stroke-width="4" stroke-linecap="round"/>
+<path d="M 846.0 133 l -9 -7 v 14 z" fill="#dbeafe"/>
+<rect x="850.0" y="86" width="98.0" height="94" rx="18" fill="url(#g)" filter="url(#s)"/>
+<circle cx="874.0" cy="110" r="15" fill="rgba(255,255,255,.55)"/>
+<text x="874.0" y="114" text-anchor="middle" class="n">8</text>
+<text x="899.0" y="138" text-anchor="middle" class="l">Line Buffer</text>
+<text x="899.0" y="158" text-anchor="middle" class="l">Row Update</text>
+<path d="M 952.0 133 L 962.0 133" stroke="#dbeafe" stroke-width="4" stroke-linecap="round"/>
+<path d="M 962.0 133 l -9 -7 v 14 z" fill="#dbeafe"/>
+<rect x="966.0" y="86" width="98.0" height="94" rx="18" fill="url(#g)" filter="url(#s)"/>
+<circle cx="990.0" cy="110" r="15" fill="rgba(255,255,255,.55)"/>
+<text x="990.0" y="114" text-anchor="middle" class="n">9</text>
+<text x="1015.0" y="138" text-anchor="middle" class="l">Gaussian Gray</text>
+<text x="1015.0" y="158" text-anchor="middle" class="l">Write to UrSRAM</text>
+<path d="M 1068.0 133 L 1078.0 133" stroke="#dbeafe" stroke-width="4" stroke-linecap="round"/>
+<path d="M 1078.0 133 l -9 -7 v 14 z" fill="#dbeafe"/>
+<rect x="1082.0" y="86" width="98.0" height="94" rx="18" fill="url(#g)" filter="url(#s)"/>
+<circle cx="1106.0" cy="110" r="15" fill="rgba(255,255,255,.55)"/>
+<text x="1106.0" y="114" text-anchor="middle" class="n">10</text>
+<text x="1131.0" y="138" text-anchor="middle" class="l">Histogram</text>
+<text x="1131.0" y="158" text-anchor="middle" class="l">Construction</text>
+<path d="M 1184.0 133 L 1194.0 133" stroke="#dbeafe" stroke-width="4" stroke-linecap="round"/>
+<path d="M 1194.0 133 l -9 -7 v 14 z" fill="#dbeafe"/>
+<rect x="1198.0" y="86" width="98.0" height="94" rx="18" fill="url(#g)" filter="url(#s)"/>
+<circle cx="1222.0" cy="110" r="15" fill="rgba(255,255,255,.55)"/>
+<text x="1222.0" y="114" text-anchor="middle" class="n">11</text>
+<text x="1247.0" y="138" text-anchor="middle" class="l">Otsu</text>
+<text x="1247.0" y="158" text-anchor="middle" class="l">Initialization</text>
+<path d="M 1300.0 133 L 1310.0 133" stroke="#dbeafe" stroke-width="4" stroke-linecap="round"/>
+<path d="M 1310.0 133 l -9 -7 v 14 z" fill="#dbeafe"/>
+<rect x="1314.0" y="86" width="98.0" height="94" rx="18" fill="url(#g)" filter="url(#s)"/>
+<circle cx="1338.0" cy="110" r="15" fill="rgba(255,255,255,.55)"/>
+<text x="1338.0" y="114" text-anchor="middle" class="n">12</text>
+<text x="1363.0" y="138" text-anchor="middle" class="l">Otsu</text>
+<text x="1363.0" y="158" text-anchor="middle" class="l">Thresholding</text>
+</svg>

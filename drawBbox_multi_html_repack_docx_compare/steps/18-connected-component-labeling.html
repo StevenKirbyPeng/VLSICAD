@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Step 18 Connected Component Labeling</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<script src="../assets/js/main.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Step 18</span>
+  <h1>Connected Component Labeling</h1>
+  <p class="lead">將相連的 foreground pixels 標成同一個 component。</p>
+  <div class="topnav"><a class="btn" href="../index.html">回首頁</a><a class="btn" href="17-binary-mask-generation.html">上一個：17</a><a class="btn" href="19-connected-component-labeling-pass-1.html">下一個：19</a></div>
+</header>
+
+<section class="section">
+  <h2>SVG 流程圖</h2>
+  <div class="svgbox"><img src="../assets/svg/18-connected-component-labeling.svg" alt="Connected Component Labeling SVG"></div>
+</section>
+
+<section class="section">
+  <h2>比較的方法.docx 對應表</h2>
+  <p>此表把本流程在三個版本中的 state/module 與 code 關係整理出來；沒有明確對應者保持空白。</p>
+  <table>
+    <thead><tr><th>版本</th><th>對應 state / module</th><th>和 code 的關係</th></tr></thead>
+    <tbody><tr><td>Single FSM</td><td>S_CCL_SCAN</td><td>檢查 W, NW, N, NE 四個鄰居，執行 8-connected CCL</td></tr>
+<tr><td>Modular v21</td><td>ccl_v21_fast</td><td>使用 label buffer 和 equivalence table 做 CCL</td></tr>
+<tr><td>Single Submit</td><td></td><td></td></tr></tbody>
+  </table>
+</section>
+
+<section class="section">
+  <h2>三個版本在此流程中的比較內容說明</h2>
+  <p class="compare-text">在「Connected Component Labeling」流程中，並非三個版本都有獨立而明確的程式段落。Single FSM 版有明確對應，主要在 S_CCL_SCAN 完成，說明為：檢查 W, NW, N, NE 四個鄰居，執行 8-connected CCL。Modular v21 版有明確對應，主要在 ccl_v21_fast 完成，說明為：使用 label buffer 和 equivalence table 做 CCL。Single Submit 版沒有明確獨立此流程，對應原始碼區塊依需求保持空白。這種差異通常來自架構選擇：單一 FSM 會把多個小步驟合併在同一段 state；模組化版本則傾向把功能交給特定子模組；single_submit 則在單檔中保留 module-level 階段。</p>
+</section>
+
+<section class="section">
+  <h2>整個流程的三個版本程式比較</h2>
+  <p>下方採用下拉式區塊顯示。中文說明放在程式碼上方；原始程式碼本身沒有修改、沒有插入註解。若某份檔案沒有明確對應流程，該程式碼區塊保持空白。</p>
+  <div class="topnav">
+    <button class="btn" onclick="toggleAll(true)">全部展開</button>
+    <button class="btn" onclick="toggleAll(false)">全部收合</button>
+  </div>
+  <div class="accordion-wrap">
+<details class="code-detail" open>
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 1 · 版本一：drawBbox.v 單一 FSM 版</span>
+    <button class="copybtn" data-copy="code-single_fsm-18-connected-component-labeling" onclick="event.preventDefault(); copyCode('code-single_fsm-18-connected-component-labeling')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中對應到 S_CCL_SCAN。檢查 W, NW, N, NE 四個鄰居，執行 8-connected CCL。
+    <div class="code-meta">drawBbox(21).v · lines 764-805</div>
+  </div>
+  <pre><code id="code-single_fsm-18-connected-component-labeling">                S_CCL_SCAN: begin
+                    if (ccl_fg) begin
+                        if (ccl_new_label) begin
+                            parent[next_label]&lt;=next_label;
+                            bbox_valid[next_label] &lt;=1&#x27;b1;
+                            bbox_border[next_label]&lt;=((ccl_x==8&#x27;d0)||(ccl_x==8&#x27;d255)||(ccl_y==8&#x27;d0)||(ccl_y==8&#x27;d255));
+                            bbox_xmin[next_label]&lt;=ccl_x; bbox_xmax[next_label]&lt;=ccl_x;
+                            bbox_ymin[next_label]&lt;=ccl_y; bbox_ymax[next_label]&lt;=ccl_y;
+                            if (next_label&lt;MAX_LABEL_IDX) next_label&lt;=next_label+9&#x27;d1;
+                            else next_label&lt;=MAX_LABEL_IDX;
+                        end else begin
+                            union_pair(ccl_chosen_label,ccl_n_w);
+                            union_pair(ccl_chosen_label,ccl_n_nw);
+                            union_pair(ccl_chosen_label,ccl_n_n);
+                            union_pair(ccl_chosen_label,ccl_n_ne);
+                            update_bbox_task(ccl_chosen_label,ccl_x,ccl_y);
+                        end
+                    end
+
+                    nw_label_hold    &lt;= row_label[ccl_x];
+                    row_label[ccl_x] &lt;= cur_label_comb;
+                    left_label       &lt;= cur_label_comb;
+
+                    if (addr_cnt==NPIX_LAST) begin
+                        label_idx&lt;=9&#x27;d1; edge_stage&lt;=2&#x27;d0; edge_ctr&lt;=8&#x27;d0;
+                        addr_cnt&lt;=16&#x27;d0; req_cnt&lt;=17&#x27;d0;
+                        state&lt;=S_BBOX_INIT;
+                    end else if (ccl_x==8&#x27;d255) begin
+                        addr_cnt&lt;=addr_cnt+16&#x27;d1;
+                        // V16: explicitly reset left-side scan state at row boundary.
+                        left_label &lt;= 9&#x27;d0;
+                        nw_label_hold &lt;= 9&#x27;d0;
+                        // V16 reflect-101 bottom fix: for next y=255, below row must be reflect(256)=254.
+                        lb_row &lt;= (ccl_y==8&#x27;d254) ? 8&#x27;d254 : (ccl_y+8&#x27;d2);
+                        lb_col&lt;=8&#x27;d0; lb_phase&lt;=2&#x27;d0;
+                        state&lt;=S_LB_ROW2;
+                    end else addr_cnt&lt;=addr_cnt+16&#x27;d1;
+                end
+
+                // -----------------------------------------------
+                // S_LB_ROW2：CCL 跨列更新 line buffer，完成後回 S_CCL_SCAN
+                // -----------------------------------------------</code></pre>
+</details>
+
+<details class="code-detail" >
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 2 · 版本二：drawBbox_declaration_comments_v1.v</span>
+    <button class="copybtn" data-copy="code-modular_v21-18-connected-component-labeling" onclick="event.preventDefault(); copyCode('code-modular_v21-18-connected-component-labeling')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中對應到 ccl_v21_fast。使用 label buffer 和 equivalence table 做 CCL。
+    <div class="code-meta">drawBbox_declaration_comments_v1(1).v · lines 615-874</div>
+  </div>
+  <pre><code id="code-modular_v21-18-connected-component-labeling">module ccl_v21_fast(
+    input clk, // 系統時脈輸入
+    input rst, // 同步或非同步重置信號
+    input [7:0] threshold, // Otsu 計算後的 8-bit threshold
+    input labeler_en, // One-cycle start pulse for CCL stage
+    input polarity, // top/module 介面訊號宣告
+    // ImgRom (Read)
+    output reg img_cen, // Active-low ImgROM/UrSRAM read enable
+    output reg [15:0] img_addr, // top/module 介面訊號宣告
+    output  img_wen, // top/module 介面訊號宣告
+    input [31:0] img_Q, // top/module 介面訊號宣告
+    // AnsSRAM (Read &amp; Write)
+    output reg ans_cen, // Active-low AnsSRAM chip enable
+    output reg ans_wen, // AnsSRAM write enable, active low
+    output reg [15:0] ans_addr, // top/module 介面訊號宣告
+    output reg [31:0] ans_D, // top/module 介面訊號宣告
+    input [31:0] ans_Q, // top/module 介面訊號宣告
+    output reg labeler_done, // top/module 介面訊號宣告
+    output [9:0] total_label // top/module 介面訊號宣告
+);
+reg [9:0] consecutive_label; // 循序邏輯暫存器宣告
+assign total_label = consecutive_label - 10&#x27;d1;
+assign img_wen = 1&#x27;b1;
+// 0: amount less than thres is foreground
+// 1: amount more than thres is foreground
+reg pol; // 循序邏輯暫存器宣告
+// polarity
+always@(posedge clk or posedge rst)begin
+    if(rst)begin
+        pol&lt;= 1&#x27;b0;
+    end else if(labeler_en)begin
+        pol &lt;= polarity;
+    end
+end
+wire [31:0] bin_img_Q_light,bin_img_Q_dark,bin_img_Q; // 資料寫入或中間資料匯流排信號
+assign bin_img_Q_light = (img_Q[7:0] &lt;= threshold)? 32&#x27;d1: 32&#x27;d0;
+assign bin_img_Q_dark = (img_Q[7:0] &gt; threshold)? 32&#x27;d1: 32&#x27;d0;
+assign bin_img_Q = (pol)? bin_img_Q_dark:bin_img_Q_light;
+reg [2:0] state, next_state; // 目前 top FSM 狀態
+localparam IDLE = 3&#x27;b000; // FSM 狀態或常數參數宣告
+localparam READ_PASS_1 = 3&#x27;b001; // FSM 狀態或常數參數宣告
+localparam WRITE_PASS_1 = 3&#x27;b010; // FSM 狀態或常數參數宣告
+localparam FLATTEN_TABLE = 3&#x27;b011; // FSM 狀態或常數參數宣告
+localparam READ_PASS_2 = 3&#x27;b100; // FSM 狀態或常數參數宣告
+localparam WRITE_PASS_2 = 3&#x27;b101; // FSM 狀態或常數參數宣告
+localparam DONE = 3&#x27;b110; // FSM 狀態或常數參數宣告
+always@(posedge clk or posedge rst)begin
+    if(rst)begin
+        state &lt;= IDLE;
+    end else begin
+        state &lt;= next_state;
+    end
+end
+reg buffer_done; // 循序邏輯暫存器宣告
+reg READ_PASS_1_done; // 循序邏輯暫存器宣告
+reg flatten_done; // 循序邏輯暫存器宣告
+wire WRITE_PASS_1_read, WRITE_PASS_1_finish; // 組合邏輯連接信號宣告
+reg write_pass_2_finish; // 循序邏輯暫存器宣告
+reg write_pass_2_done; // 循序邏輯暫存器宣告
+reg read_pass_2_done,read_pass_2_done_d; // 循序邏輯暫存器宣告
+always@(*)begin
+    case(state)
+        IDLE:begin
+            if(labeler_en) next_state = READ_PASS_1;
+            else next_state = IDLE;
+        end
+        READ_PASS_1:begin
+            if(READ_PASS_1_done) next_state = WRITE_PASS_1;
+            else next_state = READ_PASS_1;
+        end
+        WRITE_PASS_1:begin
+            if(WRITE_PASS_1_finish) next_state = FLATTEN_TABLE;
+            else if(WRITE_PASS_1_read) next_state = READ_PASS_1;
+            else next_state = WRITE_PASS_1;
+        end
+        FLATTEN_TABLE:begin
+            if(flatten_done) next_state = READ_PASS_2;
+            else next_state = FLATTEN_TABLE;
+        end
+        READ_PASS_2:begin
+            next_state = WRITE_PASS_2;
+        end
+        WRITE_PASS_2:begin
+            if(write_pass_2_finish) next_state = DONE;
+            else if(write_pass_2_done) next_state = READ_PASS_2;
+            else next_state = WRITE_PASS_2;
+        end
+        DONE:begin
+            next_state = DONE;
+        end
+        default: next_state = IDLE;
+    endcase
+end
+reg write_done,write_finish; // 循序邏輯暫存器宣告
+reg img_cen_d; // 循序邏輯暫存器宣告
+reg img_cen_dd; // 循序邏輯暫存器宣告
+reg write_done_d; // 循序邏輯暫存器宣告
+always@(posedge clk or posedge rst)begin
+    if(rst)begin
+        write_done_d &lt;= 1&#x27;b0;
+        img_cen_d &lt;= 1&#x27;b0;
+img_cen_dd &lt;= 1&#x27;b0;
+        read_pass_2_done_d &lt;= 1&#x27;b0;
+    end else begin
+        write_done_d &lt;= write_done;
+        img_cen_d &lt;= img_cen;
+img_cen_dd &lt;= img_cen_d;
+        read_pass_2_done_d &lt;= read_pass_2_done;
+    end
+end
+reg [9:0] line_buffer [511:0]; // 循序邏輯暫存器宣告
+reg [7:0] buffer_count; // 循序邏輯暫存器宣告
+reg [9:0] new_label; // 循序邏輯暫存器宣告
+reg [15:0] pixel_idx_write; // 循序邏輯暫存器宣告
+integer i; // for-loop 或計數用途的整數變數宣告
+integer j; // for-loop 或計數用途的整數變數宣告
+integer k; // for-loop 或計數用途的整數變數宣告
+reg [9:0] label_buffer[255:0]; // 循序邏輯暫存器宣告
+wire [9:0] neighbor_W = (buffer_count == 8&#x27;d0) ? 10&#x27;d0 : label_buffer[buffer_count - 8&#x27;d1]; // 組合邏輯連接信號宣告
+// Optional debug reference for west-neighbor lookup.
+wire [9:0] neighbor_NW = (buffer_count == 8&#x27;d0)   ? 10&#x27;d0 : line_buffer[{1&#x27;b0, buffer_count - 8&#x27;d1}]; // 組合邏輯連接信號宣告
+wire [9:0] neighbor_N  =                                   line_buffer[{1&#x27;b0, buffer_count}]; // 組合邏輯連接信號宣告
+wire [9:0] neighbor_NE = (buffer_count == 8&#x27;d255) ? 10&#x27;d0 : line_buffer[{1&#x27;b0, buffer_count + 8&#x27;d1}]; // 組合邏輯連接信號宣告
+wire [9:0] min_NW_N = (neighbor_NW == 0) ? neighbor_N : // 組合邏輯連接信號宣告
+                      (neighbor_N == 0)  ? neighbor_NW :
+                      (neighbor_NW &lt; neighbor_N) ? neighbor_NW : neighbor_N;
+wire [9:0] min_NE_W = (neighbor_NE == 0) ? neighbor_W : // 組合邏輯連接信號宣告
+                      (neighbor_W == 0)  ? neighbor_NE :
+                      (neighbor_NE &lt; neighbor_W) ? neighbor_NE : neighbor_W;
+wire [9:0] min_neighbor = (min_NW_N == 0) ? min_NE_W : // 組合邏輯連接信號宣告
+                          (min_NE_W == 0) ? min_NW_N :
+                          (min_NW_N &lt; min_NE_W) ? min_NW_N : min_NE_W;
+reg [9:0] eq_table [1023:0]; // 循序邏輯暫存器宣告
+reg [9:0] flatten_idx; // 循序邏輯暫存器宣告
+//assign WRITE_PASS_1_read = (pixel_idx_write[7:0] == 8&#x27;d255 &amp;&amp; state == WRITE_PASS_1_read)? 1&#x27;b1 : 1&#x27;b0;
+assign WRITE_PASS_1_read = (write_done)? 1&#x27;b1 : 1&#x27;b0;
+assign WRITE_PASS_1_finish = (write_finish)? 1&#x27;b1 : 1&#x27;b0;
+reg [15:0] pass2_addr; // 位址暫存器宣告
+reg [15:0] read_1_pixel; // 循序邏輯暫存器宣告
+reg [7:0] buffer_count_read; // 循序邏輯暫存器宣告
+always@(posedge clk or posedge rst)begin
+    if(rst)begin
+        for(i = 0;i&lt;512;i = i+1)begin
+            line_buffer[i] &lt;= 10&#x27;d0;
+        end
+        for(j = 0; j&lt;1024; j = j+1)begin
+            eq_table[j] &lt;= 0;
+        end
+        img_cen &lt;= 1&#x27;b0;
+        img_addr &lt;= 16&#x27;b0;
+        buffer_count &lt;= 8&#x27;d0;
+        new_label &lt;= 10&#x27;d0;
+        pixel_idx_write &lt;= 16&#x27;d0;
+        write_done &lt;= 1&#x27;b0;
+        write_finish &lt;= 1&#x27;b0;
+        flatten_idx &lt;= 10&#x27;d0;
+        ans_addr &lt;= 16&#x27;d0;
+        write_pass_2_done &lt;= 1&#x27;b0;
+        write_pass_2_finish &lt;= 1&#x27;b0;
+        consecutive_label &lt;= 10&#x27;d0;
+        ans_wen &lt;= 1&#x27;b0;
+        ans_cen &lt;= 1&#x27;b0;
+        ans_D &lt;= 32&#x27;d0;
+        labeler_done &lt;= 1&#x27;b0;
+        buffer_done &lt;= 1&#x27;b0;
+        flatten_done &lt;= 1&#x27;b0;
+        READ_PASS_1_done &lt;= 1&#x27;b0;
+        read_pass_2_done &lt;= 1&#x27;b0;
+        pass2_addr &lt;= 16&#x27;d0;
+read_1_pixel &lt;= 16&#x27;d0;
+buffer_count_read &lt;= 8&#x27;d0;
+ for(k = 0; k&lt;256; k = k+1)begin
+                    label_buffer[k] &lt;= 10&#x27;d0;
+                end
+    end else begin
+        case(state)
+            IDLE:begin
+                for(i = 0;i&lt;512;i = i+1)begin
+                    line_buffer[i] &lt;= 10&#x27;d0;
+                end
+                for(j = 0; j&lt;1024; j = j+1)begin
+                    eq_table[j] &lt;= j;
+                end
+                for(k = 0; k&lt;256; k = k+1)begin
+                    label_buffer[k] &lt;= 10&#x27;d0;
+                end
+                img_cen &lt;= 1&#x27;b1;
+                img_addr &lt;= 16&#x27;d0;
+                new_label &lt;= 10&#x27;d1;
+                buffer_count &lt;= 8&#x27;d0;
+                pixel_idx_write &lt;= 16&#x27;d0;
+                write_done &lt;= 1&#x27;b0;
+                write_finish &lt;= 1&#x27;b0;
+                flatten_idx &lt;= 10&#x27;d1;
+                ans_addr &lt;= 16&#x27;d0;
+                write_pass_2_done &lt;= 1&#x27;b0;
+                write_pass_2_finish &lt;= 1&#x27;b0;
+                consecutive_label &lt;= 10&#x27;d1;
+                ans_wen &lt;= 1&#x27;b1;
+                ans_cen &lt;= 1&#x27;b1;
+                ans_D &lt;= 32&#x27;d0;
+                labeler_done &lt;= 1&#x27;b0;
+                buffer_done &lt;= 1&#x27;b0;
+                flatten_done &lt;= 1&#x27;b0;
+                READ_PASS_1_done &lt;= 1&#x27;b0;
+                read_pass_2_done &lt;= 1&#x27;b0;
+                pass2_addr &lt;= 16&#x27;d0;
+read_1_pixel &lt;= 16&#x27;d0;
+buffer_count_read &lt;= 8&#x27;d0;
+            end
+            READ_PASS_1:begin
+                if(write_done_d) begin
+                    pixel_idx_write &lt;= pixel_idx_write + 16&#x27;d1;
+                    for(j = 0;j &lt; 256; j = j+1)begin
+                        line_buffer[j] &lt;= label_buffer[j];
+                        // Shift the row buffer after finishing one row.
+                    end
+                end else begin
+                    img_cen &lt;= 1&#x27;b0;
+                    img_addr &lt;= read_1_pixel;
+                    if(read_1_pixel[7:0] &lt; 8&#x27;d255)read_1_pixel &lt;= read_1_pixel + 16&#x27;d1;
+                    //if(img_addr[7:0] &lt; 8&#x27;d255)img_addr &lt;= img_addr + 16&#x27;d1;
+                    // Read filtered gray value with SRAM latency alignment.
+                    // The first row is initialized as background padding for neighbor lookup.
+                    if(!img_cen_d)begin
+                        if(buffer_count_read &lt; 8&#x27;d255)begin
+                            line_buffer[{1&#x27;b1,buffer_count_read}] &lt;= bin_img_Q;
+                            buffer_count_read &lt;= buffer_count_read + 8&#x27;d1;
+                            READ_PASS_1_done &lt;= 1&#x27;b0;
+                        end else begin
+                            line_buffer[{1&#x27;b1,8&#x27;d255}] &lt;= bin_img_Q;
+                            READ_PASS_1_done &lt;= 1&#x27;b1;
+                            buffer_count &lt;= 8&#x27;d0;
+                        end
+                    end
+                end
+            end
+            WRITE_PASS_1:begin
+                if(READ_PASS_1_done)begin
+                    buffer_count_read &lt;= 8&#x27;d0;
+                    READ_PASS_1_done &lt;= 1&#x27;b0;
+                    img_cen &lt;= 1&#x27;b1;
+                end else begin
+                    if(buffer_done)begin
+                        buffer_count &lt;= 8&#x27;d0;
+                        ans_wen &lt;= 1&#x27;b0;
+                        ans_cen &lt;= 1&#x27;b0;
+                        ans_addr &lt;= pixel_idx_write;
+                        ans_D &lt;= {22&#x27;d0, label_buffer[pixel_idx_write[7:0]]};
+                        // Optional debug write of the current line-buffer label.
+                        if(pixel_idx_write[7:0] &lt; 8&#x27;d255)begin
+                            pixel_idx_write &lt;= pixel_idx_write + 16&#x27;d1;
+                        end else begin
+                            write_done &lt;= 1&#x27;b1;
+                            buffer_done &lt;= 1&#x27;b0;
+                            read_1_pixel &lt;= read_1_pixel + 16&#x27;d1;
+                            //buffer_count &lt;= 8&#x27;d0;
+                        end
+                        if(ans_addr == 16&#x27;d65535)begin
+                            write_finish&lt;= 1&#x27;b1;</code></pre>
+</details>
+
+<details class="code-detail" >
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 3 · 版本三：drawBbox_single_submit.v</span>
+    <button class="copybtn" data-copy="code-single_submit-18-connected-component-labeling" onclick="event.preventDefault(); copyCode('code-single_submit-18-connected-component-labeling')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中沒有明確獨立段落，可能被合併在其他 state/module 中，或此架構不需要此流程；因此下方原始碼區塊依需求保持空白。
+    <div class="code-meta">drawBbox_single_submit(6).v · lines 635-894</div>
+  </div>
+  <pre><code id="code-single_submit-18-connected-component-labeling">module ccl(
+    input clk,
+    input rst,
+    input [7:0] threshold,
+    input labeler_en, // to turn on labeler
+    input polarity,
+
+    // ImgRom (Read)
+    output reg img_cen, // to read ImgRom
+    output reg [15:0] img_addr,
+    output  img_wen,
+    input [31:0] img_Q,
+
+    // AnsSRAM (Read &amp; Write)
+    output reg ans_cen, // turn on SRAM
+    output reg ans_wen, // to write SRAM
+    output reg [15:0] ans_addr,
+    output reg [31:0] ans_D,
+    input [31:0] ans_Q,
+
+    output reg labeler_done,
+    output [9:0] total_label
+);
+reg [9:0] consecutive_label;
+assign total_label = consecutive_label - 10&#x27;d1;
+assign img_wen = 1&#x27;b1;
+// 0: amount less than thres is foreground
+// 1: amount more than thres is foreground
+reg pol;
+// polarity
+always@(posedge clk or posedge rst)begin
+    if(rst)begin
+        pol&lt;= 1&#x27;b0;
+    end else if(labeler_en)begin
+        pol &lt;= polarity;
+    end
+end
+wire [31:0] bin_img_Q_light,bin_img_Q_dark,bin_img_Q;
+assign bin_img_Q_light = (img_Q[7:0] &lt;= threshold)? 32&#x27;d1: 32&#x27;d0;
+assign bin_img_Q_dark = (img_Q[7:0] &gt; threshold)? 32&#x27;d1: 32&#x27;d0;
+assign bin_img_Q = (pol)? bin_img_Q_dark:bin_img_Q_light;
+
+reg [2:0] state, next_state;
+localparam IDLE = 3&#x27;b000;
+localparam READ_PASS_1 = 3&#x27;b001;
+localparam WRITE_PASS_1 = 3&#x27;b010;
+localparam FLATTEN_TABLE = 3&#x27;b011;
+localparam READ_PASS_2 = 3&#x27;b100;
+localparam WRITE_PASS_2 = 3&#x27;b101;
+localparam DONE = 3&#x27;b110;
+
+always@(posedge clk or posedge rst)begin
+    if(rst)begin
+        state &lt;= IDLE;
+    end else begin
+        state &lt;= next_state;
+    end
+end
+
+reg buffer_done;
+reg READ_PASS_1_done;
+reg flatten_done;
+wire WRITE_PASS_1_read, WRITE_PASS_1_finish;
+reg write_pass_2_finish;
+reg write_pass_2_done;
+reg read_pass_2_done,read_pass_2_done_d;
+
+always@(*)begin
+    case(state)
+        IDLE:begin
+            if(labeler_en) next_state = READ_PASS_1;
+            else next_state = IDLE;
+        end
+        READ_PASS_1:begin
+            if(READ_PASS_1_done) next_state = WRITE_PASS_1;
+            else next_state = READ_PASS_1;
+        end
+        WRITE_PASS_1:begin
+            if(WRITE_PASS_1_finish) next_state = FLATTEN_TABLE;
+            else if(WRITE_PASS_1_read) next_state = READ_PASS_1;
+            else next_state = WRITE_PASS_1;
+        end
+        FLATTEN_TABLE:begin
+            if(flatten_done) next_state = READ_PASS_2;
+            else next_state = FLATTEN_TABLE;
+        end
+        READ_PASS_2:begin
+            next_state = WRITE_PASS_2;
+        end
+        WRITE_PASS_2:begin
+            if(write_pass_2_finish) next_state = DONE;
+            else if(write_pass_2_done) next_state = READ_PASS_2;
+            else next_state = WRITE_PASS_2;
+        end
+        DONE:begin
+            next_state = DONE;
+        end
+        default: next_state = IDLE;
+    endcase
+end
+
+reg write_done,write_finish;
+reg img_cen_d;
+reg img_cen_dd;
+reg write_done_d;
+
+
+always@(posedge clk or posedge rst)begin
+    if(rst)begin
+        write_done_d &lt;= 1&#x27;b0;
+        img_cen_d &lt;= 1&#x27;b0;
+img_cen_dd &lt;= 1&#x27;b0;
+        read_pass_2_done_d &lt;= 1&#x27;b0;
+    end else begin
+        write_done_d &lt;= write_done;
+        img_cen_d &lt;= img_cen;
+img_cen_dd &lt;= img_cen_d;
+        read_pass_2_done_d &lt;= read_pass_2_done;
+    end
+end
+
+reg [9:0] line_buffer [511:0];
+reg [7:0] buffer_count;
+reg [9:0] new_label;
+reg [15:0] pixel_idx_write;
+
+
+
+integer i;
+integer j;
+integer k;
+reg [9:0] label_buffer[255:0];
+wire [9:0] neighbor_W = (buffer_count == 8&#x27;d0) ? 10&#x27;d0 : label_buffer[buffer_count - 8&#x27;d1];
+//wire [9:0] neighbor_W = (buffer_count == 8&#x27;d0) ? 10&#x27;d0 : line_buffer[{1&#x27;b1,buffer_count - 8&#x27;d1}]; // ---------------------
+wire [9:0] neighbor_NW = (buffer_count == 8&#x27;d0)   ? 10&#x27;d0 : line_buffer[{1&#x27;b0, buffer_count - 8&#x27;d1}];
+wire [9:0] neighbor_N  =                                   line_buffer[{1&#x27;b0, buffer_count}];
+wire [9:0] neighbor_NE = (buffer_count == 8&#x27;d255) ? 10&#x27;d0 : line_buffer[{1&#x27;b0, buffer_count + 8&#x27;d1}];
+wire [9:0] min_NW_N = (neighbor_NW == 0) ? neighbor_N :
+                      (neighbor_N == 0)  ? neighbor_NW :
+                      (neighbor_NW &lt; neighbor_N) ? neighbor_NW : neighbor_N;
+wire [9:0] min_NE_W = (neighbor_NE == 0) ? neighbor_W :
+                      (neighbor_W == 0)  ? neighbor_NE :
+                      (neighbor_NE &lt; neighbor_W) ? neighbor_NE : neighbor_W;
+wire [9:0] min_neighbor = (min_NW_N == 0) ? min_NE_W :
+                          (min_NE_W == 0) ? min_NW_N :
+                          (min_NW_N &lt; min_NE_W) ? min_NW_N : min_NE_W;
+
+reg [9:0] eq_table [1023:0];
+reg [9:0] flatten_idx;
+
+//assign WRITE_PASS_1_read = (pixel_idx_write[7:0] == 8&#x27;d255 &amp;&amp; state == WRITE_PASS_1_read)? 1&#x27;b1 : 1&#x27;b0;
+assign WRITE_PASS_1_read = (write_done)? 1&#x27;b1 : 1&#x27;b0;
+assign WRITE_PASS_1_finish = (write_finish)? 1&#x27;b1 : 1&#x27;b0;
+reg [15:0] pass2_addr;
+reg [15:0] read_1_pixel;
+reg [7:0] buffer_count_read;
+
+
+always@(posedge clk or posedge rst)begin
+    if(rst)begin
+        for(i = 0;i&lt;512;i = i+1)begin
+            line_buffer[i] &lt;= 10&#x27;d0;
+        end
+        for(j = 0; j&lt;1024; j = j+1)begin
+            eq_table[j] &lt;= 0;
+        end
+        img_cen &lt;= 1&#x27;b0;
+        img_addr &lt;= 16&#x27;b0;
+        buffer_count &lt;= 8&#x27;d0;
+        new_label &lt;= 10&#x27;d0;
+        pixel_idx_write &lt;= 16&#x27;d0;
+        write_done &lt;= 1&#x27;b0;
+        write_finish &lt;= 1&#x27;b0;
+        flatten_idx &lt;= 10&#x27;d0;
+        ans_addr &lt;= 16&#x27;d0;
+        write_pass_2_done &lt;= 1&#x27;b0;
+        write_pass_2_finish &lt;= 1&#x27;b0;
+        consecutive_label &lt;= 10&#x27;d0;
+        ans_wen &lt;= 1&#x27;b0;
+        ans_cen &lt;= 1&#x27;b0;
+        ans_D &lt;= 32&#x27;d0;
+        labeler_done &lt;= 1&#x27;b0;
+        buffer_done &lt;= 1&#x27;b0;
+        flatten_done &lt;= 1&#x27;b0;
+        READ_PASS_1_done &lt;= 1&#x27;b0;
+        read_pass_2_done &lt;= 1&#x27;b0;
+        pass2_addr &lt;= 16&#x27;d0;
+read_1_pixel &lt;= 16&#x27;d0;
+buffer_count_read &lt;= 8&#x27;d0;
+ for(k = 0; k&lt;256; k = k+1)begin
+                    label_buffer[k] &lt;= 10&#x27;d0;
+                end
+    end else begin
+        case(state)
+            IDLE:begin
+                for(i = 0;i&lt;512;i = i+1)begin
+                    line_buffer[i] &lt;= 10&#x27;d0;
+                end
+                for(j = 0; j&lt;1024; j = j+1)begin
+                    eq_table[j] &lt;= j;
+                end
+                for(k = 0; k&lt;256; k = k+1)begin
+                    label_buffer[k] &lt;= 10&#x27;d0;
+                end
+                img_cen &lt;= 1&#x27;b1;
+                img_addr &lt;= 16&#x27;d0;
+                new_label &lt;= 10&#x27;d1;
+                buffer_count &lt;= 8&#x27;d0;
+                pixel_idx_write &lt;= 16&#x27;d0;
+                write_done &lt;= 1&#x27;b0;
+                write_finish &lt;= 1&#x27;b0;
+                flatten_idx &lt;= 10&#x27;d1;
+                ans_addr &lt;= 16&#x27;d0;
+                write_pass_2_done &lt;= 1&#x27;b0;
+                write_pass_2_finish &lt;= 1&#x27;b0;
+                consecutive_label &lt;= 10&#x27;d1;
+                ans_wen &lt;= 1&#x27;b1;
+                ans_cen &lt;= 1&#x27;b1;
+                ans_D &lt;= 32&#x27;d0;
+                labeler_done &lt;= 1&#x27;b0;
+                buffer_done &lt;= 1&#x27;b0;
+                flatten_done &lt;= 1&#x27;b0;
+                READ_PASS_1_done &lt;= 1&#x27;b0;
+                read_pass_2_done &lt;= 1&#x27;b0;
+                pass2_addr &lt;= 16&#x27;d0;
+read_1_pixel &lt;= 16&#x27;d0;
+buffer_count_read &lt;= 8&#x27;d0;
+            end
+            READ_PASS_1:begin
+                if(write_done_d) begin
+                    pixel_idx_write &lt;= pixel_idx_write + 16&#x27;d1;
+                    for(j = 0;j &lt; 256; j = j+1)begin
+                        line_buffer[j] &lt;= label_buffer[j];
+                        //line_buffer[j] &lt;= line_buffer[j+256]; // -----------------------
+                    end
+                end else begin
+                    img_cen &lt;= 1&#x27;b0;
+                    img_addr &lt;= read_1_pixel;
+                    if(read_1_pixel[7:0] &lt; 8&#x27;d255)read_1_pixel &lt;= read_1_pixel + 16&#x27;d1;
+                    //if(img_addr[7:0] &lt; 8&#x27;d255)img_addr &lt;= img_addr + 16&#x27;d1;
+                    // input img (waiting two clock let the signal in)
+                    // start from row1 of buffer because the first row of picture would all be 0
+                    if(!img_cen_d)begin
+                        if(buffer_count_read &lt; 8&#x27;d255)begin
+                            line_buffer[{1&#x27;b1,buffer_count_read}] &lt;= bin_img_Q;
+                            buffer_count_read &lt;= buffer_count_read + 8&#x27;d1;
+                            READ_PASS_1_done &lt;= 1&#x27;b0;
+                        end else begin
+                            line_buffer[{1&#x27;b1,8&#x27;d255}] &lt;= bin_img_Q;
+                            READ_PASS_1_done &lt;= 1&#x27;b1;
+                            buffer_count &lt;= 8&#x27;d0;
+                        end
+                    end
+                end
+            end
+            WRITE_PASS_1:begin
+                if(READ_PASS_1_done)begin
+                    buffer_count_read &lt;= 8&#x27;d0;
+                    READ_PASS_1_done &lt;= 1&#x27;b0;
+                    img_cen &lt;= 1&#x27;b1;</code></pre>
+</details>
+</div>
+</section>
+
+</div>
+<div class="footer">drawBbox multi-page repack site · original Verilog files are copied unchanged in assets/code/</div>
+</body>
+</html>

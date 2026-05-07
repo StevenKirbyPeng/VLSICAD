@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>drawBbox Code Flow Explorer</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<script src="assets/js/main.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">多網頁 HTML Repack · 比較的方法.docx 完整整合版</span>
+  <h1>drawBbox Code Flow Explorer</h1>
+  <p class="lead">本版已把「比較的方法.docx」中的三個版本流程對照、state/module 關係與前面版本差異完整加入多網頁中。每個流程頁面下方都有三個下拉式程式碼區塊與一段三版本比較說明；中文說明放在 code 區塊上方，原始 Verilog code 不改寫、不插入註解；若該流程在某份檔案沒有明確對應，該區塊保持空白。</p>
+  <div class="topnav">
+    <a class="btn" href="overview.html">架構總覽</a>
+    <a class="btn" href="comparison_method.html">比較的方法完整頁</a>
+    <a class="btn" href="compare.html">三版本差異表</a>
+    <a class="btn" href="assets/code/drawBbox(21).v">原始檔 A</a>
+    <a class="btn" href="assets/code/drawBbox_declaration_comments_v1(1).v">原始檔 B</a>
+    <a class="btn" href="assets/code/drawBbox_single_submit(6).v">原始檔 C</a>
+  </div>
+</header>
+<section class="section">
+  <h2>SVG 流程圖</h2>
+  <div class="svgbox"><img src="assets/svg/main_pipeline.svg" alt="main pipeline 1"></div>
+  <div class="svgbox"><img src="assets/svg/main_pipeline_2.svg" alt="main pipeline 2"></div>
+  <div class="svgbox"><img src="assets/svg/main_pipeline_3.svg" alt="main pipeline 3"></div>
+</section>
+<section class="section">
+  <h2>流程入口</h2>
+  <input id="q" class="search" onkeyup="filterCards()" placeholder="搜尋流程，例如 Otsu、CCL、BBox、Overlay、Special...">
+  <div class="grid">
+<a class="card step-card" href="steps/01-input.html">
+  <span class="num">01</span>
+  <h3>Input</h3>
+  <p>讀取原始 RGB 影像資料，是整個 drawBbox pipeline 的起點。</p>
+</a>
+<a class="card step-card" href="steps/02-rgb-to-gray.html">
+  <span class="num">02</span>
+  <h3>RGB-to-Gray</h3>
+  <p>將 RGB pixel 轉換為灰階值，作為後續 Gaussian、Otsu 與 CCL 的基礎。</p>
+</a>
+<a class="card step-card" href="steps/03-original-image-backup.html">
+  <span class="num">03</span>
+  <h3>Original Image Backup</h3>
+  <p>保留原始 RGB 影像，讓最後 bbox 可以直接畫在原圖上。</p>
+</a>
+<a class="card step-card" href="steps/04-histogram-initialization.html">
+  <span class="num">04</span>
+  <h3>Histogram Initialization</h3>
+  <p>清空 histogram，避免舊影像的灰階統計污染新影像。</p>
+</a>
+<a class="card step-card" href="steps/05-line-buffer-initialization.html">
+  <span class="num">05</span>
+  <h3>Line Buffer Initialization</h3>
+  <p>建立或載入 Gaussian 所需的影像列資料。</p>
+</a>
+<a class="card step-card" href="steps/06-gaussian-window-fetch.html">
+  <span class="num">06</span>
+  <h3>Gaussian Window Fetch</h3>
+  <p>取得 Gaussian 需要的 3×3 鄰近像素視窗。</p>
+</a>
+<a class="card step-card" href="steps/07-gaussian-filtering.html">
+  <span class="num">07</span>
+  <h3>Gaussian Filtering</h3>
+  <p>使用 3×3 Gaussian kernel 平滑影像。</p>
+</a>
+<a class="card step-card" href="steps/08-line-buffer-row-update.html">
+  <span class="num">08</span>
+  <h3>Line Buffer Row Update</h3>
+  <p>每處理完一列後更新 line buffer 或 selector。</p>
+</a>
+<a class="card step-card" href="steps/09-gaussian-gray-write-to-ursram.html">
+  <span class="num">09</span>
+  <h3>Gaussian Gray Write to UrSRAM</h3>
+  <p>將 Gaussian 後的灰階結果暫存到 UrSRAM。</p>
+</a>
+<a class="card step-card" href="steps/10-histogram-construction.html">
+  <span class="num">10</span>
+  <h3>Histogram Construction</h3>
+  <p>累加灰階分布，提供 Otsu threshold 計算使用。</p>
+</a>
+<a class="card step-card" href="steps/11-otsu-initialization.html">
+  <span class="num">11</span>
+  <h3>Otsu Initialization</h3>
+  <p>初始化 Otsu 門檻計算的累加器與比較變數。</p>
+</a>
+<a class="card step-card" href="steps/12-otsu-thresholding.html">
+  <span class="num">12</span>
+  <h3>Otsu Thresholding</h3>
+  <p>掃描 threshold candidate 並找出最佳分割門檻。</p>
+</a>
+<a class="card step-card" href="steps/13-high-pixel-counting.html">
+  <span class="num">13</span>
+  <h3>High-Pixel Counting</h3>
+  <p>統計高於 threshold 的像素數量。</p>
+</a>
+<a class="card step-card" href="steps/14-auto-polarity-selection.html">
+  <span class="num">14</span>
+  <h3>Auto-Polarity Selection</h3>
+  <p>判斷是否需要反相 foreground/background。</p>
+</a>
+<a class="card step-card" href="steps/15-union-find-bbox-table-initialization.html">
+  <span class="num">15</span>
+  <h3>Union-Find / BBox Table Initialization</h3>
+  <p>初始化 CCL 與 bbox 相關資料表。</p>
+</a>
+<a class="card step-card" href="steps/16-ccl-line-buffer-initialization.html">
+  <span class="num">16</span>
+  <h3>CCL Line Buffer Initialization</h3>
+  <p>初始化 CCL 階段所需的 line buffer。</p>
+</a>
+<a class="card step-card" href="steps/17-binary-mask-generation.html">
+  <span class="num">17</span>
+  <h3>Binary Mask Generation</h3>
+  <p>根據 threshold 與 polarity 產生 binary foreground mask。</p>
+</a>
+<a class="card step-card" href="steps/18-connected-component-labeling.html">
+  <span class="num">18</span>
+  <h3>Connected Component Labeling</h3>
+  <p>將相連的 foreground pixels 標成同一個 component。</p>
+</a>
+<a class="card step-card" href="steps/19-connected-component-labeling-pass-1.html">
+  <span class="num">19</span>
+  <h3>Connected Component Labeling Pass 1</h3>
+  <p>第一階段 CCL，產生 provisional labels。</p>
+</a>
+<a class="card step-card" href="steps/20-equivalence-table-merge.html">
+  <span class="num">20</span>
+  <h3>Equivalence Table Merge</h3>
+  <p>合併不同 provisional labels 的等價關係。</p>
+</a>
+<a class="card step-card" href="steps/21-label-result-write.html">
+  <span class="num">21</span>
+  <h3>Label Result Write</h3>
+  <p>將 label result 寫入 AnsSRAM 或 label map。</p>
+</a>
+<a class="card step-card" href="steps/22-label-result-write-pass-1.html">
+  <span class="num">22</span>
+  <h3>Label Result Write Pass 1</h3>
+  <p>將第一階段 provisional label 寫入記憶體。</p>
+</a>
+<a class="card step-card" href="steps/23-equivalence-table-flatten.html">
+  <span class="num">23</span>
+  <h3>Equivalence Table Flatten</h3>
+  <p>將 equivalence table 壓平成 root label。</p>
+</a>
+<a class="card step-card" href="steps/24-label-result-rewrite-pass-2.html">
+  <span class="num">24</span>
+  <h3>Label Result Rewrite Pass 2</h3>
+  <p>第二階段將 provisional label 轉成 root label。</p>
+</a>
+<a class="card step-card" href="steps/25-bounding-box-extraction.html">
+  <span class="num">25</span>
+  <h3>Bounding Box Extraction</h3>
+  <p>計算每個 component 的 xmin、xmax、ymin、ymax。</p>
+</a>
+<a class="card step-card" href="steps/26-root-label-merge.html">
+  <span class="num">26</span>
+  <h3>Root Label Merge</h3>
+  <p>將非 root label 的 bbox 合併回 root label。</p>
+</a>
+<a class="card step-card" href="steps/27-original-image-copy.html">
+  <span class="num">27</span>
+  <h3>Original Image Copy</h3>
+  <p>複製原始 RGB 影像作為最後輸出底圖。</p>
+</a>
+<a class="card step-card" href="steps/28-border-object-rejection.html">
+  <span class="num">28</span>
+  <h3>Border Object Rejection</h3>
+  <p>排除碰到邊界的 component。</p>
+</a>
+<a class="card step-card" href="steps/29-large-object-filtering.html">
+  <span class="num">29</span>
+  <h3>Large Object Filtering</h3>
+  <p>只保留足夠大的 bbox。</p>
+</a>
+<a class="card step-card" href="steps/30-small-object-filtering.html">
+  <span class="num">30</span>
+  <h3>Small Object Filtering</h3>
+  <p>排除過小或疑似雜訊的物件。</p>
+</a>
+<a class="card step-card" href="steps/31-bounding-box-overlay.html">
+  <span class="num">31</span>
+  <h3>Bounding Box Overlay</h3>
+  <p>把有效 bbox 畫成綠色邊界。</p>
+</a>
+<a class="card step-card" href="steps/32-special-box-compensation.html">
+  <span class="num">32</span>
+  <h3>Special Box Compensation</h3>
+  <p>針對特定 pattern 或特定條件額外補框。</p>
+</a>
+<a class="card step-card" href="steps/33-done.html">
+  <span class="num">33</span>
+  <h3>Done</h3>
+  <p>RTL 完成處理並拉高 done 訊號。</p>
+</a>
+<a class="card step-card" href="steps/34-golden-image-comparison.html">
+  <span class="num">34</span>
+  <h3>Golden Image Comparison</h3>
+  <p>testbench 在 done 後比對輸出與 golden image。</p>
+</a></div>
+</section>
+
+</div>
+<div class="footer">drawBbox multi-page repack site · original Verilog files are copied unchanged in assets/code/</div>
+</body>
+</html>

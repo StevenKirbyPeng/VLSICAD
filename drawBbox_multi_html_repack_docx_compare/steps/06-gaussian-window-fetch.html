@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Step 06 Gaussian Window Fetch</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<script src="../assets/js/main.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Step 06</span>
+  <h1>Gaussian Window Fetch</h1>
+  <p class="lead">取得 Gaussian 需要的 3×3 鄰近像素視窗。</p>
+  <div class="topnav"><a class="btn" href="../index.html">回首頁</a><a class="btn" href="05-line-buffer-initialization.html">上一個：05</a><a class="btn" href="07-gaussian-filtering.html">下一個：07</a></div>
+</header>
+
+<section class="section">
+  <h2>SVG 流程圖</h2>
+  <div class="svgbox"><img src="../assets/svg/06-gaussian-window-fetch.svg" alt="Gaussian Window Fetch SVG"></div>
+</section>
+
+<section class="section">
+  <h2>比較的方法.docx 對應表</h2>
+  <p>此表把本流程在三個版本中的 state/module 與 code 關係整理出來；沒有明確對應者保持空白。</p>
+  <table>
+    <thead><tr><th>版本</th><th>對應 state / module</th><th>和 code 的關係</th></tr></thead>
+    <tbody><tr><td>Single FSM</td><td>S_LB_INIT</td><td>從 UrSRAM 讀灰階資料，載入 3-row line buffer，準備做 Gaussian</td></tr>
+<tr><td>Modular v21</td><td>threshold_v21_fast</td><td>使用 3×3 Gaussian kernel [1 2 1; 2 4 2; 1 2 1] / 16</td></tr>
+<tr><td>Single Submit</td><td>threshold state 1</td><td>用 get_data_state 依序取得 u1~b3 九個鄰近 pixel</td></tr></tbody>
+  </table>
+</section>
+
+<section class="section">
+  <h2>三個版本在此流程中的比較內容說明</h2>
+  <p class="compare-text">在「Gaussian Window Fetch」流程中，三個版本都能對應到功能實作，但組織方式不同。Single FSM 版把功能集中在 S_LB_INIT，屬於 state-level 的集中控制。Modular v21 版對應到 threshold_v21_fast，通常由 top FSM 啟動特定子模組處理。Single Submit 版對應到 threshold state 1，雖然整份 code 合併在同一個檔案中，但功能仍由相對應的 module 或 internal state 完成。因此比較重點不是功能有沒有做，而是硬體排程方式、記憶體控制權與模組邊界不同。</p>
+</section>
+
+<section class="section">
+  <h2>整個流程的三個版本程式比較</h2>
+  <p>下方採用下拉式區塊顯示。中文說明放在程式碼上方；原始程式碼本身沒有修改、沒有插入註解。若某份檔案沒有明確對應流程，該程式碼區塊保持空白。</p>
+  <div class="topnav">
+    <button class="btn" onclick="toggleAll(true)">全部展開</button>
+    <button class="btn" onclick="toggleAll(false)">全部收合</button>
+  </div>
+  <div class="accordion-wrap">
+<details class="code-detail" open>
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 1 · 版本一：drawBbox.v 單一 FSM 版</span>
+    <button class="copybtn" data-copy="code-single_fsm-06-gaussian-window-fetch" onclick="event.preventDefault(); copyCode('code-single_fsm-06-gaussian-window-fetch')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中對應到 S_LB_INIT。從 UrSRAM 讀灰階資料，載入 3-row line buffer，準備做 Gaussian。
+    <div class="code-meta">drawBbox(21).v · lines 494-530</div>
+  </div>
+  <pre><code id="code-single_fsm-06-gaussian-window-fetch">                S_LB_INIT: begin
+                    case (lb_phase)
+                        2&#x27;d0: begin
+                            Ur_CEN&lt;=1&#x27;b0; Ur_WEN&lt;=1&#x27;b1;
+                            Ur_A &lt;= {lb_init_row, lb_col};
+                            lb_phase&lt;=2&#x27;d1;
+                        end
+                        2&#x27;d1: begin
+                            Ur_CEN&lt;=1&#x27;b0; Ur_WEN&lt;=1&#x27;b1;
+                            Ur_A &lt;= {lb_init_row, lb_col};
+                            lb_phase&lt;=2&#x27;d2;
+                        end
+                        2&#x27;d2: begin
+                            case (lb_seq)
+                                // fixed initial mapping: prev=bank0(row1), curr=bank1(row0), next=bank2(row1)
+                                2&#x27;d0: linebuf_bank0[lb_col]&lt;=Ur_Q[7:0];
+                                2&#x27;d1: linebuf_bank1[lb_col]&lt;=Ur_Q[7:0];
+                                2&#x27;d2: linebuf_bank2[lb_col]&lt;=Ur_Q[7:0];
+                                default: ;
+                            endcase
+                            lb_phase&lt;=2&#x27;d0;
+                            if (lb_col==8&#x27;d255) begin
+                                lb_col&lt;=8&#x27;d0;
+                                if (lb_seq==2&#x27;d2) begin
+                                    addr_cnt&lt;=16&#x27;d0;
+                                    state&lt;=S_GAUSS_HIST;
+                                end else lb_seq&lt;=lb_seq+2&#x27;d1;
+                            end else lb_col&lt;=lb_col+8&#x27;d1;
+                        end
+                        default: lb_phase&lt;=2&#x27;d0;
+                    endcase
+                end
+
+                // -----------------------------------------------
+                // S_LB_ROW：載入指定 lb_row → linebuf_next
+                // 完成後回 S_GAUSS_HIST
+                // -----------------------------------------------</code></pre>
+</details>
+
+<details class="code-detail" >
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 2 · 版本二：drawBbox_declaration_comments_v1.v</span>
+    <button class="copybtn" data-copy="code-modular_v21-06-gaussian-window-fetch" onclick="event.preventDefault(); copyCode('code-modular_v21-06-gaussian-window-fetch')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中對應到 threshold_v21_fast。使用 3×3 Gaussian kernel [1 2 1; 2 4 2; 1 2 1] / 16。
+    <div class="code-meta">drawBbox_declaration_comments_v1(1).v · lines 224-364</div>
+  </div>
+  <pre><code id="code-modular_v21-06-gaussian-window-fetch">assign Ans_A   = (state == ST_CCL) ? ccl_ans_addr :
+                 (state == ST_BOX) ? box_ans_addr : 16&#x27;d0;
+assign Ans_D   = (state == ST_CCL) ? ccl_ans_d    :
+                 (state == ST_BOX) ? box_ans_d    : 32&#x27;d0;
+always @(*) begin
+    case (state)
+        ST_IDLE:  if (enable)     next_state = ST_THRES; else next_state = ST_IDLE;
+        ST_THRES: if (thres_done) next_state = ST_POL;   else next_state = ST_THRES;
+        ST_POL:   if (pol_done)   next_state = ST_CCL;   else next_state = ST_POL;
+        ST_CCL:   if (ccl_done)   next_state = ST_BOX;   else next_state = ST_CCL;
+        ST_BOX:   if (box_done)   next_state = ST_IDLE;  else next_state = ST_BOX;
+        default:  next_state = ST_IDLE;
+    endcase
+end
+assign done = box_done; // Done is asserted when the final overlay stage finishes.
+// assign done = ccl_done; // Debug-only alternative, not used for final output.
+endmodule
+// ============================================================================
+// Stage module: threshold_v21_fast
+// Function
+//   1. Read original RGB pixels from ImgROM.
+//   2. Convert RGB to grayscale with fixed-point round-to-nearest-even.
+//   3. Apply 3x3 Gaussian smoothing with reflect-101 boundary handling.
+//   4. Write filtered gray values to UrSRAM and build a 256-bin histogram.
+//   5. Search Otsu threshold using integer cross-multiplied score comparison.
+// ============================================================================
+(* keep_hierarchy = &quot;yes&quot; *)
+module threshold_v21_fast (
+    input      clk, // 系統時脈輸入
+    input      rst, // 同步或非同步重置信號
+    input      start,   // One-cycle start pulse from the top controller
+    output [7:0] Threshold, // Selected Otsu threshold
+    output reg done,    // High after threshold stage completes
+    // ImgROM
+    input      [31:0] Img_Q, // ImgROM 讀回的 32-bit RGB pixel
+    output            Img_CEN, // Active-low ImgROM chip enable
+    output reg [15:0] Img_addr, // top/module 介面訊號宣告
+    // UrSRAM
+    input       [31:0] Ur_Q, // UrSRAM 讀回資料
+    output             Ur_CEN, // UrSRAM 低有效 chip enable
+    output             Ur_WEN, // UrSRAM 讀寫控制，0 為寫入、1 為讀取
+    output      [15:0] Ur_A, // UrSRAM 存取位址
+    output      [31:0] Ur_D // UrSRAM 寫入資料
+);
+reg [3:0] state; // 目前 top FSM 狀態
+reg [15:0]  counter; // 循序計數器暫存器宣告
+wire[16:0]  next_counter; // 組合邏輯連接信號宣告
+assign next_counter = counter + 16&#x27;b1;
+integer i; // Reset loop index
+reg Img_cen; // 循序邏輯暫存器宣告
+assign Img_CEN = Img_cen;
+reg Ur_wen; // 循序邏輯暫存器宣告
+assign Ur_WEN = Ur_wen;
+reg Ur_cen; // 循序邏輯暫存器宣告
+assign Ur_CEN = Ur_cen;
+reg [15:0] Ur_addr; // 位址暫存器宣告
+assign Ur_A = Ur_addr;
+reg [31:0] Ur_d; // 循序邏輯暫存器宣告
+assign Ur_D = Ur_d;
+// RGB-to-gray fixed-point conversion
+wire [25:0] gray_fixed_q16; // 組合邏輯連接信號宣告
+wire [7:0] gray_u8;  // 8-bit rounded grayscale value
+wire round_up = (gray_fixed_q16[15:0] &gt; 16&#x27;h8000) || // 組合邏輯連接信號宣告
+                  ((gray_fixed_q16[15:0] == 16&#x27;h8000) &amp;&amp; (gray_fixed_q16[16] == 1&#x27;b1)); // Round-to-nearest-even decision
+assign gray_fixed_q16 = (26&#x27;d19595 * Img_Q[23:16]) +
+                                 (26&#x27;d38470 * Img_Q[15:8])  +
+                                 (26&#x27;d7471  * Img_Q[7:0]); // Q16 fixed-point gray = round_even((19595R + 38470G + 7471B) &gt;&gt; 16).
+assign gray_u8 = round_up ? (gray_fixed_q16[23:16] + 8&#x27;d1) :
+                                           (gray_fixed_q16[23:16]);
+// Gaussian 3x3 kernel arithmetic
+reg [7:0] u1, u2, u3, m1, m2, m3, b1, b2, b3;    // 3x3 neighborhood samples
+wire [15:0] gaussian_sum = (u1) + (u2&lt;&lt;1) + (u3) + // 組合邏輯連接信號宣告
+                             (m1&lt;&lt;1) + (m2&lt;&lt;2) + (m3&lt;&lt;1) +
+                             (b1) + (b2&lt;&lt;1) + (b3);   // Divide by 16 after rounding
+wire gaussian_round_up = (gaussian_sum[3:0] &gt; 4&#x27;b1000) || // 組合邏輯連接信號宣告
+                         ((gaussian_sum[3:0] == 4&#x27;b1000) &amp;&amp; (gaussian_sum[4] == 1&#x27;b1)); // Round-to-nearest-even decision
+wire [7:0] gaussian_value = gaussian_round_up ? (gaussian_sum[11:4] + 8&#x27;d1) : (gaussian_sum[11:4]); // 組合邏輯連接信號宣告
+wire Is_the_most_up = (counter[15:8] == 8&#x27;d0)?1&#x27;b1:1&#x27;b0; // 組合邏輯連接信號宣告
+wire Is_the_most_buttom = (counter[15:8] == 8&#x27;d255)?1&#x27;b1:1&#x27;b0; // 組合邏輯連接信號宣告
+wire Is_the_most_left = (counter[7:0] == 8&#x27;d0)?1&#x27;b1:1&#x27;b0; // 組合邏輯連接信號宣告
+wire Is_the_most_right = (counter[7:0] == 8&#x27;d255)?1&#x27;b1:1&#x27;b0; // 組合邏輯連接信號宣告
+// Gaussian window address/control signals
+reg [3:0]get_data_state; // FSM 狀態暫存器宣告
+wire [4:0]next_get_data_state = (get_data_state == 4&#x27;d11)? 4&#x27;b0 : (get_data_state + 4&#x27;b1); // 資料寫入或中間資料匯流排信號
+wire[15:0]up_index = counter - 16&#x27;d256; // 組合邏輯連接信號宣告
+wire[15:0]buttom_index = counter + 16&#x27;d256; // 組合邏輯連接信號宣告
+// Histogram and Otsu scan registers
+reg [1:0] otsu_scan_state ; // FSM 狀態暫存器宣告
+reg [15:0] hist_bin[255:0];  // 256-bin grayscale histogram
+wire [16:0] next_hist_bin_count = hist_bin[gaussian_value] + 16&#x27;b1; // 組合邏輯連接信號宣告
+reg [23:0] bg_gray_sum;    // Maximum gray sum fits in 24 bits for 65536 pixels
+wire [24:0] next_bg_gray_sum; // 組合邏輯連接信號宣告
+assign next_bg_gray_sum = bg_gray_sum + (hist_bin[counter]*counter);
+reg [23:0] fg_gray_sum; // 整數運算累加或比較暫存器宣告
+wire [24:0] next_fg_gray_sum; // 組合邏輯連接信號宣告
+assign next_fg_gray_sum = fg_gray_sum + (hist_bin[counter]*counter);
+// Otsu class statistics
+reg [15:0] fg_pixel_count; // 循序邏輯暫存器宣告
+wire [16:0] next_fg_pixel_count = fg_pixel_count + hist_bin[counter]; // 組合邏輯連接信號宣告
+reg [15:0] bg_pixel_count; // 循序邏輯暫存器宣告
+wire [16:0] next_bg_pixel_count = bg_pixel_count + hist_bin[counter]; // 組合邏輯連接信號宣告
+reg [7:0] threshold_scan_value; // 循序邏輯暫存器宣告
+wire [8:0] next_threshold_scan_value = (threshold_scan_value == 0)? 8&#x27;b0 : threshold_scan_value - 8&#x27;b1; // 組合邏輯連接信號宣告
+wire [40:0] term_f = fg_gray_sum * bg_pixel_count; // 24bit*17bit=41bit
+wire [40:0] term_b = bg_gray_sum * fg_pixel_count; // 24bit*17bit=41bit
+// Otsu numerator: squared difference term
+wire [40:0] diff_term = (term_f &gt; term_b) ? (term_f - term_b) : (term_b - term_f); // 組合邏輯連接信號宣告
+wire [81:0] num_curr  = diff_term * diff_term; // 41-bit * 41-bit = 82-bit
+// Otsu denominator: foreground_count * background_count
+wire [33:0] den_curr  = fg_pixel_count * bg_pixel_count; // 17-bit * 17-bit = 34-bit
+// Division-free score comparison by cross multiplication
+reg [81:0] num_max; // 循序邏輯暫存器宣告
+reg [33:0] den_max; // 循序邏輯暫存器宣告
+reg [7:0]  best_threshold_reg; // Best threshold found so far
+assign Threshold = best_threshold_reg; // Export selected threshold to later stages
+// Division-free score comparison by cross multiplication
+wire [115:0] cross_left  = num_curr * den_max; // 組合邏輯連接信號宣告
+wire [115:0] cross_right = num_max * den_curr; // 組合邏輯連接信號宣告
+always@(posedge rst or posedge clk) begin
+    if(rst) begin   // Asynchronous reset values
+	done &lt;= 1&#x27;d0;
+        counter &lt;= 16&#x27;d0;
+        state &lt;= 2&#x27;d0;
+        Img_cen &lt;= 1&#x27;d0;    // Enable ImgROM read by default in this stage
+	    Img_addr &lt;= 16&#x27;d0;
+        Ur_cen &lt;= 1&#x27;b0;
+        Ur_addr &lt;= 16&#x27;d0;
+        Ur_d &lt;= 32&#x27;d0;
+        // Clear Gaussian window registers
+        get_data_state &lt;= 4&#x27;d0;
+        u1 &lt;= 8&#x27;d0;
+        u2 &lt;= 8&#x27;d0;
+        u3 &lt;= 8&#x27;d0;
+        m1 &lt;= 8&#x27;d0;
+        m2 &lt;= 8&#x27;d0;
+        m3 &lt;= 8&#x27;d0;
+        b1 &lt;= 8&#x27;d0;
+        b2 &lt;= 8&#x27;d0;
+        b3 &lt;= 8&#x27;d0;
+        // Clear histogram and Otsu scan registers
+        otsu_scan_state &lt;= 2&#x27;d0;</code></pre>
+</details>
+
+<details class="code-detail" >
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 3 · 版本三：drawBbox_single_submit.v</span>
+    <button class="copybtn" data-copy="code-single_submit-06-gaussian-window-fetch" onclick="event.preventDefault(); copyCode('code-single_submit-06-gaussian-window-fetch')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中對應到 threshold state 1。用 get_data_state 依序取得 u1~b3 九個鄰近 pixel。
+    <div class="code-meta">drawBbox_single_submit(6).v · lines 108-268</div>
+  </div>
+  <pre><code id="code-single_submit-06-gaussian-window-fetch">    .Img_CEN(pol_img_cen),
+    .Img_A(pol_img_addr),
+    .Img_WEN(pol_img_wen),
+
+    .done(pol_done),
+    .polarity(pol_flag)
+);
+
+// ==========================================
+// 階段 3: CCL (Labeler)
+// ==========================================
+wire ccl_done;
+wire ccl_img_cen;
+wire ccl_img_wen;
+wire [15:0] ccl_img_addr;
+wire [9:0] total_label;
+
+wire ccl_ans_cen;
+wire ccl_ans_wen;
+wire [15:0] ccl_ans_addr;
+wire [31:0] ccl_ans_d;
+
+ccl u_ccl(
+    .clk(clk),
+    .rst(rst),
+    .threshold(threshold),
+    .labeler_en(pol_done),
+    .polarity(pol_flag),
+
+    .img_cen(ccl_img_cen),
+    .img_addr(ccl_img_addr),
+    .img_wen(ccl_img_wen),
+    .img_Q(Ur_Q),
+
+    .ans_cen(ccl_ans_cen),
+    .ans_wen(ccl_ans_wen),
+    .ans_addr(ccl_ans_addr),
+    .ans_D(ccl_ans_d),
+    .ans_Q(Ans_Q),
+
+
+    .labeler_done(ccl_done),
+    .total_label(total_label)
+);
+
+// ==========================================
+// 階段 4: Boxing
+// ==========================================
+wire box_img_cen;
+wire [15:0] box_img_addr;
+
+wire box_ans_cen;
+wire box_ans_wen;
+wire [15:0] box_ans_addr;
+wire [31:0] box_ans_d;
+
+boxing u_boxing(
+    .clk(clk),
+    .rst(rst),
+    .enable(ccl_done),
+    .done(box_done), // 連接到頂層的 done
+    .total_label(total_label),
+
+    .Img_Q(Img_Q),
+    .Img_CEN(box_img_cen),
+    .Img_A(box_img_addr),
+
+    .Ans_Q(Ans_Q),
+    .Ans_CEN(box_ans_cen),
+    .Ans_WEN(box_ans_wen),
+    .Ans_D(box_ans_d),
+    .Ans_A(box_ans_addr)
+);
+
+// ==========================================
+// 根據「狀態」優雅分配記憶體權限
+// ==========================================
+
+// --- 1. ImgROM (彩色原圖) ---
+assign Img_CEN = (state == ST_THRES) ? thres_img_cen :
+                 (state == ST_BOX)   ? box_img_cen   : 1&#x27;b1;
+
+always @(*) begin
+    if      (state == ST_THRES) Img_A = thres_img_addr;
+    else if (state == ST_BOX)   Img_A = box_img_addr;
+    else                        Img_A = 16&#x27;d0;
+end
+
+// --- 2. UrSRAM (灰階暫存區) ---
+assign Ur_CEN  = (state == ST_THRES) ? thres_ur_cen :
+                 (state == ST_POL)   ? pol_img_cen  :
+                 (state == ST_CCL)   ? ccl_img_cen  : 1&#x27;b1;
+
+assign Ur_WEN  = (state == ST_THRES) ? thres_ur_wen : 1&#x27;b1;
+
+assign Ur_A    = (state == ST_THRES) ? thres_ur_a   :
+                 (state == ST_POL)   ? pol_img_addr :
+                 (state == ST_CCL)   ? ccl_img_addr : 16&#x27;d0;
+
+assign Ur_D    = (state == ST_THRES) ? thres_ur_d   : 32&#x27;d0;
+
+// --- 3. AnsSRAM (標籤與最終成圖區) ---
+assign Ans_CEN = (state == ST_CCL) ? ccl_ans_cen  :
+                 (state == ST_BOX) ? box_ans_cen  : 1&#x27;b1;
+
+assign Ans_WEN = (state == ST_CCL) ? ccl_ans_wen  :
+                 (state == ST_BOX) ? box_ans_wen  : 1&#x27;b1;
+
+assign Ans_A   = (state == ST_CCL) ? ccl_ans_addr :
+                 (state == ST_BOX) ? box_ans_addr : 16&#x27;d0;
+
+assign Ans_D   = (state == ST_CCL) ? ccl_ans_d    :
+                 (state == ST_BOX) ? box_ans_d    : 32&#x27;d0;
+
+
+always @(*) begin
+    case (state)
+        ST_IDLE:  if (enable)     next_state = ST_THRES; else next_state = ST_IDLE;
+        ST_THRES: if (thres_done) next_state = ST_POL;   else next_state = ST_THRES;
+        ST_POL:   if (pol_done)   next_state = ST_CCL;   else next_state = ST_POL;
+        ST_CCL:   if (ccl_done)   next_state = ST_BOX;   else next_state = ST_CCL;
+        ST_BOX:   if (box_done)   next_state = ST_IDLE;  else next_state = ST_BOX;
+        default:  next_state = ST_IDLE;
+    endcase
+end
+assign done = box_done; // 把 boxing 的完成訊號直接交給 Testbench
+//assign done = ccl_done;
+
+endmodule
+
+// ================================================================
+// Source: threshold.v
+// ================================================================
+
+module threshold (
+    input      clk,
+    input      rst,
+    input      start,   //啟動時拉高一個clk周期
+    output [7:0] Threshold, //輸出threshold值
+    output reg done,    //完成後拉高
+
+    // ImgROM
+    input      [31:0] Img_Q,
+    output            Img_CEN, //active low
+    output reg [15:0] Img_addr,
+
+    // UrSRAM
+    input       [31:0] Ur_Q,
+    output             Ur_CEN,
+    output             Ur_WEN,
+    output      [15:0] Ur_A,
+    output      [31:0] Ur_D
+);
+reg [3:0] state;
+
+reg [15:0]  counter;
+wire[16:0]  next_counter;
+assign next_counter = counter + 16&#x27;b1;
+integer i;//迴圈變數
+reg Img_cen;
+assign Img_CEN = Img_cen;</code></pre>
+</details>
+</div>
+</section>
+
+</div>
+<div class="footer">drawBbox multi-page repack site · original Verilog files are copied unchanged in assets/code/</div>
+</body>
+</html>

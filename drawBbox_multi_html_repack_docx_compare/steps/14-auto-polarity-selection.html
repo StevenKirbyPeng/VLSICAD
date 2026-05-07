@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Step 14 Auto-Polarity Selection</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<script src="../assets/js/main.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Step 14</span>
+  <h1>Auto-Polarity Selection</h1>
+  <p class="lead">判斷是否需要反相 foreground/background。</p>
+  <div class="topnav"><a class="btn" href="../index.html">回首頁</a><a class="btn" href="13-high-pixel-counting.html">上一個：13</a><a class="btn" href="15-union-find-bbox-table-initialization.html">下一個：15</a></div>
+</header>
+
+<section class="section">
+  <h2>SVG 流程圖</h2>
+  <div class="svgbox"><img src="../assets/svg/14-auto-polarity-selection.svg" alt="Auto-Polarity Selection SVG"></div>
+</section>
+
+<section class="section">
+  <h2>比較的方法.docx 對應表</h2>
+  <p>此表把本流程在三個版本中的 state/module 與 code 關係整理出來；沒有明確對應者保持空白。</p>
+  <table>
+    <thead><tr><th>版本</th><th>對應 state / module</th><th>和 code 的關係</th></tr></thead>
+    <tbody><tr><td>Single FSM</td><td>S_POLARITY</td><td>根據 count_hi &gt; 32768 判斷是否設定 invert_sel</td></tr>
+<tr><td>Modular v21</td><td>polarity_v21_fast</td><td>依照亮暗 pixel 數量決定 polarity</td></tr>
+<tr><td>Single Submit</td><td>polarity DONE</td><td>根據 counter 結果輸出 polarity</td></tr></tbody>
+  </table>
+</section>
+
+<section class="section">
+  <h2>三個版本在此流程中的比較內容說明</h2>
+  <p class="compare-text">在「Auto-Polarity Selection」流程中，三個版本都能對應到功能實作，但組織方式不同。Single FSM 版把功能集中在 S_POLARITY，屬於 state-level 的集中控制。Modular v21 版對應到 polarity_v21_fast，通常由 top FSM 啟動特定子模組處理。Single Submit 版對應到 polarity DONE，雖然整份 code 合併在同一個檔案中，但功能仍由相對應的 module 或 internal state 完成。因此比較重點不是功能有沒有做，而是硬體排程方式、記憶體控制權與模組邊界不同。</p>
+</section>
+
+<section class="section">
+  <h2>整個流程的三個版本程式比較</h2>
+  <p>下方採用下拉式區塊顯示。中文說明放在程式碼上方；原始程式碼本身沒有修改、沒有插入註解。若某份檔案沒有明確對應流程，該程式碼區塊保持空白。</p>
+  <div class="topnav">
+    <button class="btn" onclick="toggleAll(true)">全部展開</button>
+    <button class="btn" onclick="toggleAll(false)">全部收合</button>
+  </div>
+  <div class="accordion-wrap">
+<details class="code-detail" open>
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 1 · 版本一：drawBbox.v 單一 FSM 版</span>
+    <button class="copybtn" data-copy="code-single_fsm-14-auto-polarity-selection" onclick="event.preventDefault(); copyCode('code-single_fsm-14-auto-polarity-selection')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中對應到 S_POLARITY。根據 count_hi &gt; 32768 判斷是否設定 invert_sel。
+    <div class="code-meta">drawBbox(21).v · lines 676-687</div>
+  </div>
+  <pre><code id="code-single_fsm-14-auto-polarity-selection">                S_POLARITY: begin
+                    invert_sel    &lt;= (count_hi&gt;17&#x27;d32768);
+                    addr_cnt      &lt;= 16&#x27;d0;
+                    label_idx     &lt;= 9&#x27;d0;
+                    next_label    &lt;= 9&#x27;d1;
+                    left_label    &lt;= 9&#x27;d0;
+                    nw_label_hold &lt;= 9&#x27;d0;
+                    lb_seq&lt;=2&#x27;d0; lb_col&lt;=8&#x27;d0; lb_phase&lt;=2&#x27;d0;
+                    // V16: do not enter CCL before clearing label/bbox arrays.
+                    state&lt;=S_PARENT_INIT;
+                end
+</code></pre>
+</details>
+
+<details class="code-detail" >
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 2 · 版本二：drawBbox_declaration_comments_v1.v</span>
+    <button class="copybtn" data-copy="code-modular_v21-14-auto-polarity-selection" onclick="event.preventDefault(); copyCode('code-modular_v21-14-auto-polarity-selection')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中對應到 polarity_v21_fast。依照亮暗 pixel 數量決定 polarity。
+    <div class="code-meta">drawBbox_declaration_comments_v1(1).v · lines 517-606</div>
+  </div>
+  <pre><code id="code-modular_v21-14-auto-polarity-selection">module polarity_v21_fast(
+    input clk,rst, // 系統時脈輸入
+    input valid, // top/module 介面訊號宣告
+    input [7:0] threshold, // Otsu 計算後的 8-bit threshold
+    // ImgROM
+    input [31:0] Img_Q, // ImgROM 讀回的 32-bit RGB pixel
+    output reg Img_CEN, // ImgROM 低有效 chip enable
+    output reg [15:0] Img_A, // ImgROM 讀取位址
+    output Img_WEN, // top/module 介面訊號宣告
+    output reg done, // 輸出完成旗標
+    output reg polarity // Polarity decision output
+);
+    assign Img_WEN = 1&#x27;b1;
+    reg [7:0] counter; // 循序計數器暫存器宣告
+    reg [1:0] cs,ns; // 循序邏輯暫存器宣告
+    reg proc_done; // 循序邏輯暫存器宣告
+    localparam IDLE = 2&#x27;b00; // FSM 狀態或常數參數宣告
+    localparam PROCESS = 2&#x27;b01; // FSM 狀態或常數參數宣告
+    localparam DONE = 2&#x27;b10; // FSM 狀態或常數參數宣告
+    always@(posedge clk or  posedge rst)begin
+        if(rst)begin
+            cs &lt;= IDLE;
+        end else begin
+            cs &lt;= ns;
+        end
+    end
+    always@(*)begin
+        case(cs)
+            IDLE:begin
+                if(valid) ns = PROCESS;
+                else ns = IDLE;
+            end
+            PROCESS:begin
+                if(proc_done) ns = DONE;
+                else ns = PROCESS;
+            end
+            DONE:begin
+                ns = DONE;
+            end
+            default: ns = IDLE;
+        endcase
+    end
+    reg process_start,process_start_d; // 循序邏輯暫存器宣告
+    always@(posedge clk or posedge rst)begin
+        if(rst)begin
+            process_start_d &lt;= 1&#x27;b0;
+        end else begin
+            process_start_d &lt;= process_start;
+        end
+    end
+    always@(posedge clk or posedge rst)begin
+        if(rst)begin
+            counter &lt;= 8&#x27;d0;
+            Img_CEN &lt;= 1&#x27;b0;
+            Img_A &lt;= 16&#x27;d0;
+            process_start &lt;= 1&#x27;b0;
+            polarity &lt;= 1&#x27;b0;
+            proc_done &lt;= 1&#x27;b0;
+        end else begin
+            case(cs)
+                IDLE:begin
+                    counter &lt;= 8&#x27;d0;
+                    Img_CEN &lt;= 1&#x27;b1;
+                    Img_A &lt;= 16&#x27;d0;
+                    process_start &lt;= 1&#x27;b0;
+                    polarity &lt;= 1&#x27;b0;
+                    proc_done &lt;= 1&#x27;b0;
+                    done &lt;= 1&#x27;b0;
+                end
+                PROCESS:begin
+                    process_start &lt;= 1&#x27;b1;
+                    if(process_start_d)begin
+                        if((Img_Q &gt;= threshold) &amp;&amp; (counter &lt; 8&#x27;d255)) counter &lt;= counter + 8&#x27;d1;
+                    end
+                    if(!Img_A[8])begin
+                        Img_CEN &lt;= 1&#x27;b0;
+                        Img_A &lt;= Img_A + 16&#x27;d1;
+                    end else begin
+                        proc_done &lt;= 1&#x27;b1;
+                    end
+                end
+                DONE:begin
+                    if(counter &gt;= 8&#x27;d128) polarity &lt;= 1&#x27;b0;
+                    else polarity &lt;= 1&#x27;b1;
+                    done &lt;= 1&#x27;b1;
+                end
+            endcase
+        end
+    end
+endmodule</code></pre>
+</details>
+
+<details class="code-detail" >
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 3 · 版本三：drawBbox_single_submit.v</span>
+    <button class="copybtn" data-copy="code-single_submit-14-auto-polarity-selection" onclick="event.preventDefault(); copyCode('code-single_submit-14-auto-polarity-selection')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中對應到 polarity DONE。根據 counter 結果輸出 polarity。
+    <div class="code-meta">drawBbox_single_submit(6).v · lines 529-629</div>
+  </div>
+  <pre><code id="code-single_submit-14-auto-polarity-selection">module polarity(
+    input clk,rst,
+    input valid,
+    input [7:0] threshold,
+
+    // ImgROM
+    input [31:0] Img_Q,
+    output reg Img_CEN,
+    output reg [15:0] Img_A,
+    output Img_WEN,
+
+    output reg done,
+    output reg polarity // 0: amount less than thres is foreground
+                    // 1: amount more than thres is foreground
+);
+
+    assign Img_WEN = 1&#x27;b1;
+
+    reg [7:0] counter;
+    reg [1:0] cs,ns;
+    reg proc_done;
+
+    localparam IDLE = 2&#x27;b00;
+    localparam PROCESS = 2&#x27;b01;
+    localparam DONE = 2&#x27;b10;
+
+    always@(posedge clk or  posedge rst)begin
+        if(rst)begin
+            cs &lt;= IDLE;
+        end else begin
+            cs &lt;= ns;
+        end
+    end
+
+    always@(*)begin
+        case(cs)
+            IDLE:begin
+                if(valid) ns = PROCESS;
+                else ns = IDLE;
+            end
+            PROCESS:begin
+                if(proc_done) ns = DONE;
+                else ns = PROCESS;
+            end
+            DONE:begin
+                ns = DONE;
+            end
+            default: ns = IDLE;
+        endcase
+    end
+
+    reg process_start,process_start_d;
+
+    always@(posedge clk or posedge rst)begin
+        if(rst)begin
+            process_start_d &lt;= 1&#x27;b0;
+        end else begin
+            process_start_d &lt;= process_start;
+        end
+    end
+
+    always@(posedge clk or posedge rst)begin
+        if(rst)begin
+            counter &lt;= 8&#x27;d0;
+            Img_CEN &lt;= 1&#x27;b0;
+            Img_A &lt;= 16&#x27;d0;
+            process_start &lt;= 1&#x27;b0;
+            polarity &lt;= 1&#x27;b0;
+            proc_done &lt;= 1&#x27;b0;
+        end else begin
+            case(cs)
+                IDLE:begin
+                    counter &lt;= 8&#x27;d0;
+                    Img_CEN &lt;= 1&#x27;b1;
+                    Img_A &lt;= 16&#x27;d0;
+                    process_start &lt;= 1&#x27;b0;
+                    polarity &lt;= 1&#x27;b0;
+                    proc_done &lt;= 1&#x27;b0;
+                    done &lt;= 1&#x27;b0;
+                end
+                PROCESS:begin
+                    process_start &lt;= 1&#x27;b1;
+                    if(process_start_d)begin
+                        if((Img_Q &gt;= threshold) &amp;&amp; (counter &lt; 8&#x27;d255)) counter &lt;= counter + 8&#x27;d1;
+                    end
+                    if(!Img_A[8])begin
+                        Img_CEN &lt;= 1&#x27;b0;
+                        Img_A &lt;= Img_A + 16&#x27;d1;
+                    end else begin
+                        proc_done &lt;= 1&#x27;b1;
+                    end
+                end
+                DONE:begin
+                    if(counter &gt;= 8&#x27;d128) polarity &lt;= 1&#x27;b0;
+                    else polarity &lt;= 1&#x27;b1;
+                    done &lt;= 1&#x27;b1;
+                end
+            endcase
+        end
+    end
+endmodule</code></pre>
+</details>
+</div>
+</section>
+
+</div>
+<div class="footer">drawBbox multi-page repack site · original Verilog files are copied unchanged in assets/code/</div>
+</body>
+</html>

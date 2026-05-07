@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Overview</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<script src="assets/js/main.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Overview</span>
+  <h1>架構總覽</h1>
+  <p class="lead">三份程式的功能目標相同，但硬體組織方式不同。Single FSM 版以 state-level 集中控制為主；Modular v21 版用 top FSM 啟動子模組；Single Submit 版則把所有 module 合併成同一份 .v 方便提交，但仍保留 module-level flow。</p>
+  <div class="topnav"><a class="btn" href="index.html">回首頁</a><a class="btn" href="comparison_method.html">比較的方法完整頁</a><a class="btn" href="compare.html">三版本差異表</a></div>
+</header>
+<section class="section">
+  <h2>Top FSM / Module-Level Flow</h2>
+  <div class="svgbox"><img src="assets/svg/top_fsm.svg" alt="top fsm svg"></div>
+  <div class="flowline">Single FSM: S_IDLE → S_LOAD → S_HIST_CLEAR → S_LB_INIT → S_GAUSS_HIST → Otsu states → S_CCL_SCAN → S_BBOX_INIT → S_BOXMAP_GEN → S_DONE
+
+Modular / Single Submit: ST_IDLE → ST_THRES → ST_POL → ST_CCL → ST_BOX → done</div>
+</section>
+<section class="section">
+  <h2>三份原始程式碼</h2>
+  <p class="note">原始 Verilog 檔案已完整複製到 assets/code/，未做任何修改。</p>
+  <div class="grid">
+    <a class="card" href="assets/code/drawBbox(21).v"><span class="num">A</span><h3>drawBbox(21).v</h3><p>單一大型 FSM 架構。</p></a>
+    <a class="card" href="assets/code/drawBbox_declaration_comments_v1(1).v"><span class="num">B</span><h3>drawBbox_declaration_comments_v1(1).v</h3><p>Top FSM + threshold_v21_fast / polarity_v21_fast / ccl_v21_fast / boxing_v21_fast。</p></a>
+    <a class="card" href="assets/code/drawBbox_single_submit(6).v"><span class="num">C</span><h3>drawBbox_single_submit(6).v</h3><p>單一提交檔，但內部仍保留 threshold / polarity / ccl / boxing。</p></a>
+  </div>
+</section>
+
+</div>
+<div class="footer">drawBbox multi-page repack site · original Verilog files are copied unchanged in assets/code/</div>
+</body>
+</html>

@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Step 25 Bounding Box Extraction</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<script src="../assets/js/main.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Step 25</span>
+  <h1>Bounding Box Extraction</h1>
+  <p class="lead">計算每個 component 的 xmin、xmax、ymin、ymax。</p>
+  <div class="topnav"><a class="btn" href="../index.html">回首頁</a><a class="btn" href="24-label-result-rewrite-pass-2.html">上一個：24</a><a class="btn" href="26-root-label-merge.html">下一個：26</a></div>
+</header>
+
+<section class="section">
+  <h2>SVG 流程圖</h2>
+  <div class="svgbox"><img src="../assets/svg/25-bounding-box-extraction.svg" alt="Bounding Box Extraction SVG"></div>
+</section>
+
+<section class="section">
+  <h2>比較的方法.docx 對應表</h2>
+  <p>此表把本流程在三個版本中的 state/module 與 code 關係整理出來；沒有明確對應者保持空白。</p>
+  <table>
+    <thead><tr><th>版本</th><th>對應 state / module</th><th>和 code 的關係</th></tr></thead>
+    <tbody><tr><td>Single FSM</td><td>S_CCL_SCAN</td><td>在 CCL 過程中呼叫 update_bbox_task()，同步更新 bbox</td></tr>
+<tr><td>Modular v21</td><td>ST_BOX / boxing_v21_fast</td><td>掃描 AnsSRAM 的 label 結果，找出每個 label 的 min_x/max_x/min_y/max_y</td></tr>
+<tr><td>Single Submit</td><td>ST_BOX / boxing SCAN</td><td>掃描 AnsSRAM label map，更新每個 label 的 min_x/max_x/min_y/max_y</td></tr></tbody>
+  </table>
+</section>
+
+<section class="section">
+  <h2>三個版本在此流程中的比較內容說明</h2>
+  <p class="compare-text">在「Bounding Box Extraction」流程中，三個版本都能對應到功能實作，但組織方式不同。Single FSM 版把功能集中在 S_CCL_SCAN，屬於 state-level 的集中控制。Modular v21 版對應到 ST_BOX / boxing_v21_fast，通常由 top FSM 啟動特定子模組處理。Single Submit 版對應到 ST_BOX / boxing SCAN，雖然整份 code 合併在同一個檔案中，但功能仍由相對應的 module 或 internal state 完成。因此比較重點不是功能有沒有做，而是硬體排程方式、記憶體控制權與模組邊界不同。</p>
+</section>
+
+<section class="section">
+  <h2>整個流程的三個版本程式比較</h2>
+  <p>下方採用下拉式區塊顯示。中文說明放在程式碼上方；原始程式碼本身沒有修改、沒有插入註解。若某份檔案沒有明確對應流程，該程式碼區塊保持空白。</p>
+  <div class="topnav">
+    <button class="btn" onclick="toggleAll(true)">全部展開</button>
+    <button class="btn" onclick="toggleAll(false)">全部收合</button>
+  </div>
+  <div class="accordion-wrap">
+<details class="code-detail" open>
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 1 · 版本一：drawBbox.v 單一 FSM 版</span>
+    <button class="copybtn" data-copy="code-single_fsm-25-bounding-box-extraction" onclick="event.preventDefault(); copyCode('code-single_fsm-25-bounding-box-extraction')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中對應到 S_CCL_SCAN。在 CCL 過程中呼叫 update_bbox_task()，同步更新 bbox。
+    <div class="code-meta">drawBbox(21).v · lines 13-233</div>
+  </div>
+  <pre><code id="code-single_fsm-25-bounding-box-extraction">//
+// 核心改動（相對 V14）：
+//   ✅ 移除 gray_mem[65535:0]（原 524,288 個 FF），改用：
+//      (1) UrSRAM 儲存 65536 個灰階值
+//      (2) 3-row line buffer (linebuf_prev/curr/next, 各 256 bytes = 768 個 FF)
+//          供 Gaussian filter 計算使用，不需讀 SRAM
+//   ✅ 移除所有 integer function input（改成 signed [31:0]），
+//      讓 DC/Presto 合成更乾淨
+//   ✅ 所有 Otsu / CCL / BBox / 特殊補框邏輯與 V14 完全相同
+//
+// 合成效益：
+//   gray_mem：524,288 FF → 0 FF（改用 UrSRAM）
+//   linebuf：0 → 768 FF（3行暫存）
+//   淨減少：約 523,520 個 FF，合成時間大幅縮短
+//
+// 時序成本：
+//   每列（256 pixels）結束後需讀入下一列（3-phase SRAM read × 256 col）
+//   每列額外成本 = 256 × 3 = 768 cycles
+//   共 256 列 × 2 次（Gauss + CCL）= 393,216 extra cycles
+//   相對原本 S_GAUSS_HIST 65536 cycles 增加約 6 倍 simulation time，
+//   但 synthesis time 從數十分鐘降為數分鐘。
+// ============================================================
+
+module drawBbox (
+    input              clk,
+    input              rst,
+    input              enable,
+    output             done,
+
+    input      [31:0]  Img_Q,
+    output reg         Img_CEN,
+    output reg [15:0]  Img_A,
+
+    input      [31:0]  Ur_Q,
+    output reg         Ur_CEN,
+    output reg         Ur_WEN,
+    output reg [31:0]  Ur_D,
+    output reg [15:0]  Ur_A,
+
+    input      [31:0]  Ans_Q,
+    output reg         Ans_CEN,
+    output reg         Ans_WEN,
+    output reg [31:0]  Ans_D,
+    output reg [15:0]  Ans_A
+);
+
+    localparam [31:0] GREEN       = 32&#x27;h0000_FF00;
+    localparam [16:0] NPIX        = 17&#x27;d65536;
+    localparam [15:0] NPIX_LAST   = 16&#x27;hFFFF;
+    localparam [9:0]  MAX_LABELS  = 10&#x27;d512;
+    localparam [8:0]  MAX_LABEL_IDX = 9&#x27;d511;
+
+    localparam [5:0]
+        S_IDLE         = 6&#x27;d0,
+        S_LOAD         = 6&#x27;d1,
+        S_GRAY         = 6&#x27;d2,
+        S_HIST_CLEAR   = 6&#x27;d3,
+        S_LB_INIT      = 6&#x27;d4,   // 載入初始 line buffer（3 行）
+        S_LB_ROW       = 6&#x27;d5,   // 載入單一 row → linebuf_next
+        S_GAUSS_HIST   = 6&#x27;d6,
+        S_OTSU_INIT    = 6&#x27;d7,
+        S_OTSU_SCAN    = 6&#x27;d8,
+        S_COUNT_HI     = 6&#x27;d9,
+        S_POLARITY     = 6&#x27;d10,
+        S_MASK_WRITE   = 6&#x27;d11,
+        S_PARENT_INIT  = 6&#x27;d12,  // V16: clear parent/bbox arrays before CCL
+        S_LB_INIT2     = 6&#x27;d13,  // CCL 前重新載入 line buffer
+        S_CCL_SCAN     = 6&#x27;d14,
+        S_LB_ROW2      = 6&#x27;d15,  // CCL 跨列 line buffer 更新
+        S_BBOX_INIT    = 6&#x27;d16,
+        S_BBOX_SCAN    = 6&#x27;d17,
+        S_BOXMAP_CLEAR = 6&#x27;d18,
+        S_BOXMAP_GEN   = 6&#x27;d19,
+        S_DRAW_WRITE   = 6&#x27;d20,
+        S_DONE         = 6&#x27;d21,
+        // V19: split Otsu into multi-cycle states so DC sees one shared multiplier instead of many huge multipliers
+        S_OTSU_LHS     = 6&#x27;d22,
+        S_OTSU_DENOM   = 6&#x27;d23,
+        S_OTSU_SQUARE  = 6&#x27;d24,
+        S_OTSU_CMP1    = 6&#x27;d25,
+        S_OTSU_CMP2    = 6&#x27;d26;
+
+    reg [5:0] state;
+    reg done_r;
+    assign done = done_r;
+
+    wire [31:0] unused_zero = (Ans_Q ^ Ans_Q);
+
+    // ============================================================
+    // 3-Row Line Buffer（取代 gray_mem[65535:0]）
+    // ============================================================
+    // V21: 3-bank line buffer.
+    // Instead of physically rotating 256 columns (prev&lt;=curr, curr&lt;=next),
+    // we keep three physical banks and rotate only 2-bit selectors.
+    // This preserves RTL alignment but is much easier for Design Compiler.
+    reg [7:0] linebuf_bank0 [0:255];
+    reg [7:0] linebuf_bank1 [0:255];
+    reg [7:0] linebuf_bank2 [0:255];
+    reg [1:0] lb_prev_sel, lb_curr_sel, lb_next_sel;
+
+    reg [31:0] hist [255:0];
+
+    reg [8:0]  row_label    [0:255];
+    reg [8:0]  left_label;
+    reg [8:0]  nw_label_hold;
+    reg [8:0]  cur_label_comb;
+
+    reg [8:0]  parent      [MAX_LABELS-1:0];
+    reg        bbox_valid  [MAX_LABELS-1:0];
+    reg        bbox_border [MAX_LABELS-1:0];
+    reg [7:0]  bbox_xmin   [MAX_LABELS-1:0];
+    reg [7:0]  bbox_xmax   [MAX_LABELS-1:0];
+    reg [7:0]  bbox_ymin   [MAX_LABELS-1:0];
+    reg [7:0]  bbox_ymax   [MAX_LABELS-1:0];
+
+    reg [15:0] addr_cnt;
+    reg [16:0] req_cnt;
+    reg [8:0]  next_label;
+    reg [8:0]  label_idx;
+    reg [7:0]  edge_ctr;
+    reg [1:0]  edge_stage;
+
+    // Line buffer loader
+    reg [7:0]  lb_col;    // 目前載入的欄
+    reg [7:0]  lb_row;    // 要從 UrSRAM 讀的列（供 S_LB_ROW 用）
+    reg [1:0]  lb_phase;  // 0=送addr, 1=等latency, 2=存資料
+    reg [1:0]  lb_seq;    // S_LB_INIT 階段序號 (0=prev, 1=curr, 2=next)
+
+    // lb_row_w：S_LB_INIT 階段根據 lb_seq 選擇要讀的 row
+    // 用 wire 避免 nonblocking timing 問題
+    wire [7:0] lb_init_row = (lb_seq == 2&#x27;d1) ? 8&#x27;d0 : 8&#x27;d1;
+    //   seq=0: 讀 row1 (reflect of y=-1) → prev
+    //   seq=1: 讀 row0                   → curr
+    //   seq=2: 讀 row1                   → next
+
+    reg [7:0]  otsu_t;
+    reg        invert_sel;
+    reg [16:0] count_hi;
+    reg [31:0] wb_acc, sum_b_acc;
+    reg [7:0]  otsu_idx;
+    reg [63:0] lhs48, rhs48;
+    reg [64:0] diff48;
+    reg [63:0] denom32;
+    reg [31:0] sum_total, wb_next, sum_b_next, otsu_idx32;
+    reg [129:0] square96, best_num;
+    reg [63:0]  best_den;
+    reg [193:0] cmp_lhs, cmp_rhs;
+
+    // V19 synthesis-fast shared multiplier for Otsu.
+    // The original V18 S_OTSU_SCAN described several large multipliers in one cycle
+    // (32x32, 65x65, 130x64, 130x64). DC may spend a very long time optimizing them.
+    // Here all Otsu products go through one 130x64 combinational multiplier across
+    // several FSM states. RTL cycles increase by only ~5*256, but synthesis becomes much lighter.
+    reg  [129:0] otsu_mul_a;
+    reg  [63:0]  otsu_mul_b;
+    wire [193:0] otsu_mul_y = otsu_mul_a * otsu_mul_b;
+
+    reg [7:0]  ccl_x, ccl_y, ccl_base;
+    reg        ccl_fg;
+    reg [8:0]  ccl_n_w, ccl_n_nw, ccl_n_n, ccl_n_ne;
+    reg [8:0]  ccl_chosen_label;
+    reg        ccl_new_label;
+    reg [8:0]  root_label;
+    reg [7:0]  draw_ymax;
+
+    reg [31:0] first_pixel;
+    reg [1:0]  special_box_idx;
+    reg [7:0]  x_i, y_i, base_i;
+
+    // ============================================================
+    // function: refl101
+    // ============================================================
+    function [7:0] refl101;
+        input signed [31:0] v;
+        reg signed [31:0] t;
+        reg [31:0] tu;
+        begin
+            t = 32&#x27;sd0; tu = 32&#x27;d0;
+            if (v &lt; 32&#x27;sd0)        t = -v;
+            else if (v &gt; 32&#x27;sd255) t = 32&#x27;sd510 - v;
+            else                   t = v;
+            tu = $unsigned(t);
+            refl101 = tu[7:0];
+        end
+    endfunction
+
+    // ============================================================
+    // function: gray_round_rgb
+    // ============================================================
+    function [7:0] gray_round_rgb;
+        input [31:0] pix;
+        reg [17:0] gs;
+        reg [9:0]  gq;
+        reg [7:0]  gr;
+        begin
+            gs = ({10&#x27;d0,pix[23:16]}*18&#x27;d77)+
+                 ({10&#x27;d0,pix[15:8]} *18&#x27;d150)+
+                 ({10&#x27;d0,pix[7:0]}  *18&#x27;d29);
+            gq = gs[17:8]; gr = gs[7:0];
+            if ((gr&gt;8&#x27;d128)||((gr==8&#x27;d128)&amp;&amp;(gq[0]==1&#x27;b1)))
+                gray_round_rgb = gq[7:0]+8&#x27;d1;
+            else
+                gray_round_rgb = gq[7:0];
+        end
+    endfunction
+
+    // ============================================================
+    // function: lb_read
+    // 從 line buffer 讀取，dy 為相對 row（-1/0/+1），含 x reflect
+    // ============================================================
+    function [7:0] lb_bank_read;
+        input [1:0] sel;
+        input [7:0] idx;
+        begin
+            case (sel)
+                2&#x27;d0: lb_bank_read = linebuf_bank0[idx];
+                2&#x27;d1: lb_bank_read = linebuf_bank1[idx];
+                2&#x27;d2: lb_bank_read = linebuf_bank2[idx];
+                default: lb_bank_read = 8&#x27;d0;
+            endcase
+        end</code></pre>
+</details>
+
+<details class="code-detail" >
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 2 · 版本二：drawBbox_declaration_comments_v1.v</span>
+    <button class="copybtn" data-copy="code-modular_v21-25-bounding-box-extraction" onclick="event.preventDefault(); copyCode('code-modular_v21-25-bounding-box-extraction')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中對應到 ST_BOX / boxing_v21_fast。掃描 AnsSRAM 的 label 結果，找出每個 label 的 min_x/max_x/min_y/max_y。
+    <div class="code-meta">drawBbox_declaration_comments_v1(1).v · lines 981-1300</div>
+  </div>
+  <pre><code id="code-modular_v21-25-bounding-box-extraction">module boxing_v21_fast(
+    input      clk, // 系統時脈輸入
+    input      rst, // 同步或非同步重置信號
+    input      enable, // 啟動整體影像處理流程
+    output reg    done, // 輸出完成旗標
+    input [9:0] total_label, // top/module 介面訊號宣告
+    // ImgROM
+    input      [31:0] Img_Q, // ImgROM 讀回的 32-bit RGB pixel
+    output reg           Img_CEN, // ImgROM 低有效 chip enable
+    output reg [15:0] Img_A, // ImgROM 讀取位址
+    // AnsSRAM
+    input      [31:0] Ans_Q, // AnsSRAM 讀回資料
+    output reg           Ans_CEN, // AnsSRAM 低有效 chip enable
+    output reg           Ans_WEN, // AnsSRAM 讀寫控制，0 為寫入、1 為讀取
+    output reg    [31:0] Ans_D, // AnsSRAM 寫入資料
+    output reg    [15:0] Ans_A // AnsSRAM 存取位址
+);
+reg [15:0] pixel; // 循序邏輯暫存器宣告
+reg [7:0] min_x[364:0]; // 循序邏輯暫存器宣告
+reg [7:0] max_x[364:0]; // 循序邏輯暫存器宣告
+reg [7:0] min_y[364:0]; // 循序邏輯暫存器宣告
+reg [7:0] max_y[364:0]; // 循序邏輯暫存器宣告
+reg scan_done; // 循序邏輯暫存器宣告
+reg copy_done,copy_done_d; // 循序邏輯暫存器宣告
+reg [8:0] box_count; // 循序邏輯暫存器宣告
+reg [2:0] state, next_state; // 目前 top FSM 狀態
+localparam IDLE = 3&#x27;d0; // FSM 狀態或常數參數宣告
+localparam SCAN = 3&#x27;d1; // FSM 狀態或常數參數宣告
+localparam COPY = 3&#x27;d2; // FSM 狀態或常數參數宣告
+localparam BOXING = 3&#x27;d3; // FSM 狀態或常數參數宣告
+localparam DONE = 3&#x27;d4; // FSM 狀態或常數參數宣告
+// Final-pixel tail states keep the last ROM address, data, and write strobes
+// stable long enough for the SRAM model to capture Ans[65535].
+localparam COPY_LAST_READ  = 3&#x27;d5; // FSM 狀態或常數參數宣告
+localparam COPY_LAST_WRITE = 3&#x27;d6; // FSM 狀態或常數參數宣告
+localparam COPY_LAST_HOLD  = 3&#x27;d7; // FSM 狀態或常數參數宣告
+reg Img_CEN_d; // 循序邏輯暫存器宣告
+reg Ans_CEN_d; // 循序邏輯暫存器宣告
+reg [7:0] cur_x ; // 循序邏輯暫存器宣告
+reg [7:0] cur_y ; // 循序邏輯暫存器宣告
+always@(posedge clk or posedge rst)begin
+    if(rst)begin
+        Img_CEN_d &lt;= 1&#x27;b0;
+        Ans_CEN_d &lt;= 1&#x27;b0;
+    end else begin
+        Img_CEN_d &lt;= Img_CEN;
+        Ans_CEN_d &lt;= Ans_CEN;
+    end
+end
+reg [2:0] box_state,box_next_state; // FSM 狀態暫存器宣告
+localparam BOX_IDLE = 3&#x27;d0; // FSM 狀態或常數參數宣告
+localparam BOX_INITIAL = 3&#x27;d1; // FSM 狀態或常數參數宣告
+localparam BOX_WRITE_1 = 3&#x27;d2; // FSM 狀態或常數參數宣告
+localparam BOX_WRITE_2 = 3&#x27;d3; // FSM 狀態或常數參數宣告
+localparam BOX_WRITE_3 = 3&#x27;d4; // FSM 狀態或常數參數宣告
+localparam BOX_WRITE_4 = 3&#x27;d5; // FSM 狀態或常數參數宣告
+localparam BOX_DONE = 3&#x27;d6; // FSM 狀態或常數參數宣告
+reg [7:0] pixel_x, pixel_y; // 循序邏輯暫存器宣告
+reg box_write_1_done,box_write_3_done,box_write_4_done; // 循序邏輯暫存器宣告
+reg boxing_done; // 循序邏輯暫存器宣告
+reg [15:0] read_pixel; // 循序邏輯暫存器宣告
+integer i; // for-loop 或計數用途的整數變數宣告
+integer j; // for-loop 或計數用途的整數變數宣告
+always@(posedge clk or posedge rst)begin
+    if(rst)begin
+        Img_CEN &lt;= 1&#x27;b0;
+        Img_A &lt;= 16&#x27;d0;
+        Ans_CEN &lt;= 1&#x27;b0;
+        Ans_WEN &lt;= 1&#x27;b0;
+        Ans_D &lt;= 32&#x27;d0;
+        Ans_A &lt;= 16&#x27;d0;
+        pixel &lt;= 16&#x27;d0;
+        for(i = 0; i &lt; 365; i = i+1)begin
+            min_x[i] &lt;= 8&#x27;d0;
+            max_x[i] &lt;= 8&#x27;d0;
+            min_y[i] &lt;= 8&#x27;d0;
+            max_y[i] &lt;= 8&#x27;d0;
+        end
+        cur_x &lt;= 8&#x27;d0;
+        cur_y &lt;= 8&#x27;d0;
+        scan_done &lt;= 1&#x27;b0;
+        copy_done &lt;= 1&#x27;b0;
+        copy_done_d &lt;= 1&#x27;b0;
+        box_count &lt;= 10&#x27;d0;
+        pixel_x &lt;= 8&#x27;d0;
+        pixel_y &lt;= 8&#x27;d0;
+        box_write_1_done &lt;= 1&#x27;b0;
+        //box_write_2_done &lt;= 1&#x27;b0;
+        box_write_3_done &lt;= 1&#x27;b0;
+        box_write_4_done &lt;= 1&#x27;b0;
+        done &lt;= 1&#x27;b0;
+        boxing_done &lt;= 1&#x27;b0;
+        read_pixel &lt;= 16&#x27;d0;
+    end else begin
+        case(state)
+            IDLE:begin
+                Img_CEN &lt;= 1&#x27;b1;
+                Img_A &lt;= 16&#x27;d0;
+                Ans_CEN &lt;= 1&#x27;b1;
+                Ans_WEN &lt;= 1&#x27;b1;
+                Ans_D &lt;= 32&#x27;d0;
+                Ans_A &lt;= 16&#x27;d0;
+                pixel &lt;= 16&#x27;d0;
+                for(j = 0; j &lt; 365; j = j+1)begin
+                    min_x[j] &lt;= 8&#x27;d255;
+                    max_x[j] &lt;= 8&#x27;d0;
+                    min_y[j] &lt;= 8&#x27;d255;
+                    max_y[j] &lt;= 8&#x27;d0;
+                end
+                scan_done &lt;= 1&#x27;b0;
+                copy_done &lt;= 1&#x27;b0;
+                copy_done_d &lt;= 1&#x27;b0;
+                box_count &lt;= 10&#x27;d1;
+                pixel_x &lt;= 8&#x27;d0;
+                pixel_y &lt;= 8&#x27;d0;
+                box_write_1_done &lt;= 1&#x27;b0;
+                //box_write_2_done &lt;= 1&#x27;b0;
+                box_write_3_done &lt;= 1&#x27;b0;
+                box_write_4_done &lt;= 1&#x27;b0;
+                done &lt;= 1&#x27;b0;
+                boxing_done &lt;= 1&#x27;b0;
+                read_pixel &lt;= 16&#x27;d0;
+                cur_x &lt;= 8&#x27;d0;
+        cur_y &lt;= 8&#x27;d0;
+            end
+            SCAN:begin
+                // Read resolved label image from AnsSRAM
+                Ans_CEN &lt;= 1&#x27;b0;
+                Ans_A &lt;= read_pixel;
+                if(read_pixel &lt; 16&#x27;d65535)begin
+                    read_pixel &lt;= read_pixel + 16&#x27;d1;
+                end
+                if(!Ans_CEN_d)begin
+                    // Compare the current pixel coordinate against the stored bounding box range
+                    if(Ans_Q != 32&#x27;d0)begin
+                        if(cur_x &gt; max_x[Ans_Q[8:0]]) max_x[Ans_Q[8:0]] &lt;= cur_x;
+                        if(cur_x &lt; min_x[Ans_Q[8:0]]) min_x[Ans_Q[8:0]] &lt;= cur_x;
+                        if(cur_y &gt; max_y[Ans_Q[8:0]]) max_y[Ans_Q[8:0]] &lt;= cur_y;
+                        if(cur_y &lt; min_y[Ans_Q[8:0]]) min_y[Ans_Q[8:0]] &lt;= cur_y;
+                    end
+                    // Advance the scan address and 2D coordinate counters
+                    if(pixel == 16&#x27;d65535)begin
+                        scan_done &lt;= 1&#x27;b1;
+                        Ans_CEN &lt;= 1&#x27;b1;
+                        Ans_A &lt;= 16&#x27;d0;
+                        pixel &lt;= 16&#x27;d0;
+                        read_pixel &lt;= 16&#x27;d0;
+                        cur_x &lt;= 8&#x27;d0; // Reset X after scan is complete
+                        cur_y &lt;= 8&#x27;d0; // Reset Y after scan is complete
+                    end else begin
+                        pixel &lt;= pixel + 16&#x27;d1;
+                        // Row-major 2D coordinate update
+                        if(cur_x == 8&#x27;d255) begin
+                            cur_x &lt;= 8&#x27;d0;         // End of row: reset X
+                            cur_y &lt;= cur_y + 8&#x27;d1; // End of row: advance Y
+                        end else begin
+                            cur_x &lt;= cur_x + 8&#x27;d1; // Same row: advance X
+                        end
+                    end
+                end
+            end
+            COPY:begin
+                // Copy original RGB image from ImgROM to AnsSRAM before drawing boxes.
+                // Pixels 0..65534 are handled by the normal streaming path.
+                // Pixel 65535 is handled by explicit tail states so that the
+                // memory model observes a complete and stable final write cycle.
+                Img_CEN &lt;= 1&#x27;b0;
+                Img_A   &lt;= read_pixel;
+                if(read_pixel &lt; 16&#x27;d65535)begin
+                    read_pixel &lt;= read_pixel + 16&#x27;d1;
+                end
+                if(!Img_CEN_d)begin
+                    if(pixel &lt; 16&#x27;d65535)begin
+                        Ans_CEN &lt;= 1&#x27;b0;
+                        Ans_WEN &lt;= 1&#x27;b0;
+                        Ans_A   &lt;= pixel;
+                        Ans_D   &lt;= Img_Q;
+                        pixel   &lt;= pixel + 16&#x27;d1;
+                    end else begin
+                        // Stop the normal stream at the last address and let the COPY_LAST_*
+                        // states perform a clean final read/write handshake.
+                        Ans_CEN &lt;= 1&#x27;b1;
+                        Ans_WEN &lt;= 1&#x27;b1;
+                        Ans_A   &lt;= 16&#x27;d65535;
+                        Img_CEN &lt;= 1&#x27;b0;
+                        Img_A   &lt;= 16&#x27;d65535;
+                    end
+                end
+            end
+            COPY_LAST_READ:begin
+                // Present final ROM address for one complete cycle.
+                Img_CEN &lt;= 1&#x27;b0;
+                Img_A   &lt;= 16&#x27;d65535;
+                Ans_CEN &lt;= 1&#x27;b1;
+                Ans_WEN &lt;= 1&#x27;b1;
+                Ans_A   &lt;= 16&#x27;d65535;
+            end
+            COPY_LAST_WRITE:begin
+                // Set up the final AnsSRAM write using the stable Img_Q value.
+                Img_CEN &lt;= 1&#x27;b0;
+                Img_A   &lt;= 16&#x27;d65535;
+                Ans_CEN &lt;= 1&#x27;b0;
+                Ans_WEN &lt;= 1&#x27;b0;
+                Ans_A   &lt;= 16&#x27;d65535;
+                Ans_D   &lt;= Img_Q;
+            end
+            COPY_LAST_HOLD:begin
+                // Hold final write signals for one more clock so the SRAM model can
+                // capture address 65535 before the BOXING state disables the bus.
+                Img_CEN &lt;= 1&#x27;b1;
+                Img_A   &lt;= 16&#x27;d65535;
+                Ans_CEN &lt;= 1&#x27;b0;
+                Ans_WEN &lt;= 1&#x27;b0;
+                Ans_A   &lt;= 16&#x27;d65535;
+                Ans_D   &lt;= Img_Q;
+                copy_done &lt;= 1&#x27;b1;
+                pixel &lt;= 16&#x27;d0;
+                read_pixel &lt;= 16&#x27;d0;
+            end
+            BOXING:begin
+                if(box_count &lt;= total_label)begin
+                    // Draw the selected component bounding box
+                    case(box_state)
+                        BOX_IDLE:begin
+                            pixel_x &lt;= 8&#x27;d0;
+                            pixel_y &lt;= 8&#x27;d0;
+                            Ans_CEN &lt;= 1&#x27;b1;
+                            Ans_WEN &lt;= 1&#x27;b1;
+                            Ans_A &lt;= 16&#x27;d0;
+                            box_write_1_done &lt;= 1&#x27;b0;
+                            //box_write_2_done &lt;= 1&#x27;b0;
+                            box_write_3_done &lt;= 1&#x27;b0;
+                            box_write_4_done &lt;= 1&#x27;b0;
+                        end
+                        BOX_INITIAL:begin
+                            pixel_x &lt;= min_x[box_count];
+                            pixel_y &lt;= min_y[box_count];
+                        end
+                        // Draw top horizontal edge
+                        BOX_WRITE_1:begin
+                            Ans_CEN &lt;= 1&#x27;b0;
+                            Ans_WEN &lt;= 1&#x27;b0;
+                            Ans_A &lt;= {pixel_y,pixel_x};
+                            Ans_D &lt;= 32&#x27;h0000_FF00;
+                            if(pixel_x &lt; max_x[box_count])begin
+                                pixel_x &lt;= pixel_x + 8&#x27;d1;
+                            end else begin
+                                box_write_1_done &lt;= 1&#x27;b1;
+                                pixel_x &lt;= min_x[box_count];
+                                pixel_y &lt;= max_y[box_count];
+                            end
+                        end
+                        // Draw bottom horizontal edge
+                        BOX_WRITE_2:begin
+                            Ans_A &lt;= {pixel_y,pixel_x};
+                            Ans_D &lt;= 32&#x27;h0000_FF00;
+                            if(pixel_x &lt; max_x[box_count])begin
+                                pixel_x &lt;= pixel_x + 8&#x27;d1;
+                            end else begin
+                                //box_write_2_done &lt;= 1&#x27;b1;
+                                pixel_x &lt;= min_x[box_count];
+                                pixel_y &lt;= min_y[box_count] + 8&#x27;d1;
+                            end
+                        end
+                        // Draw left vertical edge
+                        BOX_WRITE_3:begin
+                            Ans_A &lt;= {pixel_y,pixel_x};
+                            Ans_D &lt;= 32&#x27;h0000_FF00;
+                            if(pixel_y &lt; (max_y[box_count] - 8&#x27;d1))begin
+                                pixel_y &lt;= pixel_y + 8&#x27;d1;
+                            end else begin
+                                box_write_3_done &lt;= 1&#x27;b1;
+                                pixel_x &lt;= max_x[box_count];
+                                pixel_y &lt;= min_y[box_count] + 8&#x27;d1;
+                            end
+                        end
+                        // Draw right vertical edge
+                        BOX_WRITE_4:begin
+                            Ans_A &lt;= {pixel_y,pixel_x};
+                            Ans_D &lt;= 32&#x27;h0000_FF00;
+                            if(pixel_y &lt; (max_y[box_count] - 8&#x27;d1))begin
+                                pixel_y &lt;= pixel_y + 8&#x27;d1;
+                            end else begin
+                                box_write_4_done &lt;= 1&#x27;b1;
+                            end
+                        end
+                        BOX_DONE:begin
+                            Ans_CEN &lt;= 1&#x27;b1;
+                            Ans_WEN &lt;= 1&#x27;b1;
+                            Ans_A &lt;= 16&#x27;d0;
+                            box_count &lt;= box_count + 10&#x27;d1;
+                        end
+                    endcase
+                end else begin
+                    boxing_done &lt;= 1&#x27;b1;
+                end
+            end
+            DONE:begin
+                done &lt;= 1&#x27;b1;
+            end
+        endcase
+    end
+end
+always@(posedge clk or posedge rst)begin
+    if(rst)begin
+        copy_done_d &lt;= 1&#x27;b0;
+    end else begin
+        copy_done_d &lt;= copy_done;
+    end
+end
+always@(posedge clk or posedge rst)begin
+    if(rst)begin
+        state &lt;= IDLE;
+    end else begin
+        state &lt;= next_state;
+    end
+end
+always@(posedge clk or posedge rst)begin
+    if(rst)begin
+        box_state &lt;= BOX_IDLE;</code></pre>
+</details>
+
+<details class="code-detail" >
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 3 · 版本三：drawBbox_single_submit.v</span>
+    <button class="copybtn" data-copy="code-single_submit-25-bounding-box-extraction" onclick="event.preventDefault(); copyCode('code-single_submit-25-bounding-box-extraction')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中對應到 ST_BOX / boxing SCAN。掃描 AnsSRAM label map，更新每個 label 的 min_x/max_x/min_y/max_y。
+    <div class="code-meta">drawBbox_single_submit(6).v · lines 1018-1337</div>
+  </div>
+  <pre><code id="code-single_submit-25-bounding-box-extraction">module boxing(
+    input      clk,
+    input      rst,
+    input      enable,
+    output reg    done,
+    input [9:0] total_label,
+
+    // ImgROM
+    input      [31:0] Img_Q,
+    output reg           Img_CEN,
+    output reg [15:0] Img_A,
+
+    // AnsSRAM
+    input      [31:0] Ans_Q,
+    output reg           Ans_CEN,
+    output reg           Ans_WEN,
+    output reg    [31:0] Ans_D,
+    output reg    [15:0] Ans_A
+);
+
+reg [15:0] pixel;
+reg [7:0] min_x[364:0];
+reg [7:0] max_x[364:0];
+reg [7:0] min_y[364:0];
+reg [7:0] max_y[364:0];
+reg scan_done;
+reg copy_done,copy_done_d;
+reg [8:0] box_count;
+reg [2:0] state, next_state;
+localparam IDLE = 3&#x27;d0;
+localparam SCAN = 3&#x27;d1;
+localparam COPY = 3&#x27;d2;
+localparam BOXING = 3&#x27;d3;
+localparam DONE = 3&#x27;d4;
+
+reg Img_CEN_d;
+reg Ans_CEN_d;
+reg [7:0] cur_x ;
+reg [7:0] cur_y ;
+always@(posedge clk or posedge rst)begin
+    if(rst)begin
+        Img_CEN_d &lt;= 1&#x27;b0;
+        Ans_CEN_d &lt;= 1&#x27;b0;
+    end else begin
+        Img_CEN_d &lt;= Img_CEN;
+        Ans_CEN_d &lt;= Ans_CEN;
+    end
+end
+
+reg [2:0] box_state,box_next_state;
+localparam BOX_IDLE = 3&#x27;d0;
+localparam BOX_INITIAL = 3&#x27;d1;
+localparam BOX_WRITE_1 = 3&#x27;d2;
+localparam BOX_WRITE_2 = 3&#x27;d3;
+localparam BOX_WRITE_3 = 3&#x27;d4;
+localparam BOX_WRITE_4 = 3&#x27;d5;
+localparam BOX_DONE = 3&#x27;d6;
+
+reg [7:0] pixel_x, pixel_y;
+reg box_write_1_done,box_write_3_done,box_write_4_done;
+reg boxing_done;
+reg [15:0] read_pixel;
+
+integer i;
+integer j;
+always@(posedge clk or posedge rst)begin
+    if(rst)begin
+        Img_CEN &lt;= 1&#x27;b0;
+        Img_A &lt;= 16&#x27;d0;
+        Ans_CEN &lt;= 1&#x27;b0;
+        Ans_WEN &lt;= 1&#x27;b0;
+        Ans_D &lt;= 32&#x27;d0;
+        Ans_A &lt;= 16&#x27;d0;
+        pixel &lt;= 16&#x27;d0;
+        for(i = 0; i &lt; 365; i = i+1)begin
+            min_x[i] &lt;= 8&#x27;d0;
+            max_x[i] &lt;= 8&#x27;d0;
+            min_y[i] &lt;= 8&#x27;d0;
+            max_y[i] &lt;= 8&#x27;d0;
+        end
+        cur_x &lt;= 8&#x27;d0;
+        cur_y &lt;= 8&#x27;d0;
+        scan_done &lt;= 1&#x27;b0;
+        copy_done &lt;= 1&#x27;b0;
+        copy_done_d &lt;= 1&#x27;b0;
+        box_count &lt;= 10&#x27;d0;
+        pixel_x &lt;= 8&#x27;d0;
+        pixel_y &lt;= 8&#x27;d0;
+        box_write_1_done &lt;= 1&#x27;b0;
+        //box_write_2_done &lt;= 1&#x27;b0;
+        box_write_3_done &lt;= 1&#x27;b0;
+        box_write_4_done &lt;= 1&#x27;b0;
+        done &lt;= 1&#x27;b0;
+        boxing_done &lt;= 1&#x27;b0;
+        read_pixel &lt;= 16&#x27;d0;
+    end else begin
+        case(state)
+            IDLE:begin
+                Img_CEN &lt;= 1&#x27;b1;
+                Img_A &lt;= 16&#x27;d0;
+                Ans_CEN &lt;= 1&#x27;b1;
+                Ans_WEN &lt;= 1&#x27;b1;
+                Ans_D &lt;= 32&#x27;d0;
+                Ans_A &lt;= 16&#x27;d0;
+                pixel &lt;= 16&#x27;d0;
+                for(j = 0; j &lt; 365; j = j+1)begin
+                    min_x[j] &lt;= 8&#x27;d255;
+                    max_x[j] &lt;= 8&#x27;d0;
+                    min_y[j] &lt;= 8&#x27;d255;
+                    max_y[j] &lt;= 8&#x27;d0;
+                end
+                scan_done &lt;= 1&#x27;b0;
+                copy_done &lt;= 1&#x27;b0;
+                copy_done_d &lt;= 1&#x27;b0;
+                box_count &lt;= 10&#x27;d1;
+                pixel_x &lt;= 8&#x27;d0;
+                pixel_y &lt;= 8&#x27;d0;
+                box_write_1_done &lt;= 1&#x27;b0;
+                //box_write_2_done &lt;= 1&#x27;b0;
+                box_write_3_done &lt;= 1&#x27;b0;
+                box_write_4_done &lt;= 1&#x27;b0;
+                done &lt;= 1&#x27;b0;
+                boxing_done &lt;= 1&#x27;b0;
+                read_pixel &lt;= 16&#x27;d0;
+                cur_x &lt;= 8&#x27;d0;
+        cur_y &lt;= 8&#x27;d0;
+            end
+            SCAN:begin
+                // read label picture from ans_ram
+                Ans_CEN &lt;= 1&#x27;b0;
+                Ans_A &lt;= read_pixel;
+                if(read_pixel &lt; 16&#x27;d65535)begin
+                    read_pixel &lt;= read_pixel + 16&#x27;d1;
+                end
+
+                if(!Ans_CEN_d)begin
+                    // 1. 先做比較（此時 cur_x 和 cur_y 還是當下這個 Pixel 的座標）
+                    if(Ans_Q != 32&#x27;d0)begin
+                        if(cur_x &gt; max_x[Ans_Q[8:0]]) max_x[Ans_Q[8:0]] &lt;= cur_x;
+                        if(cur_x &lt; min_x[Ans_Q[8:0]]) min_x[Ans_Q[8:0]] &lt;= cur_x;
+                        if(cur_y &gt; max_y[Ans_Q[8:0]]) max_y[Ans_Q[8:0]] &lt;= cur_y;
+                        if(cur_y &lt; min_y[Ans_Q[8:0]]) min_y[Ans_Q[8:0]] &lt;= cur_y;
+                    end
+
+                    // 2. 更新計數器與座標
+                    if(pixel == 16&#x27;d65535)begin
+                        scan_done &lt;= 1&#x27;b1;
+                        Ans_CEN &lt;= 1&#x27;b1;
+                        Ans_A &lt;= 16&#x27;d0;
+                        pixel &lt;= 16&#x27;d0;
+                        read_pixel &lt;= 16&#x27;d0;
+                        cur_x &lt;= 8&#x27;d0; // 掃描結束，X 歸零
+                        cur_y &lt;= 8&#x27;d0; // 掃描結束，Y 歸零
+                    end else begin
+                        pixel &lt;= pixel + 16&#x27;d1;
+                        // 二維座標計數邏輯
+                        if(cur_x == 8&#x27;d255) begin
+                            cur_x &lt;= 8&#x27;d0;         // 換行：X 歸零
+                            cur_y &lt;= cur_y + 8&#x27;d1; // 換行：Y 往下走一格
+                        end else begin
+                            cur_x &lt;= cur_x + 8&#x27;d1; // 還沒到行尾，X 繼續往右走
+                        end
+                    end
+                end
+            end
+            COPY:begin
+                // copy all the thing from rom
+                Img_CEN &lt;= 1&#x27;b0;
+                Img_A &lt;= read_pixel;
+                if(read_pixel &lt; 16&#x27;d65535)begin
+                    //Img_A &lt;= read_pixel;
+                    read_pixel &lt;= read_pixel + 16&#x27;d1;
+                end
+                if(!Img_CEN_d)begin
+                    Ans_CEN &lt;= 1&#x27;b0;
+                    Ans_WEN &lt;= 1&#x27;b0;
+                    Ans_A &lt;= pixel;
+                    Ans_D &lt;= Img_Q;
+                    if(Ans_A == 16&#x27;d65534)copy_done &lt;= 1&#x27;b1;
+                    if(Ans_A == 16&#x27;d65535)begin
+                        Ans_CEN &lt;= 1&#x27;b1;
+                        Ans_WEN &lt;= 1&#x27;b1;
+                        copy_done &lt;= 1&#x27;b1;
+                        Img_CEN &lt;= 1&#x27;b1;
+                    end else begin
+                        pixel &lt;= pixel + 16&#x27;d1;
+                    end
+                end
+            end
+            BOXING:begin
+                if(box_count &lt;= total_label)begin
+                    // box it !!
+                    case(box_state)
+                        BOX_IDLE:begin
+                            pixel_x &lt;= 8&#x27;d0;
+                            pixel_y &lt;= 8&#x27;d0;
+                            Ans_CEN &lt;= 1&#x27;b1;
+                            Ans_WEN &lt;= 1&#x27;b1;
+                            Ans_A &lt;= 16&#x27;d0;
+                            box_write_1_done &lt;= 1&#x27;b0;
+                            //box_write_2_done &lt;= 1&#x27;b0;
+                            box_write_3_done &lt;= 1&#x27;b0;
+                            box_write_4_done &lt;= 1&#x27;b0;
+                        end
+                        BOX_INITIAL:begin
+                            pixel_x &lt;= min_x[box_count];
+                            pixel_y &lt;= min_y[box_count];
+                        end
+                        // write first row
+                        BOX_WRITE_1:begin
+                            Ans_CEN &lt;= 1&#x27;b0;
+                            Ans_WEN &lt;= 1&#x27;b0;
+                            Ans_A &lt;= {pixel_y,pixel_x};
+                            Ans_D &lt;= 32&#x27;h0000_FF00;
+                            if(pixel_x &lt; max_x[box_count])begin
+                                pixel_x &lt;= pixel_x + 8&#x27;d1;
+                            end else begin
+                                box_write_1_done &lt;= 1&#x27;b1;
+                                pixel_x &lt;= min_x[box_count];
+                                pixel_y &lt;= max_y[box_count];
+                            end
+                        end
+                        // write last row
+                        BOX_WRITE_2:begin
+                            Ans_A &lt;= {pixel_y,pixel_x};
+                            Ans_D &lt;= 32&#x27;h0000_FF00;
+                            if(pixel_x &lt; max_x[box_count])begin
+                                pixel_x &lt;= pixel_x + 8&#x27;d1;
+                            end else begin
+                                //box_write_2_done &lt;= 1&#x27;b1;
+                                pixel_x &lt;= min_x[box_count];
+                                pixel_y &lt;= min_y[box_count] + 8&#x27;d1;
+                            end
+                        end
+                        // write first column
+                        BOX_WRITE_3:begin
+                            Ans_A &lt;= {pixel_y,pixel_x};
+                            Ans_D &lt;= 32&#x27;h0000_FF00;
+                            if(pixel_y &lt; (max_y[box_count] - 8&#x27;d1))begin
+                                pixel_y &lt;= pixel_y + 8&#x27;d1;
+                            end else begin
+                                box_write_3_done &lt;= 1&#x27;b1;
+                                pixel_x &lt;= max_x[box_count];
+                                pixel_y &lt;= min_y[box_count] + 8&#x27;d1;
+                            end
+                        end
+                        // write last column
+                        BOX_WRITE_4:begin
+                            Ans_A &lt;= {pixel_y,pixel_x};
+                            Ans_D &lt;= 32&#x27;h0000_FF00;
+                            if(pixel_y &lt; (max_y[box_count] - 8&#x27;d1))begin
+                                pixel_y &lt;= pixel_y + 8&#x27;d1;
+                            end else begin
+                                box_write_4_done &lt;= 1&#x27;b1;
+                            end
+                        end
+                        BOX_DONE:begin
+                            Ans_CEN &lt;= 1&#x27;b1;
+                            Ans_WEN &lt;= 1&#x27;b1;
+                            Ans_A &lt;= 16&#x27;d0;
+                            box_count &lt;= box_count + 10&#x27;d1;
+                        end
+                    endcase
+                end else begin
+                    boxing_done &lt;= 1&#x27;b1;
+                end
+            end
+            DONE:begin
+                done &lt;= 1&#x27;b1;
+            end
+        endcase
+    end
+end
+
+always@(posedge clk or posedge rst)begin
+    if(rst)begin
+        copy_done_d &lt;= 1&#x27;b0;
+    end else begin
+        copy_done_d &lt;= copy_done;
+    end
+end
+
+
+always@(posedge clk or posedge rst)begin
+    if(rst)begin
+        state &lt;= IDLE;
+    end else begin
+        state &lt;= next_state;
+    end
+end
+
+always@(posedge clk or posedge rst)begin
+    if(rst)begin
+        box_state &lt;= BOX_IDLE;
+    end else begin
+        box_state &lt;= box_next_state;
+    end
+end
+
+always@(*)begin
+    case(box_state)
+        BOX_IDLE:begin
+            // 🚨 兩層終極防護：
+            // 1. state == BOXING：確保主狀態機到了才開始畫，消滅左上角幽靈線！
+            // 2. min &lt;= max：確保這是真實存在的物件，消滅殘缺線條！
+            if(state == BOXING) begin
+                if(min_x[box_count] &lt;= max_x[box_count] &amp;&amp;
+                   min_y[box_count] &lt;= max_y[box_count] &amp;&amp;
+                   min_x[box_count] &gt; 8&#x27;d0 &amp;&amp;
+                   min_y[box_count] &gt; 8&#x27;d0 &amp;&amp;
+                   max_x[box_count] &lt; 8&#x27;d255 &amp;&amp;
+                   max_y[box_count] &lt; 8&#x27;d255 &amp;&amp;
+                   ((max_x[box_count] - min_x[box_count]) &gt;10)&amp;&amp;
+                   ((max_y[box_count] - min_y[box_count]) &gt;10))  begin
+                    box_next_state = BOX_INITIAL;
+                end else begin
+                    box_next_state = BOX_DONE; // 碰到邊界或空標籤，直接跳下一個
+                end
+            end else begin
+                box_next_state = BOX_IDLE; // 主狀態還沒到，乖乖原地等待</code></pre>
+</details>
+</div>
+</section>
+
+</div>
+<div class="footer">drawBbox multi-page repack site · original Verilog files are copied unchanged in assets/code/</div>
+</body>
+</html>

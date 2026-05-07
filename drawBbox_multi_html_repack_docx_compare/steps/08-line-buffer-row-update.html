@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Step 08 Line Buffer Row Update</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<script src="../assets/js/main.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Step 08</span>
+  <h1>Line Buffer Row Update</h1>
+  <p class="lead">每處理完一列後更新 line buffer 或 selector。</p>
+  <div class="topnav"><a class="btn" href="../index.html">回首頁</a><a class="btn" href="07-gaussian-filtering.html">上一個：07</a><a class="btn" href="09-gaussian-gray-write-to-ursram.html">下一個：09</a></div>
+</header>
+
+<section class="section">
+  <h2>SVG 流程圖</h2>
+  <div class="svgbox"><img src="../assets/svg/08-line-buffer-row-update.svg" alt="Line Buffer Row Update SVG"></div>
+</section>
+
+<section class="section">
+  <h2>比較的方法.docx 對應表</h2>
+  <p>此表把本流程在三個版本中的 state/module 與 code 關係整理出來；沒有明確對應者保持空白。</p>
+  <table>
+    <thead><tr><th>版本</th><th>對應 state / module</th><th>和 code 的關係</th></tr></thead>
+    <tbody><tr><td>Single FSM</td><td>S_LB_ROW2</td><td>CCL 每掃完一列，就更新 CCL 用的 line buffer</td></tr>
+<tr><td>Modular v21</td><td></td><td></td></tr>
+<tr><td>Single Submit</td><td></td><td></td></tr></tbody>
+  </table>
+</section>
+
+<section class="section">
+  <h2>三個版本在此流程中的比較內容說明</h2>
+  <p class="compare-text">在「Line Buffer Row Update」流程中，並非三個版本都有獨立而明確的程式段落。Single FSM 版有明確對應，主要在 S_LB_ROW2 完成，說明為：CCL 每掃完一列，就更新 CCL 用的 line buffer。Modular v21 版沒有明確獨立此流程，可能由子模組內部合併處理，或該架構不採用此額外階段。Single Submit 版沒有明確獨立此流程，對應原始碼區塊依需求保持空白。這種差異通常來自架構選擇：單一 FSM 會把多個小步驟合併在同一段 state；模組化版本則傾向把功能交給特定子模組；single_submit 則在單檔中保留 module-level 階段。</p>
+</section>
+
+<section class="section">
+  <h2>整個流程的三個版本程式比較</h2>
+  <p>下方採用下拉式區塊顯示。中文說明放在程式碼上方；原始程式碼本身沒有修改、沒有插入註解。若某份檔案沒有明確對應流程，該程式碼區塊保持空白。</p>
+  <div class="topnav">
+    <button class="btn" onclick="toggleAll(true)">全部展開</button>
+    <button class="btn" onclick="toggleAll(false)">全部收合</button>
+  </div>
+  <div class="accordion-wrap">
+<details class="code-detail" open>
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 1 · 版本一：drawBbox.v 單一 FSM 版</span>
+    <button class="copybtn" data-copy="code-single_fsm-08-line-buffer-row-update" onclick="event.preventDefault(); copyCode('code-single_fsm-08-line-buffer-row-update')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中對應到 S_LB_ROW2。CCL 每掃完一列，就更新 CCL 用的 line buffer。
+    <div class="code-meta">drawBbox(21).v · lines 531-567</div>
+  </div>
+  <pre><code id="code-single_fsm-08-line-buffer-row-update">                S_LB_ROW: begin
+                    case (lb_phase)
+                        2&#x27;d0: begin
+                            Ur_CEN&lt;=1&#x27;b0; Ur_WEN&lt;=1&#x27;b1;
+                            Ur_A&lt;={lb_row, lb_col};
+                            lb_phase&lt;=2&#x27;d1;
+                        end
+                        2&#x27;d1: begin
+                            Ur_CEN&lt;=1&#x27;b0; Ur_WEN&lt;=1&#x27;b1;
+                            Ur_A&lt;={lb_row, lb_col};
+                            lb_phase&lt;=2&#x27;d2;
+                        end
+                        2&#x27;d2: begin
+                            // Load the new below-row into the physical bank currently used as prev.
+                            // After the row is complete, only the 2-bit selectors are rotated:
+                            //   prev&lt;=curr, curr&lt;=next, next&lt;=old prev.
+                            case (lb_prev_sel)
+                                2&#x27;d0: linebuf_bank0[lb_col]&lt;=Ur_Q[7:0];
+                                2&#x27;d1: linebuf_bank1[lb_col]&lt;=Ur_Q[7:0];
+                                2&#x27;d2: linebuf_bank2[lb_col]&lt;=Ur_Q[7:0];
+                                default: ;
+                            endcase
+                            lb_phase&lt;=2&#x27;d0;
+                            if (lb_col==8&#x27;d255) begin
+                                lb_prev_sel &lt;= lb_curr_sel;
+                                lb_curr_sel &lt;= lb_next_sel;
+                                lb_next_sel &lt;= lb_prev_sel;
+                                lb_col&lt;=8&#x27;d0; state&lt;=S_GAUSS_HIST;
+                            end else lb_col&lt;=lb_col+8&#x27;d1;
+                        end
+                        default: lb_phase&lt;=2&#x27;d0;
+                    endcase
+                end
+
+                // -----------------------------------------------
+                // S_GAUSS_HIST
+                // -----------------------------------------------</code></pre>
+</details>
+
+<details class="code-detail" >
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 2 · 版本二：drawBbox_declaration_comments_v1.v</span>
+    <button class="copybtn" data-copy="code-modular_v21-08-line-buffer-row-update" onclick="event.preventDefault(); copyCode('code-modular_v21-08-line-buffer-row-update')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中沒有明確獨立段落，可能被合併在其他 state/module 中，或此架構不需要此流程；因此下方原始碼區塊依需求保持空白。
+    <div class="code-meta">drawBbox_declaration_comments_v1(1).v · 此流程沒有明確對應程式片段</div>
+  </div>
+  <div class="blank-code" id="code-modular_v21-08-line-buffer-row-update"></div>
+</details>
+
+<details class="code-detail" >
+  <summary>
+    <span class="left"><span class="triangle">▶</span> 程式碼片段 3 · 版本三：drawBbox_single_submit.v</span>
+    <button class="copybtn" data-copy="code-single_submit-08-line-buffer-row-update" onclick="event.preventDefault(); copyCode('code-single_submit-08-line-buffer-row-update')">複製</button>
+  </summary>
+  <div class="comment-box">
+    <strong>中文說明：</strong>此流程在本版本中沒有明確獨立段落，可能被合併在其他 state/module 中，或此架構不需要此流程；因此下方原始碼區塊依需求保持空白。
+    <div class="code-meta">drawBbox_single_submit(6).v · 此流程沒有明確對應程式片段</div>
+  </div>
+  <div class="blank-code" id="code-single_submit-08-line-buffer-row-update"></div>
+</details>
+</div>
+</section>
+
+</div>
+<div class="footer">drawBbox multi-page repack site · original Verilog files are copied unchanged in assets/code/</div>
+</body>
+</html>
