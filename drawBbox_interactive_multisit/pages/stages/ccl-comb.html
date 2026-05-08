@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>五、CCL 組合邏輯</title>
+<link rel="stylesheet" href="../../style.css">
+<script src="../../script.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Stage 05</span>
+  <h1>五、CCL 組合邏輯</h1>
+  <p class="lead">在 S_CCL_SCAN 狀態時，即時計算 ccl_fg、鄰居 label 與 cur_label_comb。</p>
+  <div class="nav">
+    <a class="btn" href="helper.html">← 上一頁</a>
+    <a class="btn" href="../flow_overview.html">流程總覽</a>
+    <a class="btn" href="sync-reset.html">下一頁 →</a>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar"><h3>網站導覽</h3><a href="../../index.html">首頁</a><a href="../../pages/guide.html">閱讀導覽</a><a href="../../pages/flow_overview.html">流程總覽</a><a href="../../pages/architecture.html">架構圖與記憶體</a><a href="../../pages/pattern_gallery.html">Pattern 結果圖</a><a href="../../pages/code_map.html">程式總覽</a><a href="../../pages/line_by_line.html">逐行說明</a><a href="../../pages/stages/io.html">Module 介面與記憶體協定</a><a href="../../pages/stages/const-state.html">常數與 FSM State 定義</a><a href="../../pages/stages/registers.html">內部暫存器、陣列與資料結構</a><a href="../../pages/stages/helper.html">輔助函式與 Task</a><a href="../../pages/stages/ccl-comb.html">CCL 組合邏輯</a><a href="../../pages/stages/sync-reset.html">同步 always、reset 與預設控制</a><a href="../../pages/stages/load-gray.html">Input / RGB-to-Gray / Original Backup</a><a href="../../pages/stages/hist-lbinit.html">Histogram Clear 與 Gaussian Line Buffer 初始化</a><a href="../../pages/stages/gauss-hist.html">Gaussian Filtering 與 Histogram Construction</a><a href="../../pages/stages/otsu.html">Otsu Thresholding</a><a href="../../pages/stages/polarity.html">High-Pixel Counting 與 Auto-Polarity</a><a href="../../pages/stages/parent-init.html">Union-Find / BBox Table 初始化</a><a href="../../pages/stages/ccl.html">CCL Line Buffer 初始化與 8-Connected CCL 掃描</a><a href="../../pages/stages/merge.html">CCL 跨列更新與 Root Label Merge</a><a href="../../pages/stages/overlay.html">物件過濾、BBox Overlay 與特殊補框</a><a href="../../pages/stages/done.html">Done 與 Testbench 驗證觀念</a></aside>
+  <main>
+    <section class="section">
+      <h2>這一段在整個作業流程中的角色</h2>
+      <p>CCL 是整份作業最重要的地方之一。這裡會看到 8-connected 的鄰居判定是如何組合出來的。</p>
+      <p class="note">CCL 組合邏輯的閱讀順序建議是：先看 ccl_fg 怎麼決定，再看 W / NW / N / NE 怎麼取出，最後看 cur_label_comb 怎麼決定新 label 或合併 label。</p>
+      <div><span class="tag">always @(*)</span><span class="tag">ccl_fg</span><span class="tag">nw</span><span class="tag">ne</span><span class="tag">w</span><span class="tag">cur_label_comb</span></div>
+    </section>
+
+    <section class="section">
+      <div data-tabs>
+        <div class="topbar">
+          <h2>圖像與示意</h2>
+          <div class="tabs">
+            <button class="tabbtn active" data-tabbtn="gallery">相關圖檔</button>
+            <button class="tabbtn" data-tabbtn="code">原始 code 片段</button>
+            <button class="tabbtn" data-tabbtn="sample">逐行說明示範</button>
+          </div>
+        </div>
+        <div class="tabpane active" data-tabpane="gallery">
+          <div class="gallery"><div class="thumb" data-fullimg="../assets/fsm_datapath_relation.svg" data-caption="fsm datapath relation"><img src="../assets/fsm_datapath_relation.svg"><div class="cap">fsm datapath relation</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="../assets/architecture_debug_enhanced.svg" data-caption="architecture debug enhanced"><img src="../assets/architecture_debug_enhanced.svg"><div class="cap">architecture debug enhanced</div><small>點擊可放大</small></div></div>
+        </div>
+        <div class="tabpane" data-tabpane="code">
+          <pre>    always @(*) begin
+        ccl_x=addr_cnt[7:0]; ccl_y=addr_cnt[15:8];
+        ccl_base=8&#x27;d0; ccl_fg=1&#x27;b0;
+        ccl_n_w=9&#x27;d0; ccl_n_nw=9&#x27;d0; ccl_n_n=9&#x27;d0; ccl_n_ne=9&#x27;d0;
+        ccl_chosen_label=9&#x27;h1FF; ccl_new_label=1&#x27;b0; cur_label_comb=9&#x27;d0;
+
+        if (state==S_CCL_SCAN) begin
+            ccl_base = gaussian_lb(ccl_x);
+            ccl_fg   = (ccl_base&gt;otsu_t);
+            if (invert_sel) ccl_fg=~ccl_fg;
+
+            ccl_n_w  = (ccl_x==8&#x27;d0)                    ? 9&#x27;d0 : left_label;
+            ccl_n_nw = ((ccl_x==8&#x27;d0)||(ccl_y==8&#x27;d0))   ? 9&#x27;d0 : nw_label_hold;
+            ccl_n_n  = (ccl_y==8&#x27;d0)                    ? 9&#x27;d0 : row_label[ccl_x];
+            ccl_n_ne = ((ccl_x==8&#x27;d255)||(ccl_y==8&#x27;d0)) ? 9&#x27;d0 : row_label[ccl_x+8&#x27;d1];
+
+            if (ccl_fg) begin
+                if ((ccl_n_w !=9&#x27;d0)&amp;&amp;(ccl_n_w &lt;ccl_chosen_label)) ccl_chosen_label=ccl_n_w;
+                if ((ccl_n_nw!=9&#x27;d0)&amp;&amp;(ccl_n_nw&lt;ccl_chosen_label)) ccl_chosen_label=ccl_n_nw;
+                if ((ccl_n_n !=9&#x27;d0)&amp;&amp;(ccl_n_n &lt;ccl_chosen_label)) ccl_chosen_label=ccl_n_n;
+                if ((ccl_n_ne!=9&#x27;d0)&amp;&amp;(ccl_n_ne&lt;ccl_chosen_label)) ccl_chosen_label=ccl_n_ne;
+
+                if (ccl_chosen_label==9&#x27;h1FF) begin
+                    ccl_new_label=1&#x27;b1; cur_label_comb=next_label;
+                end else begin
+                    ccl_new_label=1&#x27;b0; cur_label_comb=ccl_chosen_label;
+                end
+            end
+        end
+    end
+
+    // ============================================================
+    // 主 FSM
+    // ============================================================
+    // VER-134 Fix: all line buffer banks are driven only in this always block.
+    // V21 uses bank selector rotation instead of 256-column physical rotation.
+    // Therefore integer ri / for-loop rotate is no longer needed.</pre>
+        </div>
+        <div class="tabpane" data-tabpane="sample">
+          <table class="line-table">
+            <thead><tr><th>Line</th><th>原始程式碼</th><th>流程分類</th><th>中文說明</th></tr></thead>
+            <tbody><tr data-search="351     always @(*) begin 五、ccl 組合邏輯 開始組合邏輯 always block，用於即時計算 ccl 需要的 mask 與 provisional label。"><td class='ln'>351</td><td class='code'><pre>    always @(*) begin</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>開始組合邏輯 always block，用於即時計算 CCL 需要的 mask 與 provisional label。</td></tr>
+<tr data-search="352         ccl_x=addr_cnt[7:0]; ccl_y=addr_cnt[15:8]; 五、ccl 組合邏輯 阻塞/組合指定，用來立即計算中間值；屬於 五、ccl 組合邏輯。"><td class='ln'>352</td><td class='code'><pre>        ccl_x=addr_cnt[7:0]; ccl_y=addr_cnt[15:8];</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 五、CCL 組合邏輯。</td></tr>
+<tr data-search="353         ccl_base=8&#x27;d0; ccl_fg=1&#x27;b0; 五、ccl 組合邏輯 阻塞/組合指定，用來立即計算中間值；屬於 五、ccl 組合邏輯。"><td class='ln'>353</td><td class='code'><pre>        ccl_base=8&#x27;d0; ccl_fg=1&#x27;b0;</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 五、CCL 組合邏輯。</td></tr>
+<tr data-search="354         ccl_n_w=9&#x27;d0; ccl_n_nw=9&#x27;d0; ccl_n_n=9&#x27;d0; ccl_n_ne=9&#x27;d0; 五、ccl 組合邏輯 阻塞/組合指定，用來立即計算中間值；屬於 五、ccl 組合邏輯。"><td class='ln'>354</td><td class='code'><pre>        ccl_n_w=9&#x27;d0; ccl_n_nw=9&#x27;d0; ccl_n_n=9&#x27;d0; ccl_n_ne=9&#x27;d0;</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 五、CCL 組合邏輯。</td></tr>
+<tr data-search="355         ccl_chosen_label=9&#x27;h1ff; ccl_new_label=1&#x27;b0; cur_label_comb=9&#x27;d0; 五、ccl 組合邏輯 阻塞/組合指定，用來立即計算中間值；屬於 五、ccl 組合邏輯。"><td class='ln'>355</td><td class='code'><pre>        ccl_chosen_label=9&#x27;h1FF; ccl_new_label=1&#x27;b0; cur_label_comb=9&#x27;d0;</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 五、CCL 組合邏輯。</td></tr>
+<tr data-search="356  五、ccl 組合邏輯 空白行，用來分隔段落，提升可讀性。"><td class='ln'>356</td><td class='code'><pre></pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="357         if (state==s_ccl_scan) begin 五、ccl 組合邏輯 條件判斷，用來控制 五、ccl 組合邏輯 的流程分支、邊界條件或狀態轉移。"><td class='ln'>357</td><td class='code'><pre>        if (state==S_CCL_SCAN) begin</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>條件判斷，用來控制 五、CCL 組合邏輯 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="358             ccl_base = gaussian_lb(ccl_x); 五、ccl 組合邏輯 阻塞/組合指定，用來立即計算中間值；屬於 五、ccl 組合邏輯。"><td class='ln'>358</td><td class='code'><pre>            ccl_base = gaussian_lb(ccl_x);</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 五、CCL 組合邏輯。</td></tr>
+<tr data-search="359             ccl_fg   = (ccl_base&gt;otsu_t); 五、ccl 組合邏輯 阻塞/組合指定，用來立即計算中間值；屬於 五、ccl 組合邏輯。"><td class='ln'>359</td><td class='code'><pre>            ccl_fg   = (ccl_base&gt;otsu_t);</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 五、CCL 組合邏輯。</td></tr>
+<tr data-search="360             if (invert_sel) ccl_fg=~ccl_fg; 五、ccl 組合邏輯 條件判斷，用來控制 五、ccl 組合邏輯 的流程分支、邊界條件或狀態轉移。"><td class='ln'>360</td><td class='code'><pre>            if (invert_sel) ccl_fg=~ccl_fg;</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>條件判斷，用來控制 五、CCL 組合邏輯 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="361  五、ccl 組合邏輯 空白行，用來分隔段落，提升可讀性。"><td class='ln'>361</td><td class='code'><pre></pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="362             ccl_n_w  = (ccl_x==8&#x27;d0)                    ? 9&#x27;d0 : left_label; 五、ccl 組合邏輯 阻塞/組合指定，用來立即計算中間值；屬於 五、ccl 組合邏輯。"><td class='ln'>362</td><td class='code'><pre>            ccl_n_w  = (ccl_x==8&#x27;d0)                    ? 9&#x27;d0 : left_label;</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 五、CCL 組合邏輯。</td></tr>
+<tr data-search="363             ccl_n_nw = ((ccl_x==8&#x27;d0)||(ccl_y==8&#x27;d0))   ? 9&#x27;d0 : nw_label_hold; 五、ccl 組合邏輯 阻塞/組合指定，用來立即計算中間值；屬於 五、ccl 組合邏輯。"><td class='ln'>363</td><td class='code'><pre>            ccl_n_nw = ((ccl_x==8&#x27;d0)||(ccl_y==8&#x27;d0))   ? 9&#x27;d0 : nw_label_hold;</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 五、CCL 組合邏輯。</td></tr>
+<tr data-search="364             ccl_n_n  = (ccl_y==8&#x27;d0)                    ? 9&#x27;d0 : row_label[ccl_x]; 五、ccl 組合邏輯 阻塞/組合指定，用來立即計算中間值；屬於 五、ccl 組合邏輯。"><td class='ln'>364</td><td class='code'><pre>            ccl_n_n  = (ccl_y==8&#x27;d0)                    ? 9&#x27;d0 : row_label[ccl_x];</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 五、CCL 組合邏輯。</td></tr>
+<tr data-search="365             ccl_n_ne = ((ccl_x==8&#x27;d255)||(ccl_y==8&#x27;d0)) ? 9&#x27;d0 : row_label[ccl_x+8&#x27;d1]; 五、ccl 組合邏輯 阻塞/組合指定，用來立即計算中間值；屬於 五、ccl 組合邏輯。"><td class='ln'>365</td><td class='code'><pre>            ccl_n_ne = ((ccl_x==8&#x27;d255)||(ccl_y==8&#x27;d0)) ? 9&#x27;d0 : row_label[ccl_x+8&#x27;d1];</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 五、CCL 組合邏輯。</td></tr>
+<tr data-search="366  五、ccl 組合邏輯 空白行，用來分隔段落，提升可讀性。"><td class='ln'>366</td><td class='code'><pre></pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="367             if (ccl_fg) begin 五、ccl 組合邏輯 條件判斷，用來控制 五、ccl 組合邏輯 的流程分支、邊界條件或狀態轉移。"><td class='ln'>367</td><td class='code'><pre>            if (ccl_fg) begin</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>條件判斷，用來控制 五、CCL 組合邏輯 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="368                 if ((ccl_n_w !=9&#x27;d0)&amp;&amp;(ccl_n_w &lt;ccl_chosen_label)) ccl_chosen_label=ccl_n_w; 五、ccl 組合邏輯 條件判斷，用來控制 五、ccl 組合邏輯 的流程分支、邊界條件或狀態轉移。"><td class='ln'>368</td><td class='code'><pre>                if ((ccl_n_w !=9&#x27;d0)&amp;&amp;(ccl_n_w &lt;ccl_chosen_label)) ccl_chosen_label=ccl_n_w;</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>條件判斷，用來控制 五、CCL 組合邏輯 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="369                 if ((ccl_n_nw!=9&#x27;d0)&amp;&amp;(ccl_n_nw&lt;ccl_chosen_label)) ccl_chosen_label=ccl_n_nw; 五、ccl 組合邏輯 條件判斷，用來控制 五、ccl 組合邏輯 的流程分支、邊界條件或狀態轉移。"><td class='ln'>369</td><td class='code'><pre>                if ((ccl_n_nw!=9&#x27;d0)&amp;&amp;(ccl_n_nw&lt;ccl_chosen_label)) ccl_chosen_label=ccl_n_nw;</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>條件判斷，用來控制 五、CCL 組合邏輯 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="370                 if ((ccl_n_n !=9&#x27;d0)&amp;&amp;(ccl_n_n &lt;ccl_chosen_label)) ccl_chosen_label=ccl_n_n; 五、ccl 組合邏輯 條件判斷，用來控制 五、ccl 組合邏輯 的流程分支、邊界條件或狀態轉移。"><td class='ln'>370</td><td class='code'><pre>                if ((ccl_n_n !=9&#x27;d0)&amp;&amp;(ccl_n_n &lt;ccl_chosen_label)) ccl_chosen_label=ccl_n_n;</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>條件判斷，用來控制 五、CCL 組合邏輯 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="371                 if ((ccl_n_ne!=9&#x27;d0)&amp;&amp;(ccl_n_ne&lt;ccl_chosen_label)) ccl_chosen_label=ccl_n_ne; 五、ccl 組合邏輯 條件判斷，用來控制 五、ccl 組合邏輯 的流程分支、邊界條件或狀態轉移。"><td class='ln'>371</td><td class='code'><pre>                if ((ccl_n_ne!=9&#x27;d0)&amp;&amp;(ccl_n_ne&lt;ccl_chosen_label)) ccl_chosen_label=ccl_n_ne;</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>條件判斷，用來控制 五、CCL 組合邏輯 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="372  五、ccl 組合邏輯 空白行，用來分隔段落，提升可讀性。"><td class='ln'>372</td><td class='code'><pre></pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="373                 if (ccl_chosen_label==9&#x27;h1ff) begin 五、ccl 組合邏輯 條件判斷，用來控制 五、ccl 組合邏輯 的流程分支、邊界條件或狀態轉移。"><td class='ln'>373</td><td class='code'><pre>                if (ccl_chosen_label==9&#x27;h1FF) begin</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>條件判斷，用來控制 五、CCL 組合邏輯 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="374                     ccl_new_label=1&#x27;b1; cur_label_comb=next_label; 五、ccl 組合邏輯 阻塞/組合指定，用來立即計算中間值；屬於 五、ccl 組合邏輯。"><td class='ln'>374</td><td class='code'><pre>                    ccl_new_label=1&#x27;b1; cur_label_comb=next_label;</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 五、CCL 組合邏輯。</td></tr>
+<tr data-search="375                 end else begin 五、ccl 組合邏輯 此行屬於 五、ccl 組合邏輯，用來完成 drawbbox 的控制或資料路徑。"><td class='ln'>375</td><td class='code'><pre>                end else begin</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>此行屬於 五、CCL 組合邏輯，用來完成 drawBbox 的控制或資料路徑。</td></tr>
+<tr data-search="376                     ccl_new_label=1&#x27;b0; cur_label_comb=ccl_chosen_label; 五、ccl 組合邏輯 阻塞/組合指定，用來立即計算中間值；屬於 五、ccl 組合邏輯。"><td class='ln'>376</td><td class='code'><pre>                    ccl_new_label=1&#x27;b0; cur_label_comb=ccl_chosen_label;</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 五、CCL 組合邏輯。</td></tr>
+<tr data-search="377                 end 五、ccl 組合邏輯 結束目前 begin-end 區塊。"><td class='ln'>377</td><td class='code'><pre>                end</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="378             end 五、ccl 組合邏輯 結束目前 begin-end 區塊。"><td class='ln'>378</td><td class='code'><pre>            end</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="379         end 五、ccl 組合邏輯 結束目前 begin-end 區塊。"><td class='ln'>379</td><td class='code'><pre>        end</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="380     end 五、ccl 組合邏輯 結束目前 begin-end 區塊。"><td class='ln'>380</td><td class='code'><pre>    end</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="381  五、ccl 組合邏輯 空白行，用來分隔段落，提升可讀性。"><td class='ln'>381</td><td class='code'><pre></pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="382     // ============================================================ 五、ccl 組合邏輯 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>382</td><td class='code'><pre>    // ============================================================</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="383     // 主 fsm 五、ccl 組合邏輯 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>383</td><td class='code'><pre>    // 主 FSM</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="384     // ============================================================ 五、ccl 組合邏輯 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>384</td><td class='code'><pre>    // ============================================================</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="385     // ver-134 fix: all line buffer banks are driven only in this always block. 五、ccl 組合邏輯 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>385</td><td class='code'><pre>    // VER-134 Fix: all line buffer banks are driven only in this always block.</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="386     // v21 uses bank selector rotation instead of 256-column physical rotation. 五、ccl 組合邏輯 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>386</td><td class='code'><pre>    // V21 uses bank selector rotation instead of 256-column physical rotation.</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="387     // therefore integer ri / for-loop rotate is no longer needed. 五、ccl 組合邏輯 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>387</td><td class='code'><pre>    // Therefore integer ri / for-loop rotate is no longer needed.</pre></td><td class='phase'>五、CCL 組合邏輯</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr></tbody>
+          </table>
+          
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>中文重點整理</h2>
+      <ul>
+        <li><strong>程式位置：</strong>Lines 351–387</li>
+        <li><strong>此段主要目標：</strong>在 S_CCL_SCAN 狀態時，即時計算 ccl_fg、鄰居 label 與 cur_label_comb。</li>
+        <li><strong>閱讀建議：</strong>先看相關圖檔，再看原始 code，最後看逐行說明示範。</li>
+        <li><strong>對報告的幫助：</strong>這一頁的圖片與說明很適合直接當作一個報告子段落。</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+</div>
+<div id="imgModal" class="modal">
+  <div class="modal-content">
+    <img id="imgModalImage" src="" alt="preview">
+    <div id="imgModalCaption" class="modal-caption"></div>
+  </div>
+</div>
+<div class="footer">drawBbox 互動式多網頁閱讀包 · 內含原始 code、逐行說明、流程圖與 pattern 圖</div>
+</body>
+</html>

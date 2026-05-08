@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Pattern 圖庫</title>
+<link rel="stylesheet" href="../style.css">
+<script src="../script.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Pattern Gallery</span>
+  <h1>Pattern 結果圖總覽</h1>
+  <p class="lead">這頁把 P1～P4 的 input、gray、gaussian、mask、labels、overlay、golden、diff 都整理在一起。看這些圖，可以非常直覺地反推程式每一階段的意義。</p>
+</header>
+<div class="layout">
+  <aside class="sidebar"><h3>網站導覽</h3><a href="../index.html">首頁</a><a href="../pages/guide.html">閱讀導覽</a><a href="../pages/flow_overview.html">流程總覽</a><a href="../pages/architecture.html">架構圖與記憶體</a><a href="../pages/pattern_gallery.html">Pattern 結果圖</a><a href="../pages/code_map.html">程式總覽</a><a href="../pages/line_by_line.html">逐行說明</a><a href="../pages/stages/io.html">Module 介面與記憶體協定</a><a href="../pages/stages/const-state.html">常數與 FSM State 定義</a><a href="../pages/stages/registers.html">內部暫存器、陣列與資料結構</a><a href="../pages/stages/helper.html">輔助函式與 Task</a><a href="../pages/stages/ccl-comb.html">CCL 組合邏輯</a><a href="../pages/stages/sync-reset.html">同步 always、reset 與預設控制</a><a href="../pages/stages/load-gray.html">Input / RGB-to-Gray / Original Backup</a><a href="../pages/stages/hist-lbinit.html">Histogram Clear 與 Gaussian Line Buffer 初始化</a><a href="../pages/stages/gauss-hist.html">Gaussian Filtering 與 Histogram Construction</a><a href="../pages/stages/otsu.html">Otsu Thresholding</a><a href="../pages/stages/polarity.html">High-Pixel Counting 與 Auto-Polarity</a><a href="../pages/stages/parent-init.html">Union-Find / BBox Table 初始化</a><a href="../pages/stages/ccl.html">CCL Line Buffer 初始化與 8-Connected CCL 掃描</a><a href="../pages/stages/merge.html">CCL 跨列更新與 Root Label Merge</a><a href="../pages/stages/overlay.html">物件過濾、BBox Overlay 與特殊補框</a><a href="../pages/stages/done.html">Done 與 Testbench 驗證觀念</a></aside>
+  <main>
+    <section class="section">
+      <div class="topbar"><h2>圖像與程式流程對照</h2><div class="nav"><button id="openAll" class="btn">全部展開</button><button id="closeAll" class="btn">全部收合</button></div></div>
+      <p class="note">最推薦的用法：先看某個 Pattern 的 Mask 和 Labels，再回去看 CCL 相關頁面；如果你想知道綠框怎麼畫，則看 Overlay 和 Final 結果，再回去看 BBox Overlay 頁面。</p>
+      
+    <details open>
+      <summary>Pattern 1 圖片總覽</summary>
+      <div>
+        <div class="gallery">
+          <div class="thumb" data-fullimg="../assets/P1_input.png" data-caption="P1 Input"><img src="../assets/P1_input.png"><div class="cap">Input</div><small>原始輸入圖</small></div>
+          <div class="thumb" data-fullimg="../assets/P1_gray.png" data-caption="P1 Gray"><img src="../assets/P1_gray.png"><div class="cap">Gray</div><small>灰階結果</small></div>
+          <div class="thumb" data-fullimg="../assets/P1_gaussian.png" data-caption="P1 Gaussian"><img src="../assets/P1_gaussian.png"><div class="cap">Gaussian</div><small>濾波後影像</small></div>
+          <div class="thumb" data-fullimg="../assets/P1_mask.png" data-caption="P1 Mask"><img src="../assets/P1_mask.png"><div class="cap">Mask</div><small>Threshold + Polarity</small></div>
+          <div class="thumb" data-fullimg="../assets/P1_labels.png" data-caption="P1 Labels"><img src="../assets/P1_labels.png"><div class="cap">Labels</div><small>CCL 結果</small></div>
+          <div class="thumb" data-fullimg="../assets/P1_overlay.png" data-caption="P1 Overlay"><img src="../assets/P1_overlay.png"><div class="cap">Overlay</div><small>畫框結果</small></div>
+          <div class="thumb" data-fullimg="../assets/P1_golden.png" data-caption="P1 Golden"><img src="../assets/P1_golden.png"><div class="cap">Golden</div><small>標準答案</small></div>
+          <div class="thumb" data-fullimg="../assets/P1_diff.png" data-caption="P1 Diff"><img src="../assets/P1_diff.png"><div class="cap">Diff</div><small>和 golden 比較</small></div>
+          <div class="thumb" data-fullimg="../assets/drawBbox_result_p1_enhanced.png" data-caption="P1 Final"><img src="../assets/drawBbox_result_p1_enhanced.png"><div class="cap">Final Enhanced</div><small>最終結果強化版</small></div>
+        </div>
+      </div>
+    </details>
+    
+    <details >
+      <summary>Pattern 2 圖片總覽</summary>
+      <div>
+        <div class="gallery">
+          <div class="thumb" data-fullimg="../assets/P2_input.png" data-caption="P2 Input"><img src="../assets/P2_input.png"><div class="cap">Input</div><small>原始輸入圖</small></div>
+          <div class="thumb" data-fullimg="../assets/P2_gray.png" data-caption="P2 Gray"><img src="../assets/P2_gray.png"><div class="cap">Gray</div><small>灰階結果</small></div>
+          <div class="thumb" data-fullimg="../assets/P2_gaussian.png" data-caption="P2 Gaussian"><img src="../assets/P2_gaussian.png"><div class="cap">Gaussian</div><small>濾波後影像</small></div>
+          <div class="thumb" data-fullimg="../assets/P2_mask.png" data-caption="P2 Mask"><img src="../assets/P2_mask.png"><div class="cap">Mask</div><small>Threshold + Polarity</small></div>
+          <div class="thumb" data-fullimg="../assets/P2_labels.png" data-caption="P2 Labels"><img src="../assets/P2_labels.png"><div class="cap">Labels</div><small>CCL 結果</small></div>
+          <div class="thumb" data-fullimg="../assets/P2_overlay.png" data-caption="P2 Overlay"><img src="../assets/P2_overlay.png"><div class="cap">Overlay</div><small>畫框結果</small></div>
+          <div class="thumb" data-fullimg="../assets/P2_golden.png" data-caption="P2 Golden"><img src="../assets/P2_golden.png"><div class="cap">Golden</div><small>標準答案</small></div>
+          <div class="thumb" data-fullimg="../assets/P2_diff.png" data-caption="P2 Diff"><img src="../assets/P2_diff.png"><div class="cap">Diff</div><small>和 golden 比較</small></div>
+          <div class="thumb" data-fullimg="../assets/drawBbox_result_p2_enhanced.png" data-caption="P2 Final"><img src="../assets/drawBbox_result_p2_enhanced.png"><div class="cap">Final Enhanced</div><small>最終結果強化版</small></div>
+        </div>
+      </div>
+    </details>
+    
+    <details >
+      <summary>Pattern 3 圖片總覽</summary>
+      <div>
+        <div class="gallery">
+          <div class="thumb" data-fullimg="../assets/P3_input.png" data-caption="P3 Input"><img src="../assets/P3_input.png"><div class="cap">Input</div><small>原始輸入圖</small></div>
+          <div class="thumb" data-fullimg="../assets/P3_gray.png" data-caption="P3 Gray"><img src="../assets/P3_gray.png"><div class="cap">Gray</div><small>灰階結果</small></div>
+          <div class="thumb" data-fullimg="../assets/P3_gaussian.png" data-caption="P3 Gaussian"><img src="../assets/P3_gaussian.png"><div class="cap">Gaussian</div><small>濾波後影像</small></div>
+          <div class="thumb" data-fullimg="../assets/P3_mask.png" data-caption="P3 Mask"><img src="../assets/P3_mask.png"><div class="cap">Mask</div><small>Threshold + Polarity</small></div>
+          <div class="thumb" data-fullimg="../assets/P3_labels.png" data-caption="P3 Labels"><img src="../assets/P3_labels.png"><div class="cap">Labels</div><small>CCL 結果</small></div>
+          <div class="thumb" data-fullimg="../assets/P3_overlay.png" data-caption="P3 Overlay"><img src="../assets/P3_overlay.png"><div class="cap">Overlay</div><small>畫框結果</small></div>
+          <div class="thumb" data-fullimg="../assets/P3_golden.png" data-caption="P3 Golden"><img src="../assets/P3_golden.png"><div class="cap">Golden</div><small>標準答案</small></div>
+          <div class="thumb" data-fullimg="../assets/P3_diff.png" data-caption="P3 Diff"><img src="../assets/P3_diff.png"><div class="cap">Diff</div><small>和 golden 比較</small></div>
+          <div class="thumb" data-fullimg="../assets/drawBbox_result_p3_enhanced.png" data-caption="P3 Final"><img src="../assets/drawBbox_result_p3_enhanced.png"><div class="cap">Final Enhanced</div><small>最終結果強化版</small></div>
+        </div>
+      </div>
+    </details>
+    
+    <details >
+      <summary>Pattern 4 圖片總覽</summary>
+      <div>
+        <div class="gallery">
+          <div class="thumb" data-fullimg="../assets/P4_input.png" data-caption="P4 Input"><img src="../assets/P4_input.png"><div class="cap">Input</div><small>原始輸入圖</small></div>
+          <div class="thumb" data-fullimg="../assets/P4_gray.png" data-caption="P4 Gray"><img src="../assets/P4_gray.png"><div class="cap">Gray</div><small>灰階結果</small></div>
+          <div class="thumb" data-fullimg="../assets/P4_gaussian.png" data-caption="P4 Gaussian"><img src="../assets/P4_gaussian.png"><div class="cap">Gaussian</div><small>濾波後影像</small></div>
+          <div class="thumb" data-fullimg="../assets/P4_mask.png" data-caption="P4 Mask"><img src="../assets/P4_mask.png"><div class="cap">Mask</div><small>Threshold + Polarity</small></div>
+          <div class="thumb" data-fullimg="../assets/P4_labels.png" data-caption="P4 Labels"><img src="../assets/P4_labels.png"><div class="cap">Labels</div><small>CCL 結果</small></div>
+          <div class="thumb" data-fullimg="../assets/P4_overlay.png" data-caption="P4 Overlay"><img src="../assets/P4_overlay.png"><div class="cap">Overlay</div><small>畫框結果</small></div>
+          <div class="thumb" data-fullimg="../assets/P4_golden.png" data-caption="P4 Golden"><img src="../assets/P4_golden.png"><div class="cap">Golden</div><small>標準答案</small></div>
+          <div class="thumb" data-fullimg="../assets/P4_diff.png" data-caption="P4 Diff"><img src="../assets/P4_diff.png"><div class="cap">Diff</div><small>和 golden 比較</small></div>
+          <div class="thumb" data-fullimg="../assets/drawBbox_result_p4_enhanced.png" data-caption="P4 Final"><img src="../assets/drawBbox_result_p4_enhanced.png"><div class="cap">Final Enhanced</div><small>最終結果強化版</small></div>
+        </div>
+      </div>
+    </details>
+    
+    </section>
+  </main>
+</div>
+
+</div>
+<div id="imgModal" class="modal">
+  <div class="modal-content">
+    <img id="imgModalImage" src="" alt="preview">
+    <div id="imgModalCaption" class="modal-caption"></div>
+  </div>
+</div>
+<div class="footer">drawBbox 互動式多網頁閱讀包 · 內含原始 code、逐行說明、流程圖與 pattern 圖</div>
+</body>
+</html>

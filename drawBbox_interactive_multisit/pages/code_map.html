@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>程式總覽</title>
+<link rel="stylesheet" href="../style.css">
+<script src="../script.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Code Map</span>
+  <h1>程式總覽地圖</h1>
+  <p class="lead">如果你想快速知道『某段 code 在做什麼』，先看這張地圖最有效。它把行號、流程分類與閱讀目的串起來。</p>
+</header>
+<div class="layout">
+  <aside class="sidebar"><h3>網站導覽</h3><a href="../index.html">首頁</a><a href="../pages/guide.html">閱讀導覽</a><a href="../pages/flow_overview.html">流程總覽</a><a href="../pages/architecture.html">架構圖與記憶體</a><a href="../pages/pattern_gallery.html">Pattern 結果圖</a><a href="../pages/code_map.html">程式總覽</a><a href="../pages/line_by_line.html">逐行說明</a><a href="../pages/stages/io.html">Module 介面與記憶體協定</a><a href="../pages/stages/const-state.html">常數與 FSM State 定義</a><a href="../pages/stages/registers.html">內部暫存器、陣列與資料結構</a><a href="../pages/stages/helper.html">輔助函式與 Task</a><a href="../pages/stages/ccl-comb.html">CCL 組合邏輯</a><a href="../pages/stages/sync-reset.html">同步 always、reset 與預設控制</a><a href="../pages/stages/load-gray.html">Input / RGB-to-Gray / Original Backup</a><a href="../pages/stages/hist-lbinit.html">Histogram Clear 與 Gaussian Line Buffer 初始化</a><a href="../pages/stages/gauss-hist.html">Gaussian Filtering 與 Histogram Construction</a><a href="../pages/stages/otsu.html">Otsu Thresholding</a><a href="../pages/stages/polarity.html">High-Pixel Counting 與 Auto-Polarity</a><a href="../pages/stages/parent-init.html">Union-Find / BBox Table 初始化</a><a href="../pages/stages/ccl.html">CCL Line Buffer 初始化與 8-Connected CCL 掃描</a><a href="../pages/stages/merge.html">CCL 跨列更新與 Root Label Merge</a><a href="../pages/stages/overlay.html">物件過濾、BBox Overlay 與特殊補框</a><a href="../pages/stages/done.html">Done 與 Testbench 驗證觀念</a></aside>
+  <main>
+    <section class="section">
+      <h2>程式區段總表</h2>
+      <table>
+        <thead><tr><th>流程區段</th><th>行號</th><th>做什麼</th><th>為什麼重要</th></tr></thead>
+        <tbody><tr><td><a href='stages/io.html'>一、Module 介面與記憶體協定</a></td><td>1–25</td><td>定義 top module 的 I/O 與 ImgROM、UrSRAM、AnsSRAM 的讀寫介面。</td><td>這一段是整個硬體系統與外部記憶體互動的入口。先看懂 I/O，就能理解後面狀態機為什麼要一直切換 CEN、WEN、A、D。</td></tr><tr><td><a href='stages/const-state.html'>二、常數與 FSM State 定義</a></td><td>26–66</td><td>定義 GREEN、NPIX、MAX_LABELS 與所有狀態編碼。</td><td>這裡把作業的核心常數集中定義。尤其 GREEN = 32&#x27;h0000_FF00 對應 Lab7 畫框要求；state 編碼則決定整個控制流程。</td></tr><tr><td><a href='stages/registers.html'>三、內部暫存器、陣列與資料結構</a></td><td>67–156</td><td>包含 histogram、line buffer、union-find、bbox table 與各種控制計數器。</td><td>這一段是資料路徑的核心。你可以從這裡看出設計不是把整張圖存進大陣列，而是透過 line buffer、histogram、parent table 逐步完成處理。</td></tr><tr><td><a href='stages/helper.html'>四、輔助函式與 Task</a></td><td>157–350</td><td>包含 Reflect-101、RGB-to-Gray、Gaussian、find_root、update_bbox、union_pair 等可重用邏輯。</td><td>這一段把會重複使用的運算封裝成 function/task，使主 FSM 不需要把所有細節攤開。</td></tr><tr><td><a href='stages/ccl-comb.html'>五、CCL 組合邏輯</a></td><td>351–387</td><td>在 S_CCL_SCAN 狀態時，即時計算 ccl_fg、鄰居 label 與 cur_label_comb。</td><td>CCL 是整份作業最重要的地方之一。這裡會看到 8-connected 的鄰居判定是如何組合出來的。</td></tr><tr><td><a href='stages/sync-reset.html'>六、同步 always、reset 與預設控制</a></td><td>388–413</td><td>clock 上升緣更新主要暫存器，reset 時將系統回到初始狀態。</td><td>這一段決定所有狀態與記憶體控制訊號的時序行為，是理解 RTL 是否同步正確的關鍵。</td></tr><tr><td><a href='stages/load-gray.html'>七、Input / RGB-to-Gray / Original Backup</a></td><td>414–449</td><td>S_IDLE、S_LOAD、S_GRAY：開始讀圖、轉灰階、把灰階寫入 UrSRAM，並備份原圖到 AnsSRAM。</td><td>這一段把前處理整合在一個主要 state。看懂後，你就能知道整張圖是怎麼先被準備好，提供後面的 Gaussian 和畫框使用。</td></tr><tr><td><a href='stages/hist-lbinit.html'>八、Histogram Clear 與 Gaussian Line Buffer 初始化</a></td><td>450–539</td><td>清空 histogram，並從 UrSRAM 載入三列資料到 line buffer。</td><td>這一段是 Gaussian 的前置準備。因為 3×3 filter 需要上下左右鄰居，所以必須先把 prev/curr/next row 放進 line buffer。</td></tr><tr><td><a href='stages/gauss-hist.html'>九、Gaussian Filtering 與 Histogram Construction</a></td><td>540–558</td><td>利用 gaussian_lb() 計算平滑灰階，同步更新 histogram 與 sum_total。</td><td>這一段是後續 threshold 的基礎。先降低雜訊，Otsu 才會更穩定。</td></tr><tr><td><a href='stages/otsu.html'>十、Otsu Thresholding</a></td><td>559–639</td><td>把 Otsu 計算拆成多個 state：scan、lhs、denom、square、compare。</td><td>這是整份程式最像 datapath optimization 的地方。把大乘法拆開，有助於 synthesis 與 timing。</td></tr><tr><td><a href='stages/polarity.html'>十一、High-Pixel Counting 與 Auto-Polarity</a></td><td>640–659</td><td>統計 histogram 中大於 otsu_t 的 pixel 數量，若超過半張圖就反相。</td><td>有些圖案做完 threshold 後，前景與背景可能反過來。這一段就是根據整體亮暗比例，自動修正 foreground 定義。</td></tr><tr><td><a href='stages/parent-init.html'>十二、Union-Find / BBox Table 初始化</a></td><td>660–699</td><td>初始化 parent[]、bbox_valid[]、bbox_border[] 以及 bbox 座標表。</td><td>CCL 與 BBox 的資料結構在這裡被清成乾淨狀態。沒有這一步，上一張影像的 label 資料會污染下一張。</td></tr><tr><td><a href='stages/ccl.html'>十三、CCL Line Buffer 初始化與 8-Connected CCL 掃描</a></td><td>700–777</td><td>重新載入 CCL line buffer，並在 S_CCL_SCAN 中做 binary mask、label assignment、union 與 bbox update。</td><td>這是整份 code 最重要的核心階段。它把 Gaussian、Threshold、Polarity 結果轉成 component labels，並同時累積出 bbox。</td></tr><tr><td><a href='stages/merge.html'>十四、CCL 跨列更新與 Root Label Merge</a></td><td>778–832</td><td>處理 CCL line buffer row update，以及把非 root label 的 bbox 合併回 root label。</td><td>這一段解決 union-find 後的 label 等價問題，確保同一物件的 bbox 會被整合到同一個 root component。</td></tr><tr><td><a href='stages/overlay.html'>十五、物件過濾、BBox Overlay 與特殊補框</a></td><td>833–899</td><td>排除邊界物件與太小物件，再把有效 bbox 畫成綠色框；某些情況還有 special box compensation。</td><td>這一段直接決定最後結果圖長什麼樣子，也最接近你在 bmp 圖上看到的綠色框效果。</td></tr><tr><td><a href='stages/done.html'>十六、Done 與 Testbench 驗證觀念</a></td><td>900–916</td><td>S_DONE 拉高 done，testbench 再接手做 golden image comparison。</td><td>RTL 到這裡就完成了，但整個作業流程還有 testbench 驗證這一步。這一段把 RTL 的終點和驗證流程串起來。</td></tr></tbody>
+      </table>
+    </section>
+    <section class="section">
+      <h2>下載區</h2>
+      <div class="nav">
+        <a class="btn" href="../drawBbox_original.v">原始 drawBbox.v</a>
+        <a class="btn" href="../drawBbox_annotated_every_line.v">逐行註解 Verilog</a>
+        <a class="btn" href="line_by_line.html">逐行說明網頁</a>
+      </div>
+    </section>
+  </main>
+</div>
+
+</div>
+<div id="imgModal" class="modal">
+  <div class="modal-content">
+    <img id="imgModalImage" src="" alt="preview">
+    <div id="imgModalCaption" class="modal-caption"></div>
+  </div>
+</div>
+<div class="footer">drawBbox 互動式多網頁閱讀包 · 內含原始 code、逐行說明、流程圖與 pattern 圖</div>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>七、Input / RGB-to-Gray / Original Backup</title>
+<link rel="stylesheet" href="../../style.css">
+<script src="../../script.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Stage 07</span>
+  <h1>七、Input / RGB-to-Gray / Original Backup</h1>
+  <p class="lead">S_IDLE、S_LOAD、S_GRAY：開始讀圖、轉灰階、把灰階寫入 UrSRAM，並備份原圖到 AnsSRAM。</p>
+  <div class="nav">
+    <a class="btn" href="sync-reset.html">← 上一頁</a>
+    <a class="btn" href="../flow_overview.html">流程總覽</a>
+    <a class="btn" href="hist-lbinit.html">下一頁 →</a>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar"><h3>網站導覽</h3><a href="../../index.html">首頁</a><a href="../../pages/guide.html">閱讀導覽</a><a href="../../pages/flow_overview.html">流程總覽</a><a href="../../pages/architecture.html">架構圖與記憶體</a><a href="../../pages/pattern_gallery.html">Pattern 結果圖</a><a href="../../pages/code_map.html">程式總覽</a><a href="../../pages/line_by_line.html">逐行說明</a><a href="../../pages/stages/io.html">Module 介面與記憶體協定</a><a href="../../pages/stages/const-state.html">常數與 FSM State 定義</a><a href="../../pages/stages/registers.html">內部暫存器、陣列與資料結構</a><a href="../../pages/stages/helper.html">輔助函式與 Task</a><a href="../../pages/stages/ccl-comb.html">CCL 組合邏輯</a><a href="../../pages/stages/sync-reset.html">同步 always、reset 與預設控制</a><a href="../../pages/stages/load-gray.html">Input / RGB-to-Gray / Original Backup</a><a href="../../pages/stages/hist-lbinit.html">Histogram Clear 與 Gaussian Line Buffer 初始化</a><a href="../../pages/stages/gauss-hist.html">Gaussian Filtering 與 Histogram Construction</a><a href="../../pages/stages/otsu.html">Otsu Thresholding</a><a href="../../pages/stages/polarity.html">High-Pixel Counting 與 Auto-Polarity</a><a href="../../pages/stages/parent-init.html">Union-Find / BBox Table 初始化</a><a href="../../pages/stages/ccl.html">CCL Line Buffer 初始化與 8-Connected CCL 掃描</a><a href="../../pages/stages/merge.html">CCL 跨列更新與 Root Label Merge</a><a href="../../pages/stages/overlay.html">物件過濾、BBox Overlay 與特殊補框</a><a href="../../pages/stages/done.html">Done 與 Testbench 驗證觀念</a></aside>
+  <main>
+    <section class="section">
+      <h2>這一段在整個作業流程中的角色</h2>
+      <p>這一段把前處理整合在一個主要 state。看懂後，你就能知道整張圖是怎麼先被準備好，提供後面的 Gaussian 和畫框使用。</p>
+      <p class="note">你的設計把 Input、Gray、Original Backup 合併進 S_LOAD，這是一個很有效率的寫法，少掉額外 state，但閱讀時要特別注意 ImgROM、UrSRAM、AnsSRAM 三者在同一段中的角色。</p>
+      <div><span class="tag">S_LOAD</span><span class="tag">gray_round_rgb</span><span class="tag">Ur_D</span><span class="tag">Ans_D</span><span class="tag">Img_A</span></div>
+    </section>
+
+    <section class="section">
+      <div data-tabs>
+        <div class="topbar">
+          <h2>圖像與示意</h2>
+          <div class="tabs">
+            <button class="tabbtn active" data-tabbtn="gallery">相關圖檔</button>
+            <button class="tabbtn" data-tabbtn="code">原始 code 片段</button>
+            <button class="tabbtn" data-tabbtn="sample">逐行說明示範</button>
+          </div>
+        </div>
+        <div class="tabpane active" data-tabpane="gallery">
+          <div class="gallery"><div class="thumb" data-fullimg="../assets/P1_input.png" data-caption="P1 input"><img src="../assets/P1_input.png"><div class="cap">P1 input</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="../assets/P1_gray.png" data-caption="P1 gray"><img src="../assets/P1_gray.png"><div class="cap">P1 gray</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="../assets/compile_simulation_flow.svg" data-caption="compile simulation flow"><img src="../assets/compile_simulation_flow.svg"><div class="cap">compile simulation flow</div><small>點擊可放大</small></div></div>
+        </div>
+        <div class="tabpane" data-tabpane="code">
+          <pre>                S_IDLE: begin
+                    Ur_D&lt;=unused_zero; Ans_D&lt;=unused_zero;
+                    req_cnt&lt;=17&#x27;d0; addr_cnt&lt;=16&#x27;d0;
+                    label_idx&lt;=9&#x27;d0; next_label&lt;=9&#x27;d1;
+                    if (enable) state&lt;=S_LOAD;
+                end
+
+                // -----------------------------------------------
+                // S_LOAD：ImgROM → gray 寫 UrSRAM + 原圖寫 AnsSRAM
+                // -----------------------------------------------
+                S_LOAD: begin
+                    Img_CEN&lt;=1&#x27;b0;
+                    Img_A &lt;= (req_cnt&lt;17&#x27;d65536) ? req_cnt[15:0] : 16&#x27;d0;
+
+                    if (req_cnt&gt;=17&#x27;d2) begin
+                        Ur_CEN&lt;=1&#x27;b0; Ur_WEN&lt;=1&#x27;b0;
+                        Ur_A  &lt;= req_cnt[15:0]-16&#x27;d2;
+                        Ur_D  &lt;= {24&#x27;d0, gray_round_rgb(Img_Q)};
+                        Ans_CEN&lt;=1&#x27;b0; Ans_WEN&lt;=1&#x27;b0;
+                        Ans_A &lt;= req_cnt[15:0]-16&#x27;d2;
+                        Ans_D &lt;= Img_Q;
+                        if (req_cnt==17&#x27;d2) first_pixel&lt;=Img_Q;
+                    end
+
+                    if (req_cnt&lt;17&#x27;d256) row_label[req_cnt[7:0]]&lt;=9&#x27;d0;
+
+                    if (req_cnt==17&#x27;d65537) begin
+                        req_cnt&lt;=17&#x27;d0; addr_cnt&lt;=16&#x27;d0; label_idx&lt;=9&#x27;d0;
+                        state&lt;=S_HIST_CLEAR;
+                    end else req_cnt&lt;=req_cnt+17&#x27;d1;
+                end
+
+                S_GRAY: begin addr_cnt&lt;=16&#x27;d0; label_idx&lt;=9&#x27;d0; state&lt;=S_HIST_CLEAR; end
+
+                // -----------------------------------------------
+                S_HIST_CLEAR: begin</pre>
+        </div>
+        <div class="tabpane" data-tabpane="sample">
+          <table class="line-table">
+            <thead><tr><th>Line</th><th>原始程式碼</th><th>流程分類</th><th>中文說明</th></tr></thead>
+            <tbody><tr data-search="414                 s_idle: begin 七、input / rgb-to-gray / original backup 進入狀態 s_idle：等待 enable 啟動，並清除主要控制暫存器。"><td class='ln'>414</td><td class='code'><pre>                S_IDLE: begin</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>進入狀態 S_IDLE：等待 enable 啟動，並清除主要控制暫存器。</td></tr>
+<tr data-search="415                     ur_d&lt;=unused_zero; ans_d&lt;=unused_zero; 七、input / rgb-to-gray / original backup 非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、input / rgb-to-gray / original backup。"><td class='ln'>415</td><td class='code'><pre>                    Ur_D&lt;=unused_zero; Ans_D&lt;=unused_zero;</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、Input / RGB-to-Gray / Original Backup。</td></tr>
+<tr data-search="416                     req_cnt&lt;=17&#x27;d0; addr_cnt&lt;=16&#x27;d0; 七、input / rgb-to-gray / original backup 非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、input / rgb-to-gray / original backup。"><td class='ln'>416</td><td class='code'><pre>                    req_cnt&lt;=17&#x27;d0; addr_cnt&lt;=16&#x27;d0;</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、Input / RGB-to-Gray / Original Backup。</td></tr>
+<tr data-search="417                     label_idx&lt;=9&#x27;d0; next_label&lt;=9&#x27;d1; 七、input / rgb-to-gray / original backup 非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、input / rgb-to-gray / original backup。"><td class='ln'>417</td><td class='code'><pre>                    label_idx&lt;=9&#x27;d0; next_label&lt;=9&#x27;d1;</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、Input / RGB-to-Gray / Original Backup。</td></tr>
+<tr data-search="418                     if (enable) state&lt;=s_load; 七、input / rgb-to-gray / original backup 條件判斷，用來控制 七、input / rgb-to-gray / original backup 的流程分支、邊界條件或狀態轉移。"><td class='ln'>418</td><td class='code'><pre>                    if (enable) state&lt;=S_LOAD;</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>條件判斷，用來控制 七、Input / RGB-to-Gray / Original Backup 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="419                 end 七、input / rgb-to-gray / original backup 結束目前 begin-end 區塊。"><td class='ln'>419</td><td class='code'><pre>                end</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="420  七、input / rgb-to-gray / original backup 空白行，用來分隔段落，提升可讀性。"><td class='ln'>420</td><td class='code'><pre></pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="421                 // ----------------------------------------------- 七、input / rgb-to-gray / original backup 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>421</td><td class='code'><pre>                // -----------------------------------------------</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="422                 // s_load：imgrom → gray 寫 ursram + 原圖寫 anssram 七、input / rgb-to-gray / original backup 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>422</td><td class='code'><pre>                // S_LOAD：ImgROM → gray 寫 UrSRAM + 原圖寫 AnsSRAM</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="423                 // ----------------------------------------------- 七、input / rgb-to-gray / original backup 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>423</td><td class='code'><pre>                // -----------------------------------------------</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="424                 s_load: begin 七、input / rgb-to-gray / original backup 進入狀態 s_load：從 imgrom 讀取原始 rgb，轉灰階，寫入 ursram，並把原始 rgb 備份到 anssram。"><td class='ln'>424</td><td class='code'><pre>                S_LOAD: begin</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>進入狀態 S_LOAD：從 ImgROM 讀取原始 RGB，轉灰階，寫入 UrSRAM，並把原始 RGB 備份到 AnsSRAM。</td></tr>
+<tr data-search="425                     img_cen&lt;=1&#x27;b0; 七、input / rgb-to-gray / original backup 非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、input / rgb-to-gray / original backup。"><td class='ln'>425</td><td class='code'><pre>                    Img_CEN&lt;=1&#x27;b0;</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、Input / RGB-to-Gray / Original Backup。</td></tr>
+<tr data-search="426                     img_a &lt;= (req_cnt&lt;17&#x27;d65536) ? req_cnt[15:0] : 16&#x27;d0; 七、input / rgb-to-gray / original backup 非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、input / rgb-to-gray / original backup。"><td class='ln'>426</td><td class='code'><pre>                    Img_A &lt;= (req_cnt&lt;17&#x27;d65536) ? req_cnt[15:0] : 16&#x27;d0;</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、Input / RGB-to-Gray / Original Backup。</td></tr>
+<tr data-search="427  七、input / rgb-to-gray / original backup 空白行，用來分隔段落，提升可讀性。"><td class='ln'>427</td><td class='code'><pre></pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="428                     if (req_cnt&gt;=17&#x27;d2) begin 七、input / rgb-to-gray / original backup 條件判斷，用來控制 七、input / rgb-to-gray / original backup 的流程分支、邊界條件或狀態轉移。"><td class='ln'>428</td><td class='code'><pre>                    if (req_cnt&gt;=17&#x27;d2) begin</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>條件判斷，用來控制 七、Input / RGB-to-Gray / Original Backup 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="429                         ur_cen&lt;=1&#x27;b0; ur_wen&lt;=1&#x27;b0; 七、input / rgb-to-gray / original backup 非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、input / rgb-to-gray / original backup。"><td class='ln'>429</td><td class='code'><pre>                        Ur_CEN&lt;=1&#x27;b0; Ur_WEN&lt;=1&#x27;b0;</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、Input / RGB-to-Gray / Original Backup。</td></tr>
+<tr data-search="430                         ur_a  &lt;= req_cnt[15:0]-16&#x27;d2; 七、input / rgb-to-gray / original backup 非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、input / rgb-to-gray / original backup。"><td class='ln'>430</td><td class='code'><pre>                        Ur_A  &lt;= req_cnt[15:0]-16&#x27;d2;</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、Input / RGB-to-Gray / Original Backup。</td></tr>
+<tr data-search="431                         ur_d  &lt;= {24&#x27;d0, gray_round_rgb(img_q)}; 七、input / rgb-to-gray / original backup 非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、input / rgb-to-gray / original backup。"><td class='ln'>431</td><td class='code'><pre>                        Ur_D  &lt;= {24&#x27;d0, gray_round_rgb(Img_Q)};</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、Input / RGB-to-Gray / Original Backup。</td></tr>
+<tr data-search="432                         ans_cen&lt;=1&#x27;b0; ans_wen&lt;=1&#x27;b0; 七、input / rgb-to-gray / original backup 非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、input / rgb-to-gray / original backup。"><td class='ln'>432</td><td class='code'><pre>                        Ans_CEN&lt;=1&#x27;b0; Ans_WEN&lt;=1&#x27;b0;</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、Input / RGB-to-Gray / Original Backup。</td></tr>
+<tr data-search="433                         ans_a &lt;= req_cnt[15:0]-16&#x27;d2; 七、input / rgb-to-gray / original backup 非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、input / rgb-to-gray / original backup。"><td class='ln'>433</td><td class='code'><pre>                        Ans_A &lt;= req_cnt[15:0]-16&#x27;d2;</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、Input / RGB-to-Gray / Original Backup。</td></tr>
+<tr data-search="434                         ans_d &lt;= img_q; 七、input / rgb-to-gray / original backup 非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、input / rgb-to-gray / original backup。"><td class='ln'>434</td><td class='code'><pre>                        Ans_D &lt;= Img_Q;</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、Input / RGB-to-Gray / Original Backup。</td></tr>
+<tr data-search="435                         if (req_cnt==17&#x27;d2) first_pixel&lt;=img_q; 七、input / rgb-to-gray / original backup 條件判斷，用來控制 七、input / rgb-to-gray / original backup 的流程分支、邊界條件或狀態轉移。"><td class='ln'>435</td><td class='code'><pre>                        if (req_cnt==17&#x27;d2) first_pixel&lt;=Img_Q;</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>條件判斷，用來控制 七、Input / RGB-to-Gray / Original Backup 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="436                     end 七、input / rgb-to-gray / original backup 結束目前 begin-end 區塊。"><td class='ln'>436</td><td class='code'><pre>                    end</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="437  七、input / rgb-to-gray / original backup 空白行，用來分隔段落，提升可讀性。"><td class='ln'>437</td><td class='code'><pre></pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="438                     if (req_cnt&lt;17&#x27;d256) row_label[req_cnt[7:0]]&lt;=9&#x27;d0; 七、input / rgb-to-gray / original backup 條件判斷，用來控制 七、input / rgb-to-gray / original backup 的流程分支、邊界條件或狀態轉移。"><td class='ln'>438</td><td class='code'><pre>                    if (req_cnt&lt;17&#x27;d256) row_label[req_cnt[7:0]]&lt;=9&#x27;d0;</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>條件判斷，用來控制 七、Input / RGB-to-Gray / Original Backup 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="439  七、input / rgb-to-gray / original backup 空白行，用來分隔段落，提升可讀性。"><td class='ln'>439</td><td class='code'><pre></pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="440                     if (req_cnt==17&#x27;d65537) begin 七、input / rgb-to-gray / original backup 條件判斷，用來控制 七、input / rgb-to-gray / original backup 的流程分支、邊界條件或狀態轉移。"><td class='ln'>440</td><td class='code'><pre>                    if (req_cnt==17&#x27;d65537) begin</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>條件判斷，用來控制 七、Input / RGB-to-Gray / Original Backup 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="441                         req_cnt&lt;=17&#x27;d0; addr_cnt&lt;=16&#x27;d0; label_idx&lt;=9&#x27;d0; 七、input / rgb-to-gray / original backup 非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、input / rgb-to-gray / original backup。"><td class='ln'>441</td><td class='code'><pre>                        req_cnt&lt;=17&#x27;d0; addr_cnt&lt;=16&#x27;d0; label_idx&lt;=9&#x27;d0;</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、Input / RGB-to-Gray / Original Backup。</td></tr>
+<tr data-search="442                         state&lt;=s_hist_clear; 七、input / rgb-to-gray / original backup 非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、input / rgb-to-gray / original backup。"><td class='ln'>442</td><td class='code'><pre>                        state&lt;=S_HIST_CLEAR;</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、Input / RGB-to-Gray / Original Backup。</td></tr>
+<tr data-search="443                     end else req_cnt&lt;=req_cnt+17&#x27;d1; 七、input / rgb-to-gray / original backup 非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、input / rgb-to-gray / original backup。"><td class='ln'>443</td><td class='code'><pre>                    end else req_cnt&lt;=req_cnt+17&#x27;d1;</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 七、Input / RGB-to-Gray / Original Backup。</td></tr>
+<tr data-search="444                 end 七、input / rgb-to-gray / original backup 結束目前 begin-end 區塊。"><td class='ln'>444</td><td class='code'><pre>                end</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="445  七、input / rgb-to-gray / original backup 空白行，用來分隔段落，提升可讀性。"><td class='ln'>445</td><td class='code'><pre></pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="446                 s_gray: begin addr_cnt&lt;=16&#x27;d0; label_idx&lt;=9&#x27;d0; state&lt;=s_hist_clear; end 七、input / rgb-to-gray / original backup 進入狀態 s_gray：灰階轉換過渡狀態，導向 histogram 初始化。"><td class='ln'>446</td><td class='code'><pre>                S_GRAY: begin addr_cnt&lt;=16&#x27;d0; label_idx&lt;=9&#x27;d0; state&lt;=S_HIST_CLEAR; end</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>進入狀態 S_GRAY：灰階轉換過渡狀態，導向 histogram 初始化。</td></tr>
+<tr data-search="447  七、input / rgb-to-gray / original backup 空白行，用來分隔段落，提升可讀性。"><td class='ln'>447</td><td class='code'><pre></pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="448                 // ----------------------------------------------- 七、input / rgb-to-gray / original backup 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>448</td><td class='code'><pre>                // -----------------------------------------------</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="449                 s_hist_clear: begin 七、input / rgb-to-gray / original backup 進入狀態 s_hist_clear：清空 256 個 histogram bin。"><td class='ln'>449</td><td class='code'><pre>                S_HIST_CLEAR: begin</pre></td><td class='phase'>七、Input / RGB-to-Gray / Original Backup</td><td class='exp'>進入狀態 S_HIST_CLEAR：清空 256 個 histogram bin。</td></tr></tbody>
+          </table>
+          
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>中文重點整理</h2>
+      <ul>
+        <li><strong>程式位置：</strong>Lines 414–449</li>
+        <li><strong>此段主要目標：</strong>S_IDLE、S_LOAD、S_GRAY：開始讀圖、轉灰階、把灰階寫入 UrSRAM，並備份原圖到 AnsSRAM。</li>
+        <li><strong>閱讀建議：</strong>先看相關圖檔，再看原始 code，最後看逐行說明示範。</li>
+        <li><strong>對報告的幫助：</strong>這一頁的圖片與說明很適合直接當作一個報告子段落。</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+</div>
+<div id="imgModal" class="modal">
+  <div class="modal-content">
+    <img id="imgModalImage" src="" alt="preview">
+    <div id="imgModalCaption" class="modal-caption"></div>
+  </div>
+</div>
+<div class="footer">drawBbox 互動式多網頁閱讀包 · 內含原始 code、逐行說明、流程圖與 pattern 圖</div>
+</body>
+</html>

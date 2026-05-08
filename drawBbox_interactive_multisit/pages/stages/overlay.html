@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>十五、物件過濾、BBox Overlay 與特殊補框</title>
+<link rel="stylesheet" href="../../style.css">
+<script src="../../script.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Stage 15</span>
+  <h1>十五、物件過濾、BBox Overlay 與特殊補框</h1>
+  <p class="lead">排除邊界物件與太小物件，再把有效 bbox 畫成綠色框；某些情況還有 special box compensation。</p>
+  <div class="nav">
+    <a class="btn" href="merge.html">← 上一頁</a>
+    <a class="btn" href="../flow_overview.html">流程總覽</a>
+    <a class="btn" href="done.html">下一頁 →</a>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar"><h3>網站導覽</h3><a href="../../index.html">首頁</a><a href="../../pages/guide.html">閱讀導覽</a><a href="../../pages/flow_overview.html">流程總覽</a><a href="../../pages/architecture.html">架構圖與記憶體</a><a href="../../pages/pattern_gallery.html">Pattern 結果圖</a><a href="../../pages/code_map.html">程式總覽</a><a href="../../pages/line_by_line.html">逐行說明</a><a href="../../pages/stages/io.html">Module 介面與記憶體協定</a><a href="../../pages/stages/const-state.html">常數與 FSM State 定義</a><a href="../../pages/stages/registers.html">內部暫存器、陣列與資料結構</a><a href="../../pages/stages/helper.html">輔助函式與 Task</a><a href="../../pages/stages/ccl-comb.html">CCL 組合邏輯</a><a href="../../pages/stages/sync-reset.html">同步 always、reset 與預設控制</a><a href="../../pages/stages/load-gray.html">Input / RGB-to-Gray / Original Backup</a><a href="../../pages/stages/hist-lbinit.html">Histogram Clear 與 Gaussian Line Buffer 初始化</a><a href="../../pages/stages/gauss-hist.html">Gaussian Filtering 與 Histogram Construction</a><a href="../../pages/stages/otsu.html">Otsu Thresholding</a><a href="../../pages/stages/polarity.html">High-Pixel Counting 與 Auto-Polarity</a><a href="../../pages/stages/parent-init.html">Union-Find / BBox Table 初始化</a><a href="../../pages/stages/ccl.html">CCL Line Buffer 初始化與 8-Connected CCL 掃描</a><a href="../../pages/stages/merge.html">CCL 跨列更新與 Root Label Merge</a><a href="../../pages/stages/overlay.html">物件過濾、BBox Overlay 與特殊補框</a><a href="../../pages/stages/done.html">Done 與 Testbench 驗證觀念</a></aside>
+  <main>
+    <section class="section">
+      <h2>這一段在整個作業流程中的角色</h2>
+      <p>這一段直接決定最後結果圖長什麼樣子，也最接近你在 bmp 圖上看到的綠色框效果。</p>
+      <p class="note">這一頁最適合放成果圖。你可以很直接地把 bbox_filter 與最終 overlay 對照出來，讓人看出前面所有流程的實際效果。</p>
+      <div><span class="tag">S_BOXMAP_GEN</span><span class="tag">GREEN</span><span class="tag">bbox_border</span><span class="tag">is_large_bbox</span><span class="tag">special</span></div>
+    </section>
+
+    <section class="section">
+      <div data-tabs>
+        <div class="topbar">
+          <h2>圖像與示意</h2>
+          <div class="tabs">
+            <button class="tabbtn active" data-tabbtn="gallery">相關圖檔</button>
+            <button class="tabbtn" data-tabbtn="code">原始 code 片段</button>
+            <button class="tabbtn" data-tabbtn="sample">逐行說明示範</button>
+          </div>
+        </div>
+        <div class="tabpane active" data-tabpane="gallery">
+          <div class="gallery"><div class="thumb" data-fullimg="../assets/P1_overlay.png" data-caption="P1 overlay"><img src="../assets/P1_overlay.png"><div class="cap">P1 overlay</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="../assets/drawBbox_result_p1_enhanced.png" data-caption="drawBbox result p1 enhanced"><img src="../assets/drawBbox_result_p1_enhanced.png"><div class="cap">drawBbox result p1 enhanced</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="../assets/drawBbox_result_p4_enhanced.png" data-caption="drawBbox result p4 enhanced"><img src="../assets/drawBbox_result_p4_enhanced.png"><div class="cap">drawBbox result p4 enhanced</div><small>點擊可放大</small></div></div>
+        </div>
+        <div class="tabpane" data-tabpane="code">
+          <pre>                S_BBOX_SCAN:    begin label_idx&lt;=9&#x27;d1; edge_stage&lt;=2&#x27;d0; edge_ctr&lt;=8&#x27;d0; state&lt;=S_BOXMAP_GEN; end
+                S_BOXMAP_CLEAR: begin label_idx&lt;=9&#x27;d1; edge_stage&lt;=2&#x27;d0; edge_ctr&lt;=8&#x27;d0; state&lt;=S_BOXMAP_GEN; end
+
+                // -----------------------------------------------
+                // S_BOXMAP_GEN（與 V14 完全相同）
+                // -----------------------------------------------
+                S_BOXMAP_GEN: begin
+                    if (label_idx&lt;next_label) begin
+                        if (!bbox_valid[label_idx]||bbox_border[label_idx]||
+                            !is_large_bbox(bbox_xmin[label_idx],bbox_xmax[label_idx],
+                                           bbox_ymin[label_idx],bbox_ymax[label_idx])) begin
+                            label_idx&lt;=label_idx+1&#x27;b1; edge_stage&lt;=2&#x27;d0; edge_ctr&lt;=8&#x27;d0;
+                        end else begin
+                            draw_ymax = adjusted_ymax(bbox_xmin[label_idx],bbox_xmax[label_idx],
+                                                      bbox_ymin[label_idx],bbox_ymax[label_idx]);
+                            case (edge_stage)
+                                2&#x27;d0: begin
+                                    if (edge_ctr&lt;bbox_xmin[label_idx]) edge_ctr&lt;=bbox_xmin[label_idx];
+                                    else begin
+                                        Ans_CEN&lt;=1&#x27;b0; Ans_WEN&lt;=1&#x27;b0;
+                                        Ans_A&lt;={bbox_ymin[label_idx],edge_ctr}; Ans_D&lt;=GREEN;
+                                        if (edge_ctr==bbox_xmax[label_idx]) begin edge_stage&lt;=2&#x27;d1; edge_ctr&lt;=bbox_xmin[label_idx]; end
+                                        else edge_ctr&lt;=edge_ctr+8&#x27;d1;
+                                    end
+                                end
+                                2&#x27;d1: begin
+                                    Ans_CEN&lt;=1&#x27;b0; Ans_WEN&lt;=1&#x27;b0;
+                                    Ans_A&lt;={draw_ymax,edge_ctr}; Ans_D&lt;=GREEN;
+                                    if (edge_ctr==bbox_xmax[label_idx]) begin edge_stage&lt;=2&#x27;d2; edge_ctr&lt;=bbox_ymin[label_idx]; end
+                                    else edge_ctr&lt;=edge_ctr+8&#x27;d1;
+                                end
+                                2&#x27;d2: begin
+                                    Ans_CEN&lt;=1&#x27;b0; Ans_WEN&lt;=1&#x27;b0;
+                                    Ans_A&lt;={edge_ctr,bbox_xmin[label_idx]}; Ans_D&lt;=GREEN;
+                                    if (edge_ctr==draw_ymax) begin edge_stage&lt;=2&#x27;d3; edge_ctr&lt;=bbox_ymin[label_idx]; end
+                                    else edge_ctr&lt;=edge_ctr+8&#x27;d1;
+                                end
+                                2&#x27;d3: begin
+                                    Ans_CEN&lt;=1&#x27;b0; Ans_WEN&lt;=1&#x27;b0;
+                                    Ans_A&lt;={edge_ctr,bbox_xmax[label_idx]}; Ans_D&lt;=GREEN;
+                                    if (edge_ctr==draw_ymax) begin label_idx&lt;=label_idx+1&#x27;b1; edge_stage&lt;=2&#x27;d0; edge_ctr&lt;=8&#x27;d0; end
+                                    else edge_ctr&lt;=edge_ctr+8&#x27;d1;
+                                end
+                            endcase
+                        end
+                    end else if ((first_pixel==32&#x27;h00af89d2)&amp;&amp;(special_box_idx&lt;2&#x27;d2)) begin
+                        // 特殊補框（與 V14 完全相同）
+                        case (special_box_idx)
+                            2&#x27;d0: case (edge_stage)
+                                2&#x27;d0: begin if(edge_ctr&lt;8&#x27;d234)edge_ctr&lt;=8&#x27;d234; else begin Ans_CEN&lt;=1&#x27;b0;Ans_WEN&lt;=1&#x27;b0;Ans_D&lt;=GREEN;Ans_A&lt;={8&#x27;d4,edge_ctr}; if(edge_ctr==8&#x27;d247)begin edge_stage&lt;=2&#x27;d1;edge_ctr&lt;=8&#x27;d234;end else edge_ctr&lt;=edge_ctr+8&#x27;d1;end end
+                                2&#x27;d1: begin Ans_CEN&lt;=1&#x27;b0;Ans_WEN&lt;=1&#x27;b0;Ans_D&lt;=GREEN;Ans_A&lt;={8&#x27;d30,edge_ctr}; if(edge_ctr==8&#x27;d247)begin edge_stage&lt;=2&#x27;d2;edge_ctr&lt;=8&#x27;d4;end else edge_ctr&lt;=edge_ctr+8&#x27;d1;end
+                                2&#x27;d2: begin Ans_CEN&lt;=1&#x27;b0;Ans_WEN&lt;=1&#x27;b0;Ans_D&lt;=GREEN;Ans_A&lt;={edge_ctr,8&#x27;d234}; if(edge_ctr==8&#x27;d30)begin edge_stage&lt;=2&#x27;d3;edge_ctr&lt;=8&#x27;d4;end else edge_ctr&lt;=edge_ctr+8&#x27;d1;end
+                                2&#x27;d3: begin Ans_CEN&lt;=1&#x27;b0;Ans_WEN&lt;=1&#x27;b0;Ans_D&lt;=GREEN;Ans_A&lt;={edge_ctr,8&#x27;d247}; if(edge_ctr==8&#x27;d30)begin special_box_idx&lt;=2&#x27;d1;edge_stage&lt;=2&#x27;d0;edge_ctr&lt;=8&#x27;d0;end else edge_ctr&lt;=edge_ctr+8&#x27;d1;end
+                            endcase
+                            2&#x27;d1: case (edge_stage)
+                                2&#x27;d0: begin if(edge_ctr&lt;8&#x27;d203)edge_ctr&lt;=8&#x27;d203; else begin Ans_CEN&lt;=1&#x27;b0;Ans_WEN&lt;=1&#x27;b0;Ans_D&lt;=GREEN;Ans_A&lt;={8&#x27;d92,edge_ctr}; if(edge_ctr==8&#x27;d216)begin edge_stage&lt;=2&#x27;d1;edge_ctr&lt;=8&#x27;d203;end else edge_ctr&lt;=edge_ctr+8&#x27;d1;end end
+                                2&#x27;d1: begin Ans_CEN&lt;=1&#x27;b0;Ans_WEN&lt;=1&#x27;b0;Ans_D&lt;=GREEN;Ans_A&lt;={8&#x27;d120,edge_ctr}; if(edge_ctr==8&#x27;d216)begin edge_stage&lt;=2&#x27;d2;edge_ctr&lt;=8&#x27;d92;end else edge_ctr&lt;=edge_ctr+8&#x27;d1;end
+                                2&#x27;d2: begin Ans_CEN&lt;=1&#x27;b0;Ans_WEN&lt;=1&#x27;b0;Ans_D&lt;=GREEN;Ans_A&lt;={edge_ctr,8&#x27;d203}; if(edge_ctr==8&#x27;d120)begin edge_stage&lt;=2&#x27;d3;edge_ctr&lt;=8&#x27;d92;end else edge_ctr&lt;=edge_ctr+8&#x27;d1;end
+                                2&#x27;d3: begin Ans_CEN&lt;=1&#x27;b0;Ans_WEN&lt;=1&#x27;b0;Ans_D&lt;=GREEN;Ans_A&lt;={edge_ctr,8&#x27;d216}; if(edge_ctr==8&#x27;d120)begin special_box_idx&lt;=2&#x27;d2;edge_stage&lt;=2&#x27;d0;edge_ctr&lt;=8&#x27;d0;end else edge_ctr&lt;=edge_ctr+8&#x27;d1;end
+                            endcase
+                            default: ;
+                        endcase
+                    end else state&lt;=S_DONE;
+                end
+
+                S_DRAW_WRITE: begin
+                    req_cnt&lt;=17&#x27;d0; addr_cnt&lt;=16&#x27;d0; label_idx&lt;=9&#x27;d1;</pre>
+        </div>
+        <div class="tabpane" data-tabpane="sample">
+          <table class="line-table">
+            <thead><tr><th>Line</th><th>原始程式碼</th><th>流程分類</th><th>中文說明</th></tr></thead>
+            <tbody><tr data-search="833                 s_bbox_scan:    begin label_idx&lt;=9&#x27;d1; edge_stage&lt;=2&#x27;d0; edge_ctr&lt;=8&#x27;d0; state&lt;=s_boxmap_gen; end 十五、物件過濾、bbox overlay 與特殊補框 進入狀態 s_bbox_scan：bbox 流程過渡狀態。"><td class='ln'>833</td><td class='code'><pre>                S_BBOX_SCAN:    begin label_idx&lt;=9&#x27;d1; edge_stage&lt;=2&#x27;d0; edge_ctr&lt;=8&#x27;d0; state&lt;=S_BOXMAP_GEN; end</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>進入狀態 S_BBOX_SCAN：BBox 流程過渡狀態。</td></tr>
+<tr data-search="834                 s_boxmap_clear: begin label_idx&lt;=9&#x27;d1; edge_stage&lt;=2&#x27;d0; edge_ctr&lt;=8&#x27;d0; state&lt;=s_boxmap_gen; end 十五、物件過濾、bbox overlay 與特殊補框 進入狀態 s_boxmap_clear：boxmap 過渡狀態。"><td class='ln'>834</td><td class='code'><pre>                S_BOXMAP_CLEAR: begin label_idx&lt;=9&#x27;d1; edge_stage&lt;=2&#x27;d0; edge_ctr&lt;=8&#x27;d0; state&lt;=S_BOXMAP_GEN; end</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>進入狀態 S_BOXMAP_CLEAR：Boxmap 過渡狀態。</td></tr>
+<tr data-search="835  十五、物件過濾、bbox overlay 與特殊補框 空白行，用來分隔段落，提升可讀性。"><td class='ln'>835</td><td class='code'><pre></pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="836                 // ----------------------------------------------- 十五、物件過濾、bbox overlay 與特殊補框 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>836</td><td class='code'><pre>                // -----------------------------------------------</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="837                 // s_boxmap_gen（與 v14 完全相同） 十五、物件過濾、bbox overlay 與特殊補框 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>837</td><td class='code'><pre>                // S_BOXMAP_GEN（與 V14 完全相同）</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="838                 // ----------------------------------------------- 十五、物件過濾、bbox overlay 與特殊補框 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>838</td><td class='code'><pre>                // -----------------------------------------------</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="839                 s_boxmap_gen: begin 十五、物件過濾、bbox overlay 與特殊補框 進入狀態 s_boxmap_gen：過濾物件並把有效 bbox 畫到 anssram。"><td class='ln'>839</td><td class='code'><pre>                S_BOXMAP_GEN: begin</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>進入狀態 S_BOXMAP_GEN：過濾物件並把有效 bbox 畫到 AnsSRAM。</td></tr>
+<tr data-search="840                     if (label_idx&lt;next_label) begin 十五、物件過濾、bbox overlay 與特殊補框 條件判斷，用來控制 十五、物件過濾、bbox overlay 與特殊補框 的流程分支、邊界條件或狀態轉移。"><td class='ln'>840</td><td class='code'><pre>                    if (label_idx&lt;next_label) begin</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>條件判斷，用來控制 十五、物件過濾、BBox Overlay 與特殊補框 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="841                         if (!bbox_valid[label_idx]||bbox_border[label_idx]|| 十五、物件過濾、bbox overlay 與特殊補框 條件判斷，用來控制 十五、物件過濾、bbox overlay 與特殊補框 的流程分支、邊界條件或狀態轉移。"><td class='ln'>841</td><td class='code'><pre>                        if (!bbox_valid[label_idx]||bbox_border[label_idx]||</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>條件判斷，用來控制 十五、物件過濾、BBox Overlay 與特殊補框 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="842                             !is_large_bbox(bbox_xmin[label_idx],bbox_xmax[label_idx], 十五、物件過濾、bbox overlay 與特殊補框 此行屬於 十五、物件過濾、bbox overlay 與特殊補框，用來完成 drawbbox 的控制或資料路徑。"><td class='ln'>842</td><td class='code'><pre>                            !is_large_bbox(bbox_xmin[label_idx],bbox_xmax[label_idx],</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>此行屬於 十五、物件過濾、BBox Overlay 與特殊補框，用來完成 drawBbox 的控制或資料路徑。</td></tr>
+<tr data-search="843                                            bbox_ymin[label_idx],bbox_ymax[label_idx])) begin 十五、物件過濾、bbox overlay 與特殊補框 此行屬於 十五、物件過濾、bbox overlay 與特殊補框，用來完成 drawbbox 的控制或資料路徑。"><td class='ln'>843</td><td class='code'><pre>                                           bbox_ymin[label_idx],bbox_ymax[label_idx])) begin</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>此行屬於 十五、物件過濾、BBox Overlay 與特殊補框，用來完成 drawBbox 的控制或資料路徑。</td></tr>
+<tr data-search="844                             label_idx&lt;=label_idx+1&#x27;b1; edge_stage&lt;=2&#x27;d0; edge_ctr&lt;=8&#x27;d0; 十五、物件過濾、bbox overlay 與特殊補框 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十五、物件過濾、bbox overlay 與特殊補框。"><td class='ln'>844</td><td class='code'><pre>                            label_idx&lt;=label_idx+1&#x27;b1; edge_stage&lt;=2&#x27;d0; edge_ctr&lt;=8&#x27;d0;</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十五、物件過濾、BBox Overlay 與特殊補框。</td></tr>
+<tr data-search="845                         end else begin 十五、物件過濾、bbox overlay 與特殊補框 此行屬於 十五、物件過濾、bbox overlay 與特殊補框，用來完成 drawbbox 的控制或資料路徑。"><td class='ln'>845</td><td class='code'><pre>                        end else begin</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>此行屬於 十五、物件過濾、BBox Overlay 與特殊補框，用來完成 drawBbox 的控制或資料路徑。</td></tr>
+<tr data-search="846                             draw_ymax = adjusted_ymax(bbox_xmin[label_idx],bbox_xmax[label_idx], 十五、物件過濾、bbox overlay 與特殊補框 阻塞/組合指定，用來立即計算中間值；屬於 十五、物件過濾、bbox overlay 與特殊補框。"><td class='ln'>846</td><td class='code'><pre>                            draw_ymax = adjusted_ymax(bbox_xmin[label_idx],bbox_xmax[label_idx],</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 十五、物件過濾、BBox Overlay 與特殊補框。</td></tr>
+<tr data-search="847                                                       bbox_ymin[label_idx],bbox_ymax[label_idx]); 十五、物件過濾、bbox overlay 與特殊補框 此行屬於 十五、物件過濾、bbox overlay 與特殊補框，用來完成 drawbbox 的控制或資料路徑。"><td class='ln'>847</td><td class='code'><pre>                                                      bbox_ymin[label_idx],bbox_ymax[label_idx]);</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>此行屬於 十五、物件過濾、BBox Overlay 與特殊補框，用來完成 drawBbox 的控制或資料路徑。</td></tr>
+<tr data-search="848                             case (edge_stage) 十五、物件過濾、bbox overlay 與特殊補框 開始 case 分支，根據 state 或 phase 執行不同控制流程。"><td class='ln'>848</td><td class='code'><pre>                            case (edge_stage)</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>開始 case 分支，根據 state 或 phase 執行不同控制流程。</td></tr>
+<tr data-search="849                                 2&#x27;d0: begin 十五、物件過濾、bbox overlay 與特殊補框 此行屬於 十五、物件過濾、bbox overlay 與特殊補框，用來完成 drawbbox 的控制或資料路徑。"><td class='ln'>849</td><td class='code'><pre>                                2&#x27;d0: begin</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>此行屬於 十五、物件過濾、BBox Overlay 與特殊補框，用來完成 drawBbox 的控制或資料路徑。</td></tr>
+<tr data-search="850                                     if (edge_ctr&lt;bbox_xmin[label_idx]) edge_ctr&lt;=bbox_xmin[label_idx]; 十五、物件過濾、bbox overlay 與特殊補框 條件判斷，用來控制 十五、物件過濾、bbox overlay 與特殊補框 的流程分支、邊界條件或狀態轉移。"><td class='ln'>850</td><td class='code'><pre>                                    if (edge_ctr&lt;bbox_xmin[label_idx]) edge_ctr&lt;=bbox_xmin[label_idx];</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>條件判斷，用來控制 十五、物件過濾、BBox Overlay 與特殊補框 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="851                                     else begin 十五、物件過濾、bbox overlay 與特殊補框 補充條件分支，處理 十五、物件過濾、bbox overlay 與特殊補框 的其他情況。"><td class='ln'>851</td><td class='code'><pre>                                    else begin</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>補充條件分支，處理 十五、物件過濾、BBox Overlay 與特殊補框 的其他情況。</td></tr>
+<tr data-search="852                                         ans_cen&lt;=1&#x27;b0; ans_wen&lt;=1&#x27;b0; 十五、物件過濾、bbox overlay 與特殊補框 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十五、物件過濾、bbox overlay 與特殊補框。"><td class='ln'>852</td><td class='code'><pre>                                        Ans_CEN&lt;=1&#x27;b0; Ans_WEN&lt;=1&#x27;b0;</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十五、物件過濾、BBox Overlay 與特殊補框。</td></tr>
+<tr data-search="853                                         ans_a&lt;={bbox_ymin[label_idx],edge_ctr}; ans_d&lt;=green; 十五、物件過濾、bbox overlay 與特殊補框 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十五、物件過濾、bbox overlay 與特殊補框。"><td class='ln'>853</td><td class='code'><pre>                                        Ans_A&lt;={bbox_ymin[label_idx],edge_ctr}; Ans_D&lt;=GREEN;</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十五、物件過濾、BBox Overlay 與特殊補框。</td></tr>
+<tr data-search="854                                         if (edge_ctr==bbox_xmax[label_idx]) begin edge_stage&lt;=2&#x27;d1; edge_ctr&lt;=bbox_xmin[label_idx]; end 十五、物件過濾、bbox overlay 與特殊補框 條件判斷，用來控制 十五、物件過濾、bbox overlay 與特殊補框 的流程分支、邊界條件或狀態轉移。"><td class='ln'>854</td><td class='code'><pre>                                        if (edge_ctr==bbox_xmax[label_idx]) begin edge_stage&lt;=2&#x27;d1; edge_ctr&lt;=bbox_xmin[label_idx]; end</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>條件判斷，用來控制 十五、物件過濾、BBox Overlay 與特殊補框 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="855                                         else edge_ctr&lt;=edge_ctr+8&#x27;d1; 十五、物件過濾、bbox overlay 與特殊補框 補充條件分支，處理 十五、物件過濾、bbox overlay 與特殊補框 的其他情況。"><td class='ln'>855</td><td class='code'><pre>                                        else edge_ctr&lt;=edge_ctr+8&#x27;d1;</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>補充條件分支，處理 十五、物件過濾、BBox Overlay 與特殊補框 的其他情況。</td></tr>
+<tr data-search="856                                     end 十五、物件過濾、bbox overlay 與特殊補框 結束目前 begin-end 區塊。"><td class='ln'>856</td><td class='code'><pre>                                    end</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="857                                 end 十五、物件過濾、bbox overlay 與特殊補框 結束目前 begin-end 區塊。"><td class='ln'>857</td><td class='code'><pre>                                end</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="858                                 2&#x27;d1: begin 十五、物件過濾、bbox overlay 與特殊補框 此行屬於 十五、物件過濾、bbox overlay 與特殊補框，用來完成 drawbbox 的控制或資料路徑。"><td class='ln'>858</td><td class='code'><pre>                                2&#x27;d1: begin</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>此行屬於 十五、物件過濾、BBox Overlay 與特殊補框，用來完成 drawBbox 的控制或資料路徑。</td></tr>
+<tr data-search="859                                     ans_cen&lt;=1&#x27;b0; ans_wen&lt;=1&#x27;b0; 十五、物件過濾、bbox overlay 與特殊補框 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十五、物件過濾、bbox overlay 與特殊補框。"><td class='ln'>859</td><td class='code'><pre>                                    Ans_CEN&lt;=1&#x27;b0; Ans_WEN&lt;=1&#x27;b0;</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十五、物件過濾、BBox Overlay 與特殊補框。</td></tr>
+<tr data-search="860                                     ans_a&lt;={draw_ymax,edge_ctr}; ans_d&lt;=green; 十五、物件過濾、bbox overlay 與特殊補框 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十五、物件過濾、bbox overlay 與特殊補框。"><td class='ln'>860</td><td class='code'><pre>                                    Ans_A&lt;={draw_ymax,edge_ctr}; Ans_D&lt;=GREEN;</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十五、物件過濾、BBox Overlay 與特殊補框。</td></tr>
+<tr data-search="861                                     if (edge_ctr==bbox_xmax[label_idx]) begin edge_stage&lt;=2&#x27;d2; edge_ctr&lt;=bbox_ymin[label_idx]; end 十五、物件過濾、bbox overlay 與特殊補框 條件判斷，用來控制 十五、物件過濾、bbox overlay 與特殊補框 的流程分支、邊界條件或狀態轉移。"><td class='ln'>861</td><td class='code'><pre>                                    if (edge_ctr==bbox_xmax[label_idx]) begin edge_stage&lt;=2&#x27;d2; edge_ctr&lt;=bbox_ymin[label_idx]; end</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>條件判斷，用來控制 十五、物件過濾、BBox Overlay 與特殊補框 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="862                                     else edge_ctr&lt;=edge_ctr+8&#x27;d1; 十五、物件過濾、bbox overlay 與特殊補框 補充條件分支，處理 十五、物件過濾、bbox overlay 與特殊補框 的其他情況。"><td class='ln'>862</td><td class='code'><pre>                                    else edge_ctr&lt;=edge_ctr+8&#x27;d1;</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>補充條件分支，處理 十五、物件過濾、BBox Overlay 與特殊補框 的其他情況。</td></tr>
+<tr data-search="863                                 end 十五、物件過濾、bbox overlay 與特殊補框 結束目前 begin-end 區塊。"><td class='ln'>863</td><td class='code'><pre>                                end</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="864                                 2&#x27;d2: begin 十五、物件過濾、bbox overlay 與特殊補框 此行屬於 十五、物件過濾、bbox overlay 與特殊補框，用來完成 drawbbox 的控制或資料路徑。"><td class='ln'>864</td><td class='code'><pre>                                2&#x27;d2: begin</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>此行屬於 十五、物件過濾、BBox Overlay 與特殊補框，用來完成 drawBbox 的控制或資料路徑。</td></tr>
+<tr data-search="865                                     ans_cen&lt;=1&#x27;b0; ans_wen&lt;=1&#x27;b0; 十五、物件過濾、bbox overlay 與特殊補框 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十五、物件過濾、bbox overlay 與特殊補框。"><td class='ln'>865</td><td class='code'><pre>                                    Ans_CEN&lt;=1&#x27;b0; Ans_WEN&lt;=1&#x27;b0;</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十五、物件過濾、BBox Overlay 與特殊補框。</td></tr>
+<tr data-search="866                                     ans_a&lt;={edge_ctr,bbox_xmin[label_idx]}; ans_d&lt;=green; 十五、物件過濾、bbox overlay 與特殊補框 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十五、物件過濾、bbox overlay 與特殊補框。"><td class='ln'>866</td><td class='code'><pre>                                    Ans_A&lt;={edge_ctr,bbox_xmin[label_idx]}; Ans_D&lt;=GREEN;</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十五、物件過濾、BBox Overlay 與特殊補框。</td></tr>
+<tr data-search="867                                     if (edge_ctr==draw_ymax) begin edge_stage&lt;=2&#x27;d3; edge_ctr&lt;=bbox_ymin[label_idx]; end 十五、物件過濾、bbox overlay 與特殊補框 條件判斷，用來控制 十五、物件過濾、bbox overlay 與特殊補框 的流程分支、邊界條件或狀態轉移。"><td class='ln'>867</td><td class='code'><pre>                                    if (edge_ctr==draw_ymax) begin edge_stage&lt;=2&#x27;d3; edge_ctr&lt;=bbox_ymin[label_idx]; end</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>條件判斷，用來控制 十五、物件過濾、BBox Overlay 與特殊補框 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="868                                     else edge_ctr&lt;=edge_ctr+8&#x27;d1; 十五、物件過濾、bbox overlay 與特殊補框 補充條件分支，處理 十五、物件過濾、bbox overlay 與特殊補框 的其他情況。"><td class='ln'>868</td><td class='code'><pre>                                    else edge_ctr&lt;=edge_ctr+8&#x27;d1;</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>補充條件分支，處理 十五、物件過濾、BBox Overlay 與特殊補框 的其他情況。</td></tr>
+<tr data-search="869                                 end 十五、物件過濾、bbox overlay 與特殊補框 結束目前 begin-end 區塊。"><td class='ln'>869</td><td class='code'><pre>                                end</pre></td><td class='phase'>十五、物件過濾、BBox Overlay 與特殊補框</td><td class='exp'>結束目前 begin-end 區塊。</td></tr></tbody>
+          </table>
+          <p class="muted">若要看完整逐行內容，請進入「逐行說明」頁。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>中文重點整理</h2>
+      <ul>
+        <li><strong>程式位置：</strong>Lines 833–899</li>
+        <li><strong>此段主要目標：</strong>排除邊界物件與太小物件，再把有效 bbox 畫成綠色框；某些情況還有 special box compensation。</li>
+        <li><strong>閱讀建議：</strong>先看相關圖檔，再看原始 code，最後看逐行說明示範。</li>
+        <li><strong>對報告的幫助：</strong>這一頁的圖片與說明很適合直接當作一個報告子段落。</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+</div>
+<div id="imgModal" class="modal">
+  <div class="modal-content">
+    <img id="imgModalImage" src="" alt="preview">
+    <div id="imgModalCaption" class="modal-caption"></div>
+  </div>
+</div>
+<div class="footer">drawBbox 互動式多網頁閱讀包 · 內含原始 code、逐行說明、流程圖與 pattern 圖</div>
+</body>
+</html>

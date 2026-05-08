@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="660" viewBox="0 0 1200 660">
+<defs>
+  <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#eef7ff"/>
+    <stop offset="100%" stop-color="#ffffff"/>
+  </linearGradient>
+  <linearGradient id="blue" x1="0" x2="1">
+    <stop offset="0%" stop-color="#dff0ff"/>
+    <stop offset="100%" stop-color="#b9dbff"/>
+  </linearGradient>
+  <linearGradient id="green" x1="0" x2="1">
+    <stop offset="0%" stop-color="#e7f8ec"/>
+    <stop offset="100%" stop-color="#c9efd4"/>
+  </linearGradient>
+  <linearGradient id="orange" x1="0" x2="1">
+    <stop offset="0%" stop-color="#fff3df"/>
+    <stop offset="100%" stop-color="#ffe0ad"/>
+  </linearGradient>
+  <linearGradient id="purple" x1="0" x2="1">
+    <stop offset="0%" stop-color="#f1e7ff"/>
+    <stop offset="100%" stop-color="#d9c5ff"/>
+  </linearGradient>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#174b78" flood-opacity="0.18"/>
+  </filter>
+  <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+    <path d="M2,2 L10,6 L2,10 Z" fill="#39536b"/>
+  </marker>
+<style>
+.title{font-family:Arial,'Microsoft JhengHei',sans-serif;font-size:34px;font-weight:800;fill:#174b78}
+.txt{font-family:Arial,'Microsoft JhengHei',sans-serif;font-size:23px;fill:#1f2937}
+.small{font-family:Arial,'Microsoft JhengHei',sans-serif;font-size:18px;fill:#374151}
+.tiny{font-family:Arial,'Microsoft JhengHei',sans-serif;font-size:15px;fill:#52606d}
+.box{stroke:#4b83c3;stroke-width:2.5;rx:20;filter:url(#shadow)}
+.arrow{stroke:#39536b;stroke-width:4;marker-end:url(#arrow);fill:none}
+.dash{stroke:#6385a7;stroke-width:3;stroke-dasharray:8 7;fill:none}
+</style>
+</defs>
+<rect width="1200" height="660" fill="url(#bg)"/>
+
+<text x="55" y="60" class="title">Recommended Linux / EDA Server Commands</text>
+<rect x="70" y="115" width="1060" height="90" fill="url(#blue)" class="box"/>
+<text x="100" y="153" class="txt">Step 1：Upload project to Linux server</text>
+<text x="100" y="185" class="small">scp -r Lab70424Single account@server:~/Lab7_E24134778</text>
+<path d="M600 205 V250" class="arrow"/>
+<rect x="70" y="250" width="1060" height="90" fill="url(#green)" class="box"/>
+<text x="100" y="288" class="txt">Step 2：Enter Design Compiler</text>
+<text x="100" y="320" class="small">dc_shell</text>
+<path d="M600 340 V385" class="arrow"/>
+<rect x="70" y="385" width="1060" height="90" fill="url(#orange)" class="box"/>
+<text x="100" y="423" class="txt">Step 3：Run synthesis script</text>
+<text x="100" y="455" class="small">source synthesis.tcl</text>
+<path d="M600 475 V520" class="arrow"/>
+<rect x="70" y="520" width="1060" height="90" fill="url(#purple)" class="box"/>
+<text x="100" y="558" class="txt">Step 4：Check outputs</text>
+<text x="100" y="590" class="small">ls area_rpt.txt timing_max_rpt.txt drawBbox_syn.v drawBbox_syn.sdf</text>
+
+</svg>

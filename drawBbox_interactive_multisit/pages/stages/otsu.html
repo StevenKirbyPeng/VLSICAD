@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>十、Otsu Thresholding</title>
+<link rel="stylesheet" href="../../style.css">
+<script src="../../script.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Stage 10</span>
+  <h1>十、Otsu Thresholding</h1>
+  <p class="lead">把 Otsu 計算拆成多個 state：scan、lhs、denom、square、compare。</p>
+  <div class="nav">
+    <a class="btn" href="gauss-hist.html">← 上一頁</a>
+    <a class="btn" href="../flow_overview.html">流程總覽</a>
+    <a class="btn" href="polarity.html">下一頁 →</a>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar"><h3>網站導覽</h3><a href="../../index.html">首頁</a><a href="../../pages/guide.html">閱讀導覽</a><a href="../../pages/flow_overview.html">流程總覽</a><a href="../../pages/architecture.html">架構圖與記憶體</a><a href="../../pages/pattern_gallery.html">Pattern 結果圖</a><a href="../../pages/code_map.html">程式總覽</a><a href="../../pages/line_by_line.html">逐行說明</a><a href="../../pages/stages/io.html">Module 介面與記憶體協定</a><a href="../../pages/stages/const-state.html">常數與 FSM State 定義</a><a href="../../pages/stages/registers.html">內部暫存器、陣列與資料結構</a><a href="../../pages/stages/helper.html">輔助函式與 Task</a><a href="../../pages/stages/ccl-comb.html">CCL 組合邏輯</a><a href="../../pages/stages/sync-reset.html">同步 always、reset 與預設控制</a><a href="../../pages/stages/load-gray.html">Input / RGB-to-Gray / Original Backup</a><a href="../../pages/stages/hist-lbinit.html">Histogram Clear 與 Gaussian Line Buffer 初始化</a><a href="../../pages/stages/gauss-hist.html">Gaussian Filtering 與 Histogram Construction</a><a href="../../pages/stages/otsu.html">Otsu Thresholding</a><a href="../../pages/stages/polarity.html">High-Pixel Counting 與 Auto-Polarity</a><a href="../../pages/stages/parent-init.html">Union-Find / BBox Table 初始化</a><a href="../../pages/stages/ccl.html">CCL Line Buffer 初始化與 8-Connected CCL 掃描</a><a href="../../pages/stages/merge.html">CCL 跨列更新與 Root Label Merge</a><a href="../../pages/stages/overlay.html">物件過濾、BBox Overlay 與特殊補框</a><a href="../../pages/stages/done.html">Done 與 Testbench 驗證觀念</a></aside>
+  <main>
+    <section class="section">
+      <h2>這一段在整個作業流程中的角色</h2>
+      <p>這是整份程式最像 datapath optimization 的地方。把大乘法拆開，有助於 synthesis 與 timing。</p>
+      <p class="note">如果你要在報告中解釋 timing 優化，這一頁可以當重點。因為 Otsu 涉及乘法、平方與 cross multiplication，所以特別拆成多狀態。</p>
+      <div><span class="tag">S_OTSU_INIT</span><span class="tag">S_OTSU_SCAN</span><span class="tag">best_num</span><span class="tag">best_den</span><span class="tag">otsu_t</span></div>
+    </section>
+
+    <section class="section">
+      <div data-tabs>
+        <div class="topbar">
+          <h2>圖像與示意</h2>
+          <div class="tabs">
+            <button class="tabbtn active" data-tabbtn="gallery">相關圖檔</button>
+            <button class="tabbtn" data-tabbtn="code">原始 code 片段</button>
+            <button class="tabbtn" data-tabbtn="sample">逐行說明示範</button>
+          </div>
+        </div>
+        <div class="tabpane active" data-tabpane="gallery">
+          <div class="gallery"><div class="thumb" data-fullimg="../assets/algorithm_pipeline_enhanced.svg" data-caption="algorithm pipeline enhanced"><img src="../assets/algorithm_pipeline_enhanced.svg"><div class="cap">algorithm pipeline enhanced</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="../assets/timing_area_formula.svg" data-caption="timing area formula"><img src="../assets/timing_area_formula.svg"><div class="cap">timing area formula</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="../assets/P1_mask.png" data-caption="P1 mask"><img src="../assets/P1_mask.png"><div class="cap">P1 mask</div><small>點擊可放大</small></div></div>
+        </div>
+        <div class="tabpane" data-tabpane="code">
+          <pre>                S_OTSU_INIT: begin
+                    wb_acc&lt;=32&#x27;d0; sum_b_acc&lt;=32&#x27;d0;
+                    otsu_idx&lt;=8&#x27;d0; otsu_t&lt;=8&#x27;d0;
+                    best_num&lt;=130&#x27;d0; best_den&lt;=64&#x27;d1;
+                    state&lt;=S_OTSU_SCAN;
+                end
+
+                // -----------------------------------------------
+                S_OTSU_SCAN: begin
+                    // V19 stage 0: prepare histogram accumulators and first multiply.
+                    // wb_next/sum_b_next are registered and reused in the following Otsu stages.
+                    otsu_idx32  &lt;= {24&#x27;d0, otsu_idx};
+                    wb_next     &lt;= wb_acc + hist[otsu_idx];
+                    sum_b_next  &lt;= sum_b_acc + ({24&#x27;d0, otsu_idx} * hist[otsu_idx]);
+
+                    // lhs48 = sum_total * wb_next
+                    otsu_mul_a  &lt;= {98&#x27;d0, sum_total};
+                    otsu_mul_b  &lt;= {32&#x27;d0, (wb_acc + hist[otsu_idx])};
+                    state       &lt;= S_OTSU_LHS;
+                end
+
+                S_OTSU_LHS: begin
+                    lhs48   &lt;= otsu_mul_y[63:0];
+                    // rhs48 = sum_b_next * 65536 = sum_b_next &lt;&lt; 16
+                    rhs48   &lt;= {16&#x27;d0, sum_b_next, 16&#x27;d0};
+                    // denom32 = wb_next * (65536 - wb_next)
+                    otsu_mul_a &lt;= {98&#x27;d0, wb_next};
+                    otsu_mul_b &lt;= {32&#x27;d0, (32&#x27;d65536 - wb_next)};
+                    state      &lt;= S_OTSU_DENOM;
+                end
+
+                S_OTSU_DENOM: begin
+                    denom32 &lt;= otsu_mul_y[63:0];
+                    if (lhs48 &gt;= rhs48) begin
+                        diff48     &lt;= {1&#x27;b0, (lhs48 - rhs48)};
+                        otsu_mul_a &lt;= {65&#x27;d0, (lhs48 - rhs48)};
+                        otsu_mul_b &lt;= (lhs48 - rhs48);
+                    end else begin
+                        diff48     &lt;= {1&#x27;b0, (rhs48 - lhs48)};
+                        otsu_mul_a &lt;= {65&#x27;d0, (rhs48 - lhs48)};
+                        otsu_mul_b &lt;= (rhs48 - lhs48);
+                    end
+                    state &lt;= S_OTSU_SQUARE;
+                end
+
+                S_OTSU_SQUARE: begin
+                    square96   &lt;= otsu_mul_y[129:0];
+                    // cmp_lhs = square96 * best_den
+                    otsu_mul_a &lt;= otsu_mul_y[129:0];
+                    otsu_mul_b &lt;= best_den;
+                    state      &lt;= S_OTSU_CMP1;
+                end
+
+                S_OTSU_CMP1: begin
+                    cmp_lhs    &lt;= otsu_mul_y;
+                    // cmp_rhs = best_num * denom32
+                    otsu_mul_a &lt;= best_num;
+                    otsu_mul_b &lt;= denom32;
+                    state      &lt;= S_OTSU_CMP2;
+                end
+
+                S_OTSU_CMP2: begin
+                    cmp_rhs &lt;= otsu_mul_y;
+                    if ((wb_next!=32&#x27;d0)&amp;&amp;(wb_next!=32&#x27;d65536)&amp;&amp;
+                        (denom32!=64&#x27;d0)&amp;&amp;(cmp_lhs&gt;otsu_mul_y)) begin
+                        best_num&lt;=square96; best_den&lt;=denom32; otsu_t&lt;=otsu_idx;
+                    end
+
+                    wb_acc    &lt;= wb_next;
+                    sum_b_acc &lt;= sum_b_next;
+
+                    if (otsu_idx==8&#x27;d255) begin
+                        addr_cnt&lt;=16&#x27;d0; count_hi&lt;=17&#x27;d0; otsu_idx&lt;=8&#x27;d0;
+                        state&lt;=S_COUNT_HI;
+                    end else begin
+                        otsu_idx&lt;=otsu_idx+8&#x27;d1;
+                        state&lt;=S_OTSU_SCAN;
+                    end
+                end
+
+                // -----------------------------------------------</pre>
+        </div>
+        <div class="tabpane" data-tabpane="sample">
+          <table class="line-table">
+            <thead><tr><th>Line</th><th>原始程式碼</th><th>流程分類</th><th>中文說明</th></tr></thead>
+            <tbody><tr data-search="559                 s_otsu_init: begin 十、otsu thresholding 進入狀態 s_otsu_init：初始化 otsu threshold 計算的累加器與最佳值。"><td class='ln'>559</td><td class='code'><pre>                S_OTSU_INIT: begin</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>進入狀態 S_OTSU_INIT：初始化 Otsu threshold 計算的累加器與最佳值。</td></tr>
+<tr data-search="560                     wb_acc&lt;=32&#x27;d0; sum_b_acc&lt;=32&#x27;d0; 十、otsu thresholding 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、otsu thresholding。"><td class='ln'>560</td><td class='code'><pre>                    wb_acc&lt;=32&#x27;d0; sum_b_acc&lt;=32&#x27;d0;</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、Otsu Thresholding。</td></tr>
+<tr data-search="561                     otsu_idx&lt;=8&#x27;d0; otsu_t&lt;=8&#x27;d0; 十、otsu thresholding 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、otsu thresholding。"><td class='ln'>561</td><td class='code'><pre>                    otsu_idx&lt;=8&#x27;d0; otsu_t&lt;=8&#x27;d0;</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、Otsu Thresholding。</td></tr>
+<tr data-search="562                     best_num&lt;=130&#x27;d0; best_den&lt;=64&#x27;d1; 十、otsu thresholding 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、otsu thresholding。"><td class='ln'>562</td><td class='code'><pre>                    best_num&lt;=130&#x27;d0; best_den&lt;=64&#x27;d1;</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、Otsu Thresholding。</td></tr>
+<tr data-search="563                     state&lt;=s_otsu_scan; 十、otsu thresholding 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、otsu thresholding。"><td class='ln'>563</td><td class='code'><pre>                    state&lt;=S_OTSU_SCAN;</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、Otsu Thresholding。</td></tr>
+<tr data-search="564                 end 十、otsu thresholding 結束目前 begin-end 區塊。"><td class='ln'>564</td><td class='code'><pre>                end</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="565  十、otsu thresholding 空白行，用來分隔段落，提升可讀性。"><td class='ln'>565</td><td class='code'><pre></pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="566                 // ----------------------------------------------- 十、otsu thresholding 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>566</td><td class='code'><pre>                // -----------------------------------------------</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="567                 s_otsu_scan: begin 十、otsu thresholding 進入狀態 s_otsu_scan：掃描 threshold candidate。"><td class='ln'>567</td><td class='code'><pre>                S_OTSU_SCAN: begin</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>進入狀態 S_OTSU_SCAN：掃描 threshold candidate。</td></tr>
+<tr data-search="568                     // v19 stage 0: prepare histogram accumulators and first multiply. 十、otsu thresholding 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>568</td><td class='code'><pre>                    // V19 stage 0: prepare histogram accumulators and first multiply.</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="569                     // wb_next/sum_b_next are registered and reused in the following otsu stages. 十、otsu thresholding 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>569</td><td class='code'><pre>                    // wb_next/sum_b_next are registered and reused in the following Otsu stages.</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="570                     otsu_idx32  &lt;= {24&#x27;d0, otsu_idx}; 十、otsu thresholding 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、otsu thresholding。"><td class='ln'>570</td><td class='code'><pre>                    otsu_idx32  &lt;= {24&#x27;d0, otsu_idx};</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、Otsu Thresholding。</td></tr>
+<tr data-search="571                     wb_next     &lt;= wb_acc + hist[otsu_idx]; 十、otsu thresholding 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、otsu thresholding。"><td class='ln'>571</td><td class='code'><pre>                    wb_next     &lt;= wb_acc + hist[otsu_idx];</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、Otsu Thresholding。</td></tr>
+<tr data-search="572                     sum_b_next  &lt;= sum_b_acc + ({24&#x27;d0, otsu_idx} * hist[otsu_idx]); 十、otsu thresholding 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、otsu thresholding。"><td class='ln'>572</td><td class='code'><pre>                    sum_b_next  &lt;= sum_b_acc + ({24&#x27;d0, otsu_idx} * hist[otsu_idx]);</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、Otsu Thresholding。</td></tr>
+<tr data-search="573  十、otsu thresholding 空白行，用來分隔段落，提升可讀性。"><td class='ln'>573</td><td class='code'><pre></pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="574                     // lhs48 = sum_total * wb_next 十、otsu thresholding 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>574</td><td class='code'><pre>                    // lhs48 = sum_total * wb_next</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="575                     otsu_mul_a  &lt;= {98&#x27;d0, sum_total}; 十、otsu thresholding 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、otsu thresholding。"><td class='ln'>575</td><td class='code'><pre>                    otsu_mul_a  &lt;= {98&#x27;d0, sum_total};</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、Otsu Thresholding。</td></tr>
+<tr data-search="576                     otsu_mul_b  &lt;= {32&#x27;d0, (wb_acc + hist[otsu_idx])}; 十、otsu thresholding 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、otsu thresholding。"><td class='ln'>576</td><td class='code'><pre>                    otsu_mul_b  &lt;= {32&#x27;d0, (wb_acc + hist[otsu_idx])};</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、Otsu Thresholding。</td></tr>
+<tr data-search="577                     state       &lt;= s_otsu_lhs; 十、otsu thresholding 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、otsu thresholding。"><td class='ln'>577</td><td class='code'><pre>                    state       &lt;= S_OTSU_LHS;</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、Otsu Thresholding。</td></tr>
+<tr data-search="578                 end 十、otsu thresholding 結束目前 begin-end 區塊。"><td class='ln'>578</td><td class='code'><pre>                end</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="579  十、otsu thresholding 空白行，用來分隔段落，提升可讀性。"><td class='ln'>579</td><td class='code'><pre></pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="580                 s_otsu_lhs: begin 十、otsu thresholding 進入狀態 s_otsu_lhs：計算 otsu 比較式左側中間值。"><td class='ln'>580</td><td class='code'><pre>                S_OTSU_LHS: begin</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>進入狀態 S_OTSU_LHS：計算 Otsu 比較式左側中間值。</td></tr>
+<tr data-search="581                     lhs48   &lt;= otsu_mul_y[63:0]; 十、otsu thresholding 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、otsu thresholding。"><td class='ln'>581</td><td class='code'><pre>                    lhs48   &lt;= otsu_mul_y[63:0];</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、Otsu Thresholding。</td></tr>
+<tr data-search="582                     // rhs48 = sum_b_next * 65536 = sum_b_next &lt;&lt; 16 十、otsu thresholding 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>582</td><td class='code'><pre>                    // rhs48 = sum_b_next * 65536 = sum_b_next &lt;&lt; 16</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="583                     rhs48   &lt;= {16&#x27;d0, sum_b_next, 16&#x27;d0}; 十、otsu thresholding 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、otsu thresholding。"><td class='ln'>583</td><td class='code'><pre>                    rhs48   &lt;= {16&#x27;d0, sum_b_next, 16&#x27;d0};</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、Otsu Thresholding。</td></tr>
+<tr data-search="584                     // denom32 = wb_next * (65536 - wb_next) 十、otsu thresholding 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>584</td><td class='code'><pre>                    // denom32 = wb_next * (65536 - wb_next)</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="585                     otsu_mul_a &lt;= {98&#x27;d0, wb_next}; 十、otsu thresholding 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、otsu thresholding。"><td class='ln'>585</td><td class='code'><pre>                    otsu_mul_a &lt;= {98&#x27;d0, wb_next};</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、Otsu Thresholding。</td></tr>
+<tr data-search="586                     otsu_mul_b &lt;= {32&#x27;d0, (32&#x27;d65536 - wb_next)}; 十、otsu thresholding 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、otsu thresholding。"><td class='ln'>586</td><td class='code'><pre>                    otsu_mul_b &lt;= {32&#x27;d0, (32&#x27;d65536 - wb_next)};</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、Otsu Thresholding。</td></tr>
+<tr data-search="587                     state      &lt;= s_otsu_denom; 十、otsu thresholding 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、otsu thresholding。"><td class='ln'>587</td><td class='code'><pre>                    state      &lt;= S_OTSU_DENOM;</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、Otsu Thresholding。</td></tr>
+<tr data-search="588                 end 十、otsu thresholding 結束目前 begin-end 區塊。"><td class='ln'>588</td><td class='code'><pre>                end</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="589  十、otsu thresholding 空白行，用來分隔段落，提升可讀性。"><td class='ln'>589</td><td class='code'><pre></pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="590                 s_otsu_denom: begin 十、otsu thresholding 進入狀態 s_otsu_denom：計算 otsu 分母 wb × wf。"><td class='ln'>590</td><td class='code'><pre>                S_OTSU_DENOM: begin</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>進入狀態 S_OTSU_DENOM：計算 Otsu 分母 wb × wf。</td></tr>
+<tr data-search="591                     denom32 &lt;= otsu_mul_y[63:0]; 十、otsu thresholding 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、otsu thresholding。"><td class='ln'>591</td><td class='code'><pre>                    denom32 &lt;= otsu_mul_y[63:0];</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、Otsu Thresholding。</td></tr>
+<tr data-search="592                     if (lhs48 &gt;= rhs48) begin 十、otsu thresholding 條件判斷，用來控制 十、otsu thresholding 的流程分支、邊界條件或狀態轉移。"><td class='ln'>592</td><td class='code'><pre>                    if (lhs48 &gt;= rhs48) begin</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>條件判斷，用來控制 十、Otsu Thresholding 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="593                         diff48     &lt;= {1&#x27;b0, (lhs48 - rhs48)}; 十、otsu thresholding 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、otsu thresholding。"><td class='ln'>593</td><td class='code'><pre>                        diff48     &lt;= {1&#x27;b0, (lhs48 - rhs48)};</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、Otsu Thresholding。</td></tr>
+<tr data-search="594                         otsu_mul_a &lt;= {65&#x27;d0, (lhs48 - rhs48)}; 十、otsu thresholding 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、otsu thresholding。"><td class='ln'>594</td><td class='code'><pre>                        otsu_mul_a &lt;= {65&#x27;d0, (lhs48 - rhs48)};</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、Otsu Thresholding。</td></tr>
+<tr data-search="595                         otsu_mul_b &lt;= (lhs48 - rhs48); 十、otsu thresholding 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、otsu thresholding。"><td class='ln'>595</td><td class='code'><pre>                        otsu_mul_b &lt;= (lhs48 - rhs48);</pre></td><td class='phase'>十、Otsu Thresholding</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十、Otsu Thresholding。</td></tr></tbody>
+          </table>
+          <p class="muted">若要看完整逐行內容，請進入「逐行說明」頁。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>中文重點整理</h2>
+      <ul>
+        <li><strong>程式位置：</strong>Lines 559–639</li>
+        <li><strong>此段主要目標：</strong>把 Otsu 計算拆成多個 state：scan、lhs、denom、square、compare。</li>
+        <li><strong>閱讀建議：</strong>先看相關圖檔，再看原始 code，最後看逐行說明示範。</li>
+        <li><strong>對報告的幫助：</strong>這一頁的圖片與說明很適合直接當作一個報告子段落。</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+</div>
+<div id="imgModal" class="modal">
+  <div class="modal-content">
+    <img id="imgModalImage" src="" alt="preview">
+    <div id="imgModalCaption" class="modal-caption"></div>
+  </div>
+</div>
+<div class="footer">drawBbox 互動式多網頁閱讀包 · 內含原始 code、逐行說明、流程圖與 pattern 圖</div>
+</body>
+</html>

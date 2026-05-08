@@ -1,0 +1,169 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1200" viewBox="0 0 1800 1200" role="img" aria-labelledby="title desc">
+  <title id="title">Lab7 Final Report Navigation Map - 14 Sections</title>
+  <desc id="desc">A complete polished SVG with fourteen report sections for Lab7 Draw Bounding Box.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#eef7ff"/>
+      <stop offset="45%" stop-color="#f8fbff"/>
+      <stop offset="100%" stop-color="#f3fff7"/>
+    </linearGradient>
+    <linearGradient id="header" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b376d"/>
+      <stop offset="100%" stop-color="#108568"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffe28a"/>
+      <stop offset="100%" stop-color="#ff9f43"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f6fbff"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#0b376d" flood-opacity="0.16"/>
+    </filter>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="35"/>
+    </filter>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto" markerUnits="strokeWidth">
+      <path d="M2,2 L12,7 L2,12 Z" fill="#6d85a3"/>
+    </marker>
+    <style>
+      .title{font:800 48px 'Segoe UI','Noto Sans TC','Microsoft JhengHei',Arial,sans-serif;fill:#fff;letter-spacing:.4px}
+      .subtitle{font:500 22px 'Segoe UI','Noto Sans TC','Microsoft JhengHei',Arial,sans-serif;fill:#dff8ff}
+      .badge{font:800 26px 'Segoe UI','Noto Sans TC','Microsoft JhengHei',Arial,sans-serif;fill:#10304f}
+      .zh{font:800 25px 'Segoe UI','Noto Sans TC','Microsoft JhengHei',Arial,sans-serif;fill:#10253d}
+      .en{font:600 16px 'Segoe UI','Noto Sans TC','Microsoft JhengHei',Arial,sans-serif;fill:#48708f}
+      .note{font:500 14px 'Segoe UI','Noto Sans TC','Microsoft JhengHei',Arial,sans-serif;fill:#7890a6}
+      .footer{font:700 18px 'Segoe UI','Noto Sans TC','Microsoft JhengHei',Arial,sans-serif;fill:#315470}
+      .line{stroke:#8ba4bc;stroke-width:3;fill:none;marker-end:url(#arrow);opacity:.8}
+      .card{fill:url(#card);stroke:#d5e8f7;stroke-width:2;filter:url(#shadow)}
+      .dot{fill:url(#gold);stroke:#fff;stroke-width:5;filter:url(#shadow)}
+      .smallDot{fill:#7bc7b0;opacity:.55}
+    </style>
+  </defs>
+
+  <rect width="1800" height="1200" rx="0" fill="url(#bg)"/>
+  <circle cx="1550" cy="140" r="190" fill="#b7f0df" opacity="0.35" filter="url(#soft)"/>
+  <circle cx="190" cy="1020" r="250" fill="#b9dbff" opacity="0.32" filter="url(#soft)"/>
+
+  <rect x="80" y="60" width="1640" height="170" rx="36" fill="url(#header)" filter="url(#shadow)"/>
+  <text x="130" y="132" class="title">Lab7 Draw Bounding Box｜Final Report Navigation Map</text>
+  <text x="132" y="176" class="subtitle">完整 14 項資料導覽：從基本資料、演算法、驗證結果到 Submission Command</text>
+  <rect x="1440" y="95" width="215" height="85" rx="26" fill="rgba(255,255,255,.18)" stroke="rgba(255,255,255,.45)"/>
+  <text x="1472" y="130" style="font:800 24px 'Segoe UI','Noto Sans TC','Microsoft JhengHei';fill:#fff">14 Sections</text>
+  <text x="1472" y="162" style="font:600 17px 'Segoe UI','Noto Sans TC','Microsoft JhengHei';fill:#dff8ff">SVG only version</text>
+
+  <!-- Connecting flow lines -->
+  <path class="line" d="M330 365 H515"/>
+  <path class="line" d="M675 365 H860"/>
+  <path class="line" d="M1020 365 H1205"/>
+  <path class="line" d="M1365 365 H1500"/>
+  <path class="line" d="M1585 425 C1585 510 1455 535 1365 535"/>
+  <path class="line" d="M1205 535 H1020"/>
+  <path class="line" d="M860 535 H675"/>
+  <path class="line" d="M515 535 H330"/>
+  <path class="line" d="M245 595 C245 680 375 705 515 705"/>
+  <path class="line" d="M675 705 H860"/>
+  <path class="line" d="M1020 705 H1205"/>
+  <path class="line" d="M1365 705 H1500"/>
+  <path class="line" d="M1585 765 C1585 855 1335 875 1190 875"/>
+
+  <!-- row 1 -->
+  <g transform="translate(120,285)">
+    <rect class="card" width="250" height="135" rx="28"/>
+    <circle class="dot" cx="45" cy="45" r="27"/><text x="32" y="54" class="badge">01</text>
+    <text x="88" y="45" class="zh">基本資料</text><text x="88" y="73" class="en">Student Info</text>
+    <text x="28" y="108" class="note">學號、姓名、Lab7 題目資訊</text>
+  </g>
+  <g transform="translate(465,285)">
+    <rect class="card" width="250" height="135" rx="28"/>
+    <circle class="dot" cx="45" cy="45" r="27"/><text x="30" y="54" class="badge">02</text>
+    <text x="88" y="45" class="zh">摘要</text><text x="88" y="73" class="en">Abstract</text>
+    <text x="28" y="108" class="note">整體設計目標與成果總結</text>
+  </g>
+  <g transform="translate(810,285)">
+    <rect class="card" width="250" height="135" rx="28"/>
+    <circle class="dot" cx="45" cy="45" r="27"/><text x="30" y="54" class="badge">03</text>
+    <text x="88" y="45" class="zh">交付檔案</text><text x="88" y="73" class="en">Deliverables</text>
+    <text x="28" y="108" class="note">Verilog、BMP、TXT、Report</text>
+  </g>
+  <g transform="translate(1155,285)">
+    <rect class="card" width="250" height="135" rx="28"/>
+    <circle class="dot" cx="45" cy="45" r="27"/><text x="29" y="54" class="badge">04</text>
+    <text x="88" y="45" class="zh">作業目的</text><text x="88" y="73" class="en">Objective</text>
+    <text x="28" y="108" class="note">Draw Bounding Box 需求說明</text>
+  </g>
+  <g transform="translate(1500,285)">
+    <rect class="card" width="250" height="135" rx="28"/>
+    <circle class="dot" cx="45" cy="45" r="27"/><text x="30" y="54" class="badge">05</text>
+    <text x="88" y="45" class="zh">驗收標準</text><text x="88" y="73" class="en">Acceptance</text>
+    <text x="28" y="108" class="note">Pixel-perfect、RTL/Gate PASS</text>
+  </g>
+
+  <!-- row 2 -->
+  <g transform="translate(1500,455)">
+    <rect class="card" width="250" height="135" rx="28"/>
+    <circle class="dot" cx="45" cy="45" r="27"/><text x="30" y="54" class="badge">06</text>
+    <text x="88" y="45" class="zh">I/O 介面</text><text x="88" y="73" class="en">Interface</text>
+    <text x="28" y="108" class="note">ImgROM、AnsSRAM、控制訊號</text>
+  </g>
+  <g transform="translate(1155,455)">
+    <rect class="card" width="250" height="135" rx="28"/>
+    <circle class="dot" cx="45" cy="45" r="27"/><text x="30" y="54" class="badge">07</text>
+    <text x="88" y="45" class="zh">Pipeline</text><text x="88" y="73" class="en">Processing Flow</text>
+    <text x="28" y="108" class="note">RGB → Gray → Mask → Box</text>
+  </g>
+  <g transform="translate(810,455)">
+    <rect class="card" width="250" height="135" rx="28"/>
+    <circle class="dot" cx="45" cy="45" r="27"/><text x="30" y="54" class="badge">08</text>
+    <text x="88" y="45" class="zh">演算法規則</text><text x="88" y="73" class="en">Rules</text>
+    <text x="28" y="108" class="note">Otsu、Auto-Polarity、8-CCL</text>
+  </g>
+  <g transform="translate(465,455)">
+    <rect class="card" width="250" height="135" rx="28"/>
+    <circle class="dot" cx="45" cy="45" r="27"/><text x="30" y="54" class="badge">09</text>
+    <text x="88" y="45" class="zh">架構設計</text><text x="88" y="73" class="en">Design</text>
+    <text x="28" y="108" class="note">模組分工與資料路徑</text>
+  </g>
+  <g transform="translate(120,455)">
+    <rect class="card" width="250" height="135" rx="28"/>
+    <circle class="dot" cx="45" cy="45" r="27"/><text x="30" y="54" class="badge">10</text>
+    <text x="88" y="45" class="zh">FSM 控制</text><text x="88" y="73" class="en">State Machine</text>
+    <text x="28" y="108" class="note">Read、Compute、Write、Done</text>
+  </g>
+
+  <!-- row 3 -->
+  <g transform="translate(465,625)">
+    <rect class="card" width="250" height="135" rx="28"/>
+    <circle class="dot" cx="45" cy="45" r="27"/><text x="31" y="54" class="badge">11</text>
+    <text x="88" y="45" class="zh">驗證方法</text><text x="88" y="73" class="en">Verification</text>
+    <text x="28" y="108" class="note">RTL、Gate-level、四組 pattern</text>
+  </g>
+  <g transform="translate(810,625)">
+    <rect class="card" width="250" height="135" rx="28"/>
+    <circle class="dot" cx="45" cy="45" r="27"/><text x="29" y="54" class="badge">12</text>
+    <text x="88" y="45" class="zh">合成檢查</text><text x="88" y="73" class="en">Synthesis</text>
+    <text x="28" y="108" class="note">Area、Timing、SuperLint ≥ 90%</text>
+  </g>
+  <g transform="translate(1155,625)">
+    <rect class="card" width="250" height="135" rx="28"/>
+    <circle class="dot" cx="45" cy="45" r="27"/><text x="29" y="54" class="badge">13</text>
+    <text x="88" y="45" class="zh">結果波形</text><text x="88" y="73" class="en">Results</text>
+    <text x="28" y="108" class="note">P1–P4 output / waveform</text>
+  </g>
+  <g transform="translate(1500,625)">
+    <rect class="card" width="250" height="135" rx="28"/>
+    <circle class="dot" cx="45" cy="45" r="27"/><text x="29" y="54" class="badge">14</text>
+    <text x="88" y="45" class="zh">提交指令</text><text x="88" y="73" class="en">Submission Command</text>
+    <text x="28" y="108" class="note">tar 打包與 Moodle 上傳</text>
+  </g>
+
+  <rect x="245" y="845" width="1310" height="150" rx="34" fill="#ffffff" stroke="#d5e8f7" stroke-width="2" filter="url(#shadow)"/>
+  <text x="300" y="900" class="footer">完整提交檢查重點：</text>
+  <text x="300" y="940" style="font:600 20px 'Segoe UI','Noto Sans TC','Microsoft JhengHei';fill:#42647f">確認 14 個 HTML 頁面皆可由 index 連到、圖片路徑不可改壞、P1～P4 結果圖片與說明需完整、最後用 tar 指令壓縮成 Lab7_StudentID.tar。</text>
+  <text x="300" y="975" style="font:600 18px 'Segoe UI','Noto Sans TC','Microsoft JhengHei';fill:#7b8fa3">SVG only｜No external image link｜All text embedded directly in this file</text>
+
+  <circle class="smallDot" cx="155" cy="250" r="7"/><circle class="smallDot" cx="174" cy="250" r="7"/><circle class="smallDot" cx="193" cy="250" r="7"/>
+  <circle class="smallDot" cx="1640" cy="1040" r="8"/><circle class="smallDot" cx="1665" cy="1040" r="8"/><circle class="smallDot" cx="1690" cy="1040" r="8"/>
+</svg>

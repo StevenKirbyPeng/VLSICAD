@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>十一、High-Pixel Counting 與 Auto-Polarity</title>
+<link rel="stylesheet" href="../../style.css">
+<script src="../../script.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Stage 11</span>
+  <h1>十一、High-Pixel Counting 與 Auto-Polarity</h1>
+  <p class="lead">統計 histogram 中大於 otsu_t 的 pixel 數量，若超過半張圖就反相。</p>
+  <div class="nav">
+    <a class="btn" href="otsu.html">← 上一頁</a>
+    <a class="btn" href="../flow_overview.html">流程總覽</a>
+    <a class="btn" href="parent-init.html">下一頁 →</a>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar"><h3>網站導覽</h3><a href="../../index.html">首頁</a><a href="../../pages/guide.html">閱讀導覽</a><a href="../../pages/flow_overview.html">流程總覽</a><a href="../../pages/architecture.html">架構圖與記憶體</a><a href="../../pages/pattern_gallery.html">Pattern 結果圖</a><a href="../../pages/code_map.html">程式總覽</a><a href="../../pages/line_by_line.html">逐行說明</a><a href="../../pages/stages/io.html">Module 介面與記憶體協定</a><a href="../../pages/stages/const-state.html">常數與 FSM State 定義</a><a href="../../pages/stages/registers.html">內部暫存器、陣列與資料結構</a><a href="../../pages/stages/helper.html">輔助函式與 Task</a><a href="../../pages/stages/ccl-comb.html">CCL 組合邏輯</a><a href="../../pages/stages/sync-reset.html">同步 always、reset 與預設控制</a><a href="../../pages/stages/load-gray.html">Input / RGB-to-Gray / Original Backup</a><a href="../../pages/stages/hist-lbinit.html">Histogram Clear 與 Gaussian Line Buffer 初始化</a><a href="../../pages/stages/gauss-hist.html">Gaussian Filtering 與 Histogram Construction</a><a href="../../pages/stages/otsu.html">Otsu Thresholding</a><a href="../../pages/stages/polarity.html">High-Pixel Counting 與 Auto-Polarity</a><a href="../../pages/stages/parent-init.html">Union-Find / BBox Table 初始化</a><a href="../../pages/stages/ccl.html">CCL Line Buffer 初始化與 8-Connected CCL 掃描</a><a href="../../pages/stages/merge.html">CCL 跨列更新與 Root Label Merge</a><a href="../../pages/stages/overlay.html">物件過濾、BBox Overlay 與特殊補框</a><a href="../../pages/stages/done.html">Done 與 Testbench 驗證觀念</a></aside>
+  <main>
+    <section class="section">
+      <h2>這一段在整個作業流程中的角色</h2>
+      <p>有些圖案做完 threshold 後，前景與背景可能反過來。這一段就是根據整體亮暗比例，自動修正 foreground 定義。</p>
+      <p class="note">Auto-Polarity 是本次作業很實用的小技巧。它不是每張圖都一定要反相，而是根據結果的亮暗比例動態決定。</p>
+      <div><span class="tag">S_COUNT_HI</span><span class="tag">S_POLARITY</span><span class="tag">count_hi</span><span class="tag">invert_sel</span></div>
+    </section>
+
+    <section class="section">
+      <div data-tabs>
+        <div class="topbar">
+          <h2>圖像與示意</h2>
+          <div class="tabs">
+            <button class="tabbtn active" data-tabbtn="gallery">相關圖檔</button>
+            <button class="tabbtn" data-tabbtn="code">原始 code 片段</button>
+            <button class="tabbtn" data-tabbtn="sample">逐行說明示範</button>
+          </div>
+        </div>
+        <div class="tabpane active" data-tabpane="gallery">
+          <div class="gallery"><div class="thumb" data-fullimg="../assets/P1_mask.png" data-caption="P1 mask"><img src="../assets/P1_mask.png"><div class="cap">P1 mask</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="../assets/testbench_role.svg" data-caption="testbench role"><img src="../assets/testbench_role.svg"><div class="cap">testbench role</div><small>點擊可放大</small></div></div>
+        </div>
+        <div class="tabpane" data-tabpane="code">
+          <pre>                S_COUNT_HI: begin
+                    if (otsu_idx&gt;otsu_t) count_hi&lt;=count_hi+hist[otsu_idx][16:0];
+                    if (otsu_idx==8&#x27;d255) begin
+                        addr_cnt&lt;=16&#x27;d0; otsu_idx&lt;=8&#x27;d0; state&lt;=S_POLARITY;
+                    end else otsu_idx&lt;=otsu_idx+8&#x27;d1;
+                end
+
+                // -----------------------------------------------
+                S_POLARITY: begin
+                    invert_sel    &lt;= (count_hi&gt;17&#x27;d32768);
+                    addr_cnt      &lt;= 16&#x27;d0;
+                    label_idx     &lt;= 9&#x27;d0;
+                    next_label    &lt;= 9&#x27;d1;
+                    left_label    &lt;= 9&#x27;d0;
+                    nw_label_hold &lt;= 9&#x27;d0;
+                    lb_seq&lt;=2&#x27;d0; lb_col&lt;=8&#x27;d0; lb_phase&lt;=2&#x27;d0;
+                    // V16: do not enter CCL before clearing label/bbox arrays.
+                    state&lt;=S_PARENT_INIT;
+                end
+</pre>
+        </div>
+        <div class="tabpane" data-tabpane="sample">
+          <table class="line-table">
+            <thead><tr><th>Line</th><th>原始程式碼</th><th>流程分類</th><th>中文說明</th></tr></thead>
+            <tbody><tr data-search="640                 s_count_hi: begin 十一、high-pixel counting 與 auto-polarity 進入狀態 s_count_hi：統計高於 threshold 的 pixel 數量。"><td class='ln'>640</td><td class='code'><pre>                S_COUNT_HI: begin</pre></td><td class='phase'>十一、High-Pixel Counting 與 Auto-Polarity</td><td class='exp'>進入狀態 S_COUNT_HI：統計高於 threshold 的 pixel 數量。</td></tr>
+<tr data-search="641                     if (otsu_idx&gt;otsu_t) count_hi&lt;=count_hi+hist[otsu_idx][16:0]; 十一、high-pixel counting 與 auto-polarity 條件判斷，用來控制 十一、high-pixel counting 與 auto-polarity 的流程分支、邊界條件或狀態轉移。"><td class='ln'>641</td><td class='code'><pre>                    if (otsu_idx&gt;otsu_t) count_hi&lt;=count_hi+hist[otsu_idx][16:0];</pre></td><td class='phase'>十一、High-Pixel Counting 與 Auto-Polarity</td><td class='exp'>條件判斷，用來控制 十一、High-Pixel Counting 與 Auto-Polarity 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="642                     if (otsu_idx==8&#x27;d255) begin 十一、high-pixel counting 與 auto-polarity 條件判斷，用來控制 十一、high-pixel counting 與 auto-polarity 的流程分支、邊界條件或狀態轉移。"><td class='ln'>642</td><td class='code'><pre>                    if (otsu_idx==8&#x27;d255) begin</pre></td><td class='phase'>十一、High-Pixel Counting 與 Auto-Polarity</td><td class='exp'>條件判斷，用來控制 十一、High-Pixel Counting 與 Auto-Polarity 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="643                         addr_cnt&lt;=16&#x27;d0; otsu_idx&lt;=8&#x27;d0; state&lt;=s_polarity; 十一、high-pixel counting 與 auto-polarity 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十一、high-pixel counting 與 auto-polarity。"><td class='ln'>643</td><td class='code'><pre>                        addr_cnt&lt;=16&#x27;d0; otsu_idx&lt;=8&#x27;d0; state&lt;=S_POLARITY;</pre></td><td class='phase'>十一、High-Pixel Counting 與 Auto-Polarity</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十一、High-Pixel Counting 與 Auto-Polarity。</td></tr>
+<tr data-search="644                     end else otsu_idx&lt;=otsu_idx+8&#x27;d1; 十一、high-pixel counting 與 auto-polarity 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十一、high-pixel counting 與 auto-polarity。"><td class='ln'>644</td><td class='code'><pre>                    end else otsu_idx&lt;=otsu_idx+8&#x27;d1;</pre></td><td class='phase'>十一、High-Pixel Counting 與 Auto-Polarity</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十一、High-Pixel Counting 與 Auto-Polarity。</td></tr>
+<tr data-search="645                 end 十一、high-pixel counting 與 auto-polarity 結束目前 begin-end 區塊。"><td class='ln'>645</td><td class='code'><pre>                end</pre></td><td class='phase'>十一、High-Pixel Counting 與 Auto-Polarity</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="646  十一、high-pixel counting 與 auto-polarity 空白行，用來分隔段落，提升可讀性。"><td class='ln'>646</td><td class='code'><pre></pre></td><td class='phase'>十一、High-Pixel Counting 與 Auto-Polarity</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="647                 // ----------------------------------------------- 十一、high-pixel counting 與 auto-polarity 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>647</td><td class='code'><pre>                // -----------------------------------------------</pre></td><td class='phase'>十一、High-Pixel Counting 與 Auto-Polarity</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="648                 s_polarity: begin 十一、high-pixel counting 與 auto-polarity 進入狀態 s_polarity：依 high pixel 數量決定是否反相 foreground/background。"><td class='ln'>648</td><td class='code'><pre>                S_POLARITY: begin</pre></td><td class='phase'>十一、High-Pixel Counting 與 Auto-Polarity</td><td class='exp'>進入狀態 S_POLARITY：依 high pixel 數量決定是否反相 foreground/background。</td></tr>
+<tr data-search="649                     invert_sel    &lt;= (count_hi&gt;17&#x27;d32768); 十一、high-pixel counting 與 auto-polarity 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十一、high-pixel counting 與 auto-polarity。"><td class='ln'>649</td><td class='code'><pre>                    invert_sel    &lt;= (count_hi&gt;17&#x27;d32768);</pre></td><td class='phase'>十一、High-Pixel Counting 與 Auto-Polarity</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十一、High-Pixel Counting 與 Auto-Polarity。</td></tr>
+<tr data-search="650                     addr_cnt      &lt;= 16&#x27;d0; 十一、high-pixel counting 與 auto-polarity 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十一、high-pixel counting 與 auto-polarity。"><td class='ln'>650</td><td class='code'><pre>                    addr_cnt      &lt;= 16&#x27;d0;</pre></td><td class='phase'>十一、High-Pixel Counting 與 Auto-Polarity</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十一、High-Pixel Counting 與 Auto-Polarity。</td></tr>
+<tr data-search="651                     label_idx     &lt;= 9&#x27;d0; 十一、high-pixel counting 與 auto-polarity 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十一、high-pixel counting 與 auto-polarity。"><td class='ln'>651</td><td class='code'><pre>                    label_idx     &lt;= 9&#x27;d0;</pre></td><td class='phase'>十一、High-Pixel Counting 與 Auto-Polarity</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十一、High-Pixel Counting 與 Auto-Polarity。</td></tr>
+<tr data-search="652                     next_label    &lt;= 9&#x27;d1; 十一、high-pixel counting 與 auto-polarity 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十一、high-pixel counting 與 auto-polarity。"><td class='ln'>652</td><td class='code'><pre>                    next_label    &lt;= 9&#x27;d1;</pre></td><td class='phase'>十一、High-Pixel Counting 與 Auto-Polarity</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十一、High-Pixel Counting 與 Auto-Polarity。</td></tr>
+<tr data-search="653                     left_label    &lt;= 9&#x27;d0; 十一、high-pixel counting 與 auto-polarity 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十一、high-pixel counting 與 auto-polarity。"><td class='ln'>653</td><td class='code'><pre>                    left_label    &lt;= 9&#x27;d0;</pre></td><td class='phase'>十一、High-Pixel Counting 與 Auto-Polarity</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十一、High-Pixel Counting 與 Auto-Polarity。</td></tr>
+<tr data-search="654                     nw_label_hold &lt;= 9&#x27;d0; 十一、high-pixel counting 與 auto-polarity 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十一、high-pixel counting 與 auto-polarity。"><td class='ln'>654</td><td class='code'><pre>                    nw_label_hold &lt;= 9&#x27;d0;</pre></td><td class='phase'>十一、High-Pixel Counting 與 Auto-Polarity</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十一、High-Pixel Counting 與 Auto-Polarity。</td></tr>
+<tr data-search="655                     lb_seq&lt;=2&#x27;d0; lb_col&lt;=8&#x27;d0; lb_phase&lt;=2&#x27;d0; 十一、high-pixel counting 與 auto-polarity 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十一、high-pixel counting 與 auto-polarity。"><td class='ln'>655</td><td class='code'><pre>                    lb_seq&lt;=2&#x27;d0; lb_col&lt;=8&#x27;d0; lb_phase&lt;=2&#x27;d0;</pre></td><td class='phase'>十一、High-Pixel Counting 與 Auto-Polarity</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十一、High-Pixel Counting 與 Auto-Polarity。</td></tr>
+<tr data-search="656                     // v16: do not enter ccl before clearing label/bbox arrays. 十一、high-pixel counting 與 auto-polarity 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>656</td><td class='code'><pre>                    // V16: do not enter CCL before clearing label/bbox arrays.</pre></td><td class='phase'>十一、High-Pixel Counting 與 Auto-Polarity</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="657                     state&lt;=s_parent_init; 十一、high-pixel counting 與 auto-polarity 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十一、high-pixel counting 與 auto-polarity。"><td class='ln'>657</td><td class='code'><pre>                    state&lt;=S_PARENT_INIT;</pre></td><td class='phase'>十一、High-Pixel Counting 與 Auto-Polarity</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十一、High-Pixel Counting 與 Auto-Polarity。</td></tr>
+<tr data-search="658                 end 十一、high-pixel counting 與 auto-polarity 結束目前 begin-end 區塊。"><td class='ln'>658</td><td class='code'><pre>                end</pre></td><td class='phase'>十一、High-Pixel Counting 與 Auto-Polarity</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="659  十一、high-pixel counting 與 auto-polarity 空白行，用來分隔段落，提升可讀性。"><td class='ln'>659</td><td class='code'><pre></pre></td><td class='phase'>十一、High-Pixel Counting 與 Auto-Polarity</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr></tbody>
+          </table>
+          
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>中文重點整理</h2>
+      <ul>
+        <li><strong>程式位置：</strong>Lines 640–659</li>
+        <li><strong>此段主要目標：</strong>統計 histogram 中大於 otsu_t 的 pixel 數量，若超過半張圖就反相。</li>
+        <li><strong>閱讀建議：</strong>先看相關圖檔，再看原始 code，最後看逐行說明示範。</li>
+        <li><strong>對報告的幫助：</strong>這一頁的圖片與說明很適合直接當作一個報告子段落。</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+</div>
+<div id="imgModal" class="modal">
+  <div class="modal-content">
+    <img id="imgModalImage" src="" alt="preview">
+    <div id="imgModalCaption" class="modal-caption"></div>
+  </div>
+</div>
+<div class="footer">drawBbox 互動式多網頁閱讀包 · 內含原始 code、逐行說明、流程圖與 pattern 圖</div>
+</body>
+</html>

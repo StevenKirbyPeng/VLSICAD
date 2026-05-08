@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>一、Module 介面與記憶體協定</title>
+<link rel="stylesheet" href="../../style.css">
+<script src="../../script.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Stage 01</span>
+  <h1>一、Module 介面與記憶體協定</h1>
+  <p class="lead">定義 top module 的 I/O 與 ImgROM、UrSRAM、AnsSRAM 的讀寫介面。</p>
+  <div class="nav">
+    <a class="btn" href="../flow_overview.html">← 上一頁</a>
+    <a class="btn" href="../flow_overview.html">流程總覽</a>
+    <a class="btn" href="const-state.html">下一頁 →</a>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar"><h3>網站導覽</h3><a href="../../index.html">首頁</a><a href="../../pages/guide.html">閱讀導覽</a><a href="../../pages/flow_overview.html">流程總覽</a><a href="../../pages/architecture.html">架構圖與記憶體</a><a href="../../pages/pattern_gallery.html">Pattern 結果圖</a><a href="../../pages/code_map.html">程式總覽</a><a href="../../pages/line_by_line.html">逐行說明</a><a href="../../pages/stages/io.html">Module 介面與記憶體協定</a><a href="../../pages/stages/const-state.html">常數與 FSM State 定義</a><a href="../../pages/stages/registers.html">內部暫存器、陣列與資料結構</a><a href="../../pages/stages/helper.html">輔助函式與 Task</a><a href="../../pages/stages/ccl-comb.html">CCL 組合邏輯</a><a href="../../pages/stages/sync-reset.html">同步 always、reset 與預設控制</a><a href="../../pages/stages/load-gray.html">Input / RGB-to-Gray / Original Backup</a><a href="../../pages/stages/hist-lbinit.html">Histogram Clear 與 Gaussian Line Buffer 初始化</a><a href="../../pages/stages/gauss-hist.html">Gaussian Filtering 與 Histogram Construction</a><a href="../../pages/stages/otsu.html">Otsu Thresholding</a><a href="../../pages/stages/polarity.html">High-Pixel Counting 與 Auto-Polarity</a><a href="../../pages/stages/parent-init.html">Union-Find / BBox Table 初始化</a><a href="../../pages/stages/ccl.html">CCL Line Buffer 初始化與 8-Connected CCL 掃描</a><a href="../../pages/stages/merge.html">CCL 跨列更新與 Root Label Merge</a><a href="../../pages/stages/overlay.html">物件過濾、BBox Overlay 與特殊補框</a><a href="../../pages/stages/done.html">Done 與 Testbench 驗證觀念</a></aside>
+  <main>
+    <section class="section">
+      <h2>這一段在整個作業流程中的角色</h2>
+      <p>這一段是整個硬體系統與外部記憶體互動的入口。先看懂 I/O，就能理解後面狀態機為什麼要一直切換 CEN、WEN、A、D。</p>
+      <p class="note">先看懂外部記憶體協定，後面所有狀態對 ImgROM / UrSRAM / AnsSRAM 的操作才有意義。Lab7 的 ImgROM 是 active-low CEN；UrSRAM / AnsSRAM 則是 active-low CEN，且 WEN=0 為寫、WEN=1 為讀。</p>
+      <div><span class="tag">module</span><span class="tag">input</span><span class="tag">output</span><span class="tag">ImgROM</span><span class="tag">UrSRAM</span><span class="tag">AnsSRAM</span></div>
+    </section>
+
+    <section class="section">
+      <div data-tabs>
+        <div class="topbar">
+          <h2>圖像與示意</h2>
+          <div class="tabs">
+            <button class="tabbtn active" data-tabbtn="gallery">相關圖檔</button>
+            <button class="tabbtn" data-tabbtn="code">原始 code 片段</button>
+            <button class="tabbtn" data-tabbtn="sample">逐行說明示範</button>
+          </div>
+        </div>
+        <div class="tabpane active" data-tabpane="gallery">
+          <div class="gallery"><div class="thumb" data-fullimg="../assets/memory_interface_enhanced.svg" data-caption="memory interface enhanced"><img src="../assets/memory_interface_enhanced.svg"><div class="cap">memory interface enhanced</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="../assets/memory_dataflow_enhanced.svg" data-caption="memory dataflow enhanced"><img src="../assets/memory_dataflow_enhanced.svg"><div class="cap">memory dataflow enhanced</div><small>點擊可放大</small></div></div>
+        </div>
+        <div class="tabpane" data-tabpane="code">
+          <pre>`timescale 1ns/1ps
+
+// ============================================================
+// Module Name : drawBbox
+// 
+// ============================================================
+
+module drawBbox (
+    input              clk,
+    input              rst,
+    input              enable,
+    output             done,
+
+    input      [31:0]  Img_Q,
+    output reg         Img_CEN,
+    output reg [15:0]  Img_A,
+
+    input      [31:0]  Ur_Q,
+    output reg         Ur_CEN,
+    output reg         Ur_WEN,
+    output reg [31:0]  Ur_D,
+    output reg [15:0]  Ur_A,
+
+    input      [31:0]  Ans_Q,
+    output reg         Ans_CEN,</pre>
+        </div>
+        <div class="tabpane" data-tabpane="sample">
+          <table class="line-table">
+            <thead><tr><th>Line</th><th>原始程式碼</th><th>流程分類</th><th>中文說明</th></tr></thead>
+            <tbody><tr data-search="1 `timescale 1ns/1ps 一、module 介面與記憶體協定 設定 verilog 模擬時間單位與精度。"><td class='ln'>1</td><td class='code'><pre>`timescale 1ns/1ps</pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>設定 Verilog 模擬時間單位與精度。</td></tr>
+<tr data-search="2  一、module 介面與記憶體協定 空白行，用來分隔段落，提升可讀性。"><td class='ln'>2</td><td class='code'><pre></pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="3 // ============================================================ 一、module 介面與記憶體協定 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>3</td><td class='code'><pre>// ============================================================</pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="4 // module name : drawbbox 一、module 介面與記憶體協定 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>4</td><td class='code'><pre>// Module Name : drawBbox</pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="5 //  一、module 介面與記憶體協定 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>5</td><td class='code'><pre>// </pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="6 // ============================================================ 一、module 介面與記憶體協定 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>6</td><td class='code'><pre>// ============================================================</pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="7  一、module 介面與記憶體協定 空白行，用來分隔段落，提升可讀性。"><td class='ln'>7</td><td class='code'><pre></pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="8 module drawbbox ( 一、module 介面與記憶體協定 宣告 drawbbox top module，這是整個 lab7 rtl 的入口。"><td class='ln'>8</td><td class='code'><pre>module drawBbox (</pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>宣告 drawBbox top module，這是整個 Lab7 RTL 的入口。</td></tr>
+<tr data-search="9     input              clk, 一、module 介面與記憶體協定 宣告輸入埠，接收 clock、reset、enable 或外部記憶體讀入資料。"><td class='ln'>9</td><td class='code'><pre>    input              clk,</pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>宣告輸入埠，接收 clock、reset、enable 或外部記憶體讀入資料。</td></tr>
+<tr data-search="10     input              rst, 一、module 介面與記憶體協定 宣告輸入埠，接收 clock、reset、enable 或外部記憶體讀入資料。"><td class='ln'>10</td><td class='code'><pre>    input              rst,</pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>宣告輸入埠，接收 clock、reset、enable 或外部記憶體讀入資料。</td></tr>
+<tr data-search="11     input              enable, 一、module 介面與記憶體協定 宣告輸入埠，接收 clock、reset、enable 或外部記憶體讀入資料。"><td class='ln'>11</td><td class='code'><pre>    input              enable,</pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>宣告輸入埠，接收 clock、reset、enable 或外部記憶體讀入資料。</td></tr>
+<tr data-search="12     output             done, 一、module 介面與記憶體協定 宣告輸出埠，提供 done 或控制 imgrom / sram 介面訊號。"><td class='ln'>12</td><td class='code'><pre>    output             done,</pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>宣告輸出埠，提供 done 或控制 ImgROM / SRAM 介面訊號。</td></tr>
+<tr data-search="13  一、module 介面與記憶體協定 空白行，用來分隔段落，提升可讀性。"><td class='ln'>13</td><td class='code'><pre></pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="14     input      [31:0]  img_q, 一、module 介面與記憶體協定 宣告輸入埠，接收 clock、reset、enable 或外部記憶體讀入資料。"><td class='ln'>14</td><td class='code'><pre>    input      [31:0]  Img_Q,</pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>宣告輸入埠，接收 clock、reset、enable 或外部記憶體讀入資料。</td></tr>
+<tr data-search="15     output reg         img_cen, 一、module 介面與記憶體協定 宣告輸出埠，提供 done 或控制 imgrom / sram 介面訊號。"><td class='ln'>15</td><td class='code'><pre>    output reg         Img_CEN,</pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>宣告輸出埠，提供 done 或控制 ImgROM / SRAM 介面訊號。</td></tr>
+<tr data-search="16     output reg [15:0]  img_a, 一、module 介面與記憶體協定 宣告輸出埠，提供 done 或控制 imgrom / sram 介面訊號。"><td class='ln'>16</td><td class='code'><pre>    output reg [15:0]  Img_A,</pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>宣告輸出埠，提供 done 或控制 ImgROM / SRAM 介面訊號。</td></tr>
+<tr data-search="17  一、module 介面與記憶體協定 空白行，用來分隔段落，提升可讀性。"><td class='ln'>17</td><td class='code'><pre></pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="18     input      [31:0]  ur_q, 一、module 介面與記憶體協定 宣告輸入埠，接收 clock、reset、enable 或外部記憶體讀入資料。"><td class='ln'>18</td><td class='code'><pre>    input      [31:0]  Ur_Q,</pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>宣告輸入埠，接收 clock、reset、enable 或外部記憶體讀入資料。</td></tr>
+<tr data-search="19     output reg         ur_cen, 一、module 介面與記憶體協定 宣告輸出埠，提供 done 或控制 imgrom / sram 介面訊號。"><td class='ln'>19</td><td class='code'><pre>    output reg         Ur_CEN,</pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>宣告輸出埠，提供 done 或控制 ImgROM / SRAM 介面訊號。</td></tr>
+<tr data-search="20     output reg         ur_wen, 一、module 介面與記憶體協定 宣告輸出埠，提供 done 或控制 imgrom / sram 介面訊號。"><td class='ln'>20</td><td class='code'><pre>    output reg         Ur_WEN,</pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>宣告輸出埠，提供 done 或控制 ImgROM / SRAM 介面訊號。</td></tr>
+<tr data-search="21     output reg [31:0]  ur_d, 一、module 介面與記憶體協定 宣告輸出埠，提供 done 或控制 imgrom / sram 介面訊號。"><td class='ln'>21</td><td class='code'><pre>    output reg [31:0]  Ur_D,</pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>宣告輸出埠，提供 done 或控制 ImgROM / SRAM 介面訊號。</td></tr>
+<tr data-search="22     output reg [15:0]  ur_a, 一、module 介面與記憶體協定 宣告輸出埠，提供 done 或控制 imgrom / sram 介面訊號。"><td class='ln'>22</td><td class='code'><pre>    output reg [15:0]  Ur_A,</pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>宣告輸出埠，提供 done 或控制 ImgROM / SRAM 介面訊號。</td></tr>
+<tr data-search="23  一、module 介面與記憶體協定 空白行，用來分隔段落，提升可讀性。"><td class='ln'>23</td><td class='code'><pre></pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="24     input      [31:0]  ans_q, 一、module 介面與記憶體協定 宣告輸入埠，接收 clock、reset、enable 或外部記憶體讀入資料。"><td class='ln'>24</td><td class='code'><pre>    input      [31:0]  Ans_Q,</pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>宣告輸入埠，接收 clock、reset、enable 或外部記憶體讀入資料。</td></tr>
+<tr data-search="25     output reg         ans_cen, 一、module 介面與記憶體協定 宣告輸出埠，提供 done 或控制 imgrom / sram 介面訊號。"><td class='ln'>25</td><td class='code'><pre>    output reg         Ans_CEN,</pre></td><td class='phase'>一、Module 介面與記憶體協定</td><td class='exp'>宣告輸出埠，提供 done 或控制 ImgROM / SRAM 介面訊號。</td></tr></tbody>
+          </table>
+          
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>中文重點整理</h2>
+      <ul>
+        <li><strong>程式位置：</strong>Lines 1–25</li>
+        <li><strong>此段主要目標：</strong>定義 top module 的 I/O 與 ImgROM、UrSRAM、AnsSRAM 的讀寫介面。</li>
+        <li><strong>閱讀建議：</strong>先看相關圖檔，再看原始 code，最後看逐行說明示範。</li>
+        <li><strong>對報告的幫助：</strong>這一頁的圖片與說明很適合直接當作一個報告子段落。</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+</div>
+<div id="imgModal" class="modal">
+  <div class="modal-content">
+    <img id="imgModalImage" src="" alt="preview">
+    <div id="imgModalCaption" class="modal-caption"></div>
+  </div>
+</div>
+<div class="footer">drawBbox 互動式多網頁閱讀包 · 內含原始 code、逐行說明、流程圖與 pattern 圖</div>
+</body>
+</html>

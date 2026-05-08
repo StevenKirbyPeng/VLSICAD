@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>十六、Done 與 Testbench 驗證觀念</title>
+<link rel="stylesheet" href="../../style.css">
+<script src="../../script.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Stage 16</span>
+  <h1>十六、Done 與 Testbench 驗證觀念</h1>
+  <p class="lead">S_DONE 拉高 done，testbench 再接手做 golden image comparison。</p>
+  <div class="nav">
+    <a class="btn" href="overlay.html">← 上一頁</a>
+    <a class="btn" href="../flow_overview.html">流程總覽</a>
+    <a class="btn" href="../line_by_line.html">下一頁 →</a>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar"><h3>網站導覽</h3><a href="../../index.html">首頁</a><a href="../../pages/guide.html">閱讀導覽</a><a href="../../pages/flow_overview.html">流程總覽</a><a href="../../pages/architecture.html">架構圖與記憶體</a><a href="../../pages/pattern_gallery.html">Pattern 結果圖</a><a href="../../pages/code_map.html">程式總覽</a><a href="../../pages/line_by_line.html">逐行說明</a><a href="../../pages/stages/io.html">Module 介面與記憶體協定</a><a href="../../pages/stages/const-state.html">常數與 FSM State 定義</a><a href="../../pages/stages/registers.html">內部暫存器、陣列與資料結構</a><a href="../../pages/stages/helper.html">輔助函式與 Task</a><a href="../../pages/stages/ccl-comb.html">CCL 組合邏輯</a><a href="../../pages/stages/sync-reset.html">同步 always、reset 與預設控制</a><a href="../../pages/stages/load-gray.html">Input / RGB-to-Gray / Original Backup</a><a href="../../pages/stages/hist-lbinit.html">Histogram Clear 與 Gaussian Line Buffer 初始化</a><a href="../../pages/stages/gauss-hist.html">Gaussian Filtering 與 Histogram Construction</a><a href="../../pages/stages/otsu.html">Otsu Thresholding</a><a href="../../pages/stages/polarity.html">High-Pixel Counting 與 Auto-Polarity</a><a href="../../pages/stages/parent-init.html">Union-Find / BBox Table 初始化</a><a href="../../pages/stages/ccl.html">CCL Line Buffer 初始化與 8-Connected CCL 掃描</a><a href="../../pages/stages/merge.html">CCL 跨列更新與 Root Label Merge</a><a href="../../pages/stages/overlay.html">物件過濾、BBox Overlay 與特殊補框</a><a href="../../pages/stages/done.html">Done 與 Testbench 驗證觀念</a></aside>
+  <main>
+    <section class="section">
+      <h2>這一段在整個作業流程中的角色</h2>
+      <p>RTL 到這裡就完成了，但整個作業流程還有 testbench 驗證這一步。這一段把 RTL 的終點和驗證流程串起來。</p>
+      <p class="note">RTL 在 done 拉高後就算結束；但是作業真正的『PASS』還要靠 testbench 與 golden image comparison 來決定。</p>
+      <div><span class="tag">S_DONE</span><span class="tag">done_r</span><span class="tag">done</span></div>
+    </section>
+
+    <section class="section">
+      <div data-tabs>
+        <div class="topbar">
+          <h2>圖像與示意</h2>
+          <div class="tabs">
+            <button class="tabbtn active" data-tabbtn="gallery">相關圖檔</button>
+            <button class="tabbtn" data-tabbtn="code">原始 code 片段</button>
+            <button class="tabbtn" data-tabbtn="sample">逐行說明示範</button>
+          </div>
+        </div>
+        <div class="tabpane active" data-tabpane="gallery">
+          <div class="gallery"><div class="thumb" data-fullimg="../assets/testbench_role.svg" data-caption="testbench role"><img src="../assets/testbench_role.svg"><div class="cap">testbench role</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="../assets/drawBbox_result_p1.png" data-caption="drawBbox result p1"><img src="../assets/drawBbox_result_p1.png"><div class="cap">drawBbox result p1</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="../assets/P1_golden.png" data-caption="P1 golden"><img src="../assets/P1_golden.png"><div class="cap">P1 golden</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="../assets/P1_diff.png" data-caption="P1 diff"><img src="../assets/P1_diff.png"><div class="cap">P1 diff</div><small>點擊可放大</small></div></div>
+        </div>
+        <div class="tabpane" data-tabpane="code">
+          <pre>                    edge_stage&lt;=2&#x27;d0; edge_ctr&lt;=8&#x27;d0; special_box_idx&lt;=2&#x27;d0;
+                    state&lt;=S_BOXMAP_GEN;
+                end
+
+                S_DONE: begin done_r&lt;=1&#x27;b1; state&lt;=S_DONE; end
+
+                default: begin
+                    state&lt;=S_IDLE;
+                    Img_CEN&lt;=1&#x27;b1; Img_A&lt;=16&#x27;d0;
+                    Ur_CEN&lt;=1&#x27;b1;  Ur_WEN&lt;=1&#x27;b1; Ur_A&lt;=16&#x27;d0; Ur_D&lt;=32&#x27;d0;
+                    Ans_CEN&lt;=1&#x27;b1; Ans_WEN&lt;=1&#x27;b1; Ans_A&lt;=16&#x27;d0; Ans_D&lt;=32&#x27;d0;
+                end
+            endcase
+        end
+    end
+
+endmodule</pre>
+        </div>
+        <div class="tabpane" data-tabpane="sample">
+          <table class="line-table">
+            <thead><tr><th>Line</th><th>原始程式碼</th><th>流程分類</th><th>中文說明</th></tr></thead>
+            <tbody><tr data-search="900                     edge_stage&lt;=2&#x27;d0; edge_ctr&lt;=8&#x27;d0; special_box_idx&lt;=2&#x27;d0; 十六、done 與 testbench 驗證觀念 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十六、done 與 testbench 驗證觀念。"><td class='ln'>900</td><td class='code'><pre>                    edge_stage&lt;=2&#x27;d0; edge_ctr&lt;=8&#x27;d0; special_box_idx&lt;=2&#x27;d0;</pre></td><td class='phase'>十六、Done 與 Testbench 驗證觀念</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十六、Done 與 Testbench 驗證觀念。</td></tr>
+<tr data-search="901                     state&lt;=s_boxmap_gen; 十六、done 與 testbench 驗證觀念 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十六、done 與 testbench 驗證觀念。"><td class='ln'>901</td><td class='code'><pre>                    state&lt;=S_BOXMAP_GEN;</pre></td><td class='phase'>十六、Done 與 Testbench 驗證觀念</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十六、Done 與 Testbench 驗證觀念。</td></tr>
+<tr data-search="902                 end 十六、done 與 testbench 驗證觀念 結束目前 begin-end 區塊。"><td class='ln'>902</td><td class='code'><pre>                end</pre></td><td class='phase'>十六、Done 與 Testbench 驗證觀念</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="903  十六、done 與 testbench 驗證觀念 空白行，用來分隔段落，提升可讀性。"><td class='ln'>903</td><td class='code'><pre></pre></td><td class='phase'>十六、Done 與 Testbench 驗證觀念</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="904                 s_done: begin done_r&lt;=1&#x27;b1; state&lt;=s_done; end 十六、done 與 testbench 驗證觀念 進入狀態 s_done：拉高 done，結束整個作業。"><td class='ln'>904</td><td class='code'><pre>                S_DONE: begin done_r&lt;=1&#x27;b1; state&lt;=S_DONE; end</pre></td><td class='phase'>十六、Done 與 Testbench 驗證觀念</td><td class='exp'>進入狀態 S_DONE：拉高 done，結束整個作業。</td></tr>
+<tr data-search="905  十六、done 與 testbench 驗證觀念 空白行，用來分隔段落，提升可讀性。"><td class='ln'>905</td><td class='code'><pre></pre></td><td class='phase'>十六、Done 與 Testbench 驗證觀念</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="906                 default: begin 十六、done 與 testbench 驗證觀念 此行屬於 十六、done 與 testbench 驗證觀念，用來完成 drawbbox 的控制或資料路徑。"><td class='ln'>906</td><td class='code'><pre>                default: begin</pre></td><td class='phase'>十六、Done 與 Testbench 驗證觀念</td><td class='exp'>此行屬於 十六、Done 與 Testbench 驗證觀念，用來完成 drawBbox 的控制或資料路徑。</td></tr>
+<tr data-search="907                     state&lt;=s_idle; 十六、done 與 testbench 驗證觀念 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十六、done 與 testbench 驗證觀念。"><td class='ln'>907</td><td class='code'><pre>                    state&lt;=S_IDLE;</pre></td><td class='phase'>十六、Done 與 Testbench 驗證觀念</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十六、Done 與 Testbench 驗證觀念。</td></tr>
+<tr data-search="908                     img_cen&lt;=1&#x27;b1; img_a&lt;=16&#x27;d0; 十六、done 與 testbench 驗證觀念 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十六、done 與 testbench 驗證觀念。"><td class='ln'>908</td><td class='code'><pre>                    Img_CEN&lt;=1&#x27;b1; Img_A&lt;=16&#x27;d0;</pre></td><td class='phase'>十六、Done 與 Testbench 驗證觀念</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十六、Done 與 Testbench 驗證觀念。</td></tr>
+<tr data-search="909                     ur_cen&lt;=1&#x27;b1;  ur_wen&lt;=1&#x27;b1; ur_a&lt;=16&#x27;d0; ur_d&lt;=32&#x27;d0; 十六、done 與 testbench 驗證觀念 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十六、done 與 testbench 驗證觀念。"><td class='ln'>909</td><td class='code'><pre>                    Ur_CEN&lt;=1&#x27;b1;  Ur_WEN&lt;=1&#x27;b1; Ur_A&lt;=16&#x27;d0; Ur_D&lt;=32&#x27;d0;</pre></td><td class='phase'>十六、Done 與 Testbench 驗證觀念</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十六、Done 與 Testbench 驗證觀念。</td></tr>
+<tr data-search="910                     ans_cen&lt;=1&#x27;b1; ans_wen&lt;=1&#x27;b1; ans_a&lt;=16&#x27;d0; ans_d&lt;=32&#x27;d0; 十六、done 與 testbench 驗證觀念 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十六、done 與 testbench 驗證觀念。"><td class='ln'>910</td><td class='code'><pre>                    Ans_CEN&lt;=1&#x27;b1; Ans_WEN&lt;=1&#x27;b1; Ans_A&lt;=16&#x27;d0; Ans_D&lt;=32&#x27;d0;</pre></td><td class='phase'>十六、Done 與 Testbench 驗證觀念</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十六、Done 與 Testbench 驗證觀念。</td></tr>
+<tr data-search="911                 end 十六、done 與 testbench 驗證觀念 結束目前 begin-end 區塊。"><td class='ln'>911</td><td class='code'><pre>                end</pre></td><td class='phase'>十六、Done 與 Testbench 驗證觀念</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="912             endcase 十六、done 與 testbench 驗證觀念 結束 case 分支。"><td class='ln'>912</td><td class='code'><pre>            endcase</pre></td><td class='phase'>十六、Done 與 Testbench 驗證觀念</td><td class='exp'>結束 case 分支。</td></tr>
+<tr data-search="913         end 十六、done 與 testbench 驗證觀念 結束目前 begin-end 區塊。"><td class='ln'>913</td><td class='code'><pre>        end</pre></td><td class='phase'>十六、Done 與 Testbench 驗證觀念</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="914     end 十六、done 與 testbench 驗證觀念 結束目前 begin-end 區塊。"><td class='ln'>914</td><td class='code'><pre>    end</pre></td><td class='phase'>十六、Done 與 Testbench 驗證觀念</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="915  十六、done 與 testbench 驗證觀念 空白行，用來分隔段落，提升可讀性。"><td class='ln'>915</td><td class='code'><pre></pre></td><td class='phase'>十六、Done 與 Testbench 驗證觀念</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="916 endmodule 十六、done 與 testbench 驗證觀念 結束 drawbbox module。"><td class='ln'>916</td><td class='code'><pre>endmodule</pre></td><td class='phase'>十六、Done 與 Testbench 驗證觀念</td><td class='exp'>結束 drawBbox module。</td></tr></tbody>
+          </table>
+          
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>中文重點整理</h2>
+      <ul>
+        <li><strong>程式位置：</strong>Lines 900–916</li>
+        <li><strong>此段主要目標：</strong>S_DONE 拉高 done，testbench 再接手做 golden image comparison。</li>
+        <li><strong>閱讀建議：</strong>先看相關圖檔，再看原始 code，最後看逐行說明示範。</li>
+        <li><strong>對報告的幫助：</strong>這一頁的圖片與說明很適合直接當作一個報告子段落。</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+</div>
+<div id="imgModal" class="modal">
+  <div class="modal-content">
+    <img id="imgModalImage" src="" alt="preview">
+    <div id="imgModalCaption" class="modal-caption"></div>
+  </div>
+</div>
+<div class="footer">drawBbox 互動式多網頁閱讀包 · 內含原始 code、逐行說明、流程圖與 pattern 圖</div>
+</body>
+</html>

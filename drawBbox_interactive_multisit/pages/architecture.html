@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>架構圖與記憶體</title>
+<link rel="stylesheet" href="../style.css">
+<script src="../script.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Architecture</span>
+  <h1>架構圖與記憶體說明</h1>
+  <p class="lead">這頁集中整理內部架構與記憶體互動圖，適合拿來準備報告、口頭說明與 demo。</p>
+</header>
+<div class="layout">
+  <aside class="sidebar"><h3>網站導覽</h3><a href="../index.html">首頁</a><a href="../pages/guide.html">閱讀導覽</a><a href="../pages/flow_overview.html">流程總覽</a><a href="../pages/architecture.html">架構圖與記憶體</a><a href="../pages/pattern_gallery.html">Pattern 結果圖</a><a href="../pages/code_map.html">程式總覽</a><a href="../pages/line_by_line.html">逐行說明</a><a href="../pages/stages/io.html">Module 介面與記憶體協定</a><a href="../pages/stages/const-state.html">常數與 FSM State 定義</a><a href="../pages/stages/registers.html">內部暫存器、陣列與資料結構</a><a href="../pages/stages/helper.html">輔助函式與 Task</a><a href="../pages/stages/ccl-comb.html">CCL 組合邏輯</a><a href="../pages/stages/sync-reset.html">同步 always、reset 與預設控制</a><a href="../pages/stages/load-gray.html">Input / RGB-to-Gray / Original Backup</a><a href="../pages/stages/hist-lbinit.html">Histogram Clear 與 Gaussian Line Buffer 初始化</a><a href="../pages/stages/gauss-hist.html">Gaussian Filtering 與 Histogram Construction</a><a href="../pages/stages/otsu.html">Otsu Thresholding</a><a href="../pages/stages/polarity.html">High-Pixel Counting 與 Auto-Polarity</a><a href="../pages/stages/parent-init.html">Union-Find / BBox Table 初始化</a><a href="../pages/stages/ccl.html">CCL Line Buffer 初始化與 8-Connected CCL 掃描</a><a href="../pages/stages/merge.html">CCL 跨列更新與 Root Label Merge</a><a href="../pages/stages/overlay.html">物件過濾、BBox Overlay 與特殊補框</a><a href="../pages/stages/done.html">Done 與 Testbench 驗證觀念</a></aside>
+  <main>
+    <section class="section">
+      <h2>重點說明</h2>
+      <div class="grid">
+        <div class="card"><h3>ImgROM</h3><p>存放 256×256 的原始 RGB 影像。你的 RTL 在 S_LOAD 從這裡讀取 pixel。</p></div>
+        <div class="card"><h3>UrSRAM</h3><p>存放中間結果，尤其是灰階或 Gaussian 後的資料，供後續 threshold / CCL 使用。</p></div>
+        <div class="card"><h3>AnsSRAM</h3><p>最後輸出記憶體。先備份原圖，再疊加 bounding box，testbench 會拿這裡做 golden comparison。</p></div>
+      </div>
+    </section>
+    <section class="section">
+      <h2>架構圖圖庫</h2>
+      <div class="gallery"><div class="thumb" data-fullimg="../assets/internal_architecture_enhanced.svg" data-caption="內部架構總覽"><img src="../assets/internal_architecture_enhanced.svg"><div class="cap">內部架構總覽</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="../assets/memory_interface_enhanced.svg" data-caption="記憶體介面"><img src="../assets/memory_interface_enhanced.svg"><div class="cap">記憶體介面</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="../assets/memory_dataflow_enhanced.svg" data-caption="資料流"><img src="../assets/memory_dataflow_enhanced.svg"><div class="cap">資料流</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="../assets/fsm_controller_enhanced.svg" data-caption="FSM 控制器"><img src="../assets/fsm_controller_enhanced.svg"><div class="cap">FSM 控制器</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="../assets/fsm_datapath_relation.svg" data-caption="FSM 與 datapath 關係"><img src="../assets/fsm_datapath_relation.svg"><div class="cap">FSM 與 datapath 關係</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="../assets/architecture_debug_enhanced.svg" data-caption="架構除錯重點"><img src="../assets/architecture_debug_enhanced.svg"><div class="cap">架構除錯重點</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="../assets/counter_control.svg" data-caption="計數器與控制"><img src="../assets/counter_control.svg"><div class="cap">計數器與控制</div><small>點擊可放大</small></div></div>
+    </section>
+  </main>
+</div>
+
+</div>
+<div id="imgModal" class="modal">
+  <div class="modal-content">
+    <img id="imgModalImage" src="" alt="preview">
+    <div id="imgModalCaption" class="modal-caption"></div>
+  </div>
+</div>
+<div class="footer">drawBbox 互動式多網頁閱讀包 · 內含原始 code、逐行說明、流程圖與 pattern 圖</div>
+</body>
+</html>

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>二、常數與 FSM State 定義</title>
+<link rel="stylesheet" href="../../style.css">
+<script src="../../script.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Stage 02</span>
+  <h1>二、常數與 FSM State 定義</h1>
+  <p class="lead">定義 GREEN、NPIX、MAX_LABELS 與所有狀態編碼。</p>
+  <div class="nav">
+    <a class="btn" href="io.html">← 上一頁</a>
+    <a class="btn" href="../flow_overview.html">流程總覽</a>
+    <a class="btn" href="registers.html">下一頁 →</a>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar"><h3>網站導覽</h3><a href="../../index.html">首頁</a><a href="../../pages/guide.html">閱讀導覽</a><a href="../../pages/flow_overview.html">流程總覽</a><a href="../../pages/architecture.html">架構圖與記憶體</a><a href="../../pages/pattern_gallery.html">Pattern 結果圖</a><a href="../../pages/code_map.html">程式總覽</a><a href="../../pages/line_by_line.html">逐行說明</a><a href="../../pages/stages/io.html">Module 介面與記憶體協定</a><a href="../../pages/stages/const-state.html">常數與 FSM State 定義</a><a href="../../pages/stages/registers.html">內部暫存器、陣列與資料結構</a><a href="../../pages/stages/helper.html">輔助函式與 Task</a><a href="../../pages/stages/ccl-comb.html">CCL 組合邏輯</a><a href="../../pages/stages/sync-reset.html">同步 always、reset 與預設控制</a><a href="../../pages/stages/load-gray.html">Input / RGB-to-Gray / Original Backup</a><a href="../../pages/stages/hist-lbinit.html">Histogram Clear 與 Gaussian Line Buffer 初始化</a><a href="../../pages/stages/gauss-hist.html">Gaussian Filtering 與 Histogram Construction</a><a href="../../pages/stages/otsu.html">Otsu Thresholding</a><a href="../../pages/stages/polarity.html">High-Pixel Counting 與 Auto-Polarity</a><a href="../../pages/stages/parent-init.html">Union-Find / BBox Table 初始化</a><a href="../../pages/stages/ccl.html">CCL Line Buffer 初始化與 8-Connected CCL 掃描</a><a href="../../pages/stages/merge.html">CCL 跨列更新與 Root Label Merge</a><a href="../../pages/stages/overlay.html">物件過濾、BBox Overlay 與特殊補框</a><a href="../../pages/stages/done.html">Done 與 Testbench 驗證觀念</a></aside>
+  <main>
+    <section class="section">
+      <h2>這一段在整個作業流程中的角色</h2>
+      <p>這裡把作業的核心常數集中定義。尤其 GREEN = 32&#x27;h0000_FF00 對應 Lab7 畫框要求；state 編碼則決定整個控制流程。</p>
+      <p class="note">在 report 或 demo 解說時，這一頁很適合拿來說明『我的設計是一個單一大型 FSM』，並指出整個處理順序大致是怎麼被編碼進 state 的。</p>
+      <div><span class="tag">localparam</span><span class="tag">GREEN</span><span class="tag">NPIX</span><span class="tag">S_IDLE</span><span class="tag">S_DONE</span></div>
+    </section>
+
+    <section class="section">
+      <div data-tabs>
+        <div class="topbar">
+          <h2>圖像與示意</h2>
+          <div class="tabs">
+            <button class="tabbtn active" data-tabbtn="gallery">相關圖檔</button>
+            <button class="tabbtn" data-tabbtn="code">原始 code 片段</button>
+            <button class="tabbtn" data-tabbtn="sample">逐行說明示範</button>
+          </div>
+        </div>
+        <div class="tabpane active" data-tabpane="gallery">
+          <div class="gallery"><div class="thumb" data-fullimg="../assets/fsm_controller_enhanced.svg" data-caption="fsm controller enhanced"><img src="../assets/fsm_controller_enhanced.svg"><div class="cap">fsm controller enhanced</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="../assets/pattern_summary_cards.svg" data-caption="pattern summary cards"><img src="../assets/pattern_summary_cards.svg"><div class="cap">pattern summary cards</div><small>點擊可放大</small></div></div>
+        </div>
+        <div class="tabpane" data-tabpane="code">
+          <pre>    output reg         Ans_WEN,
+    output reg [31:0]  Ans_D,
+    output reg [15:0]  Ans_A
+);
+
+    localparam [31:0] GREEN       = 32&#x27;h0000_FF00;
+    localparam [16:0] NPIX        = 17&#x27;d65536;
+    localparam [15:0] NPIX_LAST   = 16&#x27;hFFFF;
+    localparam [9:0]  MAX_LABELS  = 10&#x27;d512;
+    localparam [8:0]  MAX_LABEL_IDX = 9&#x27;d511;
+
+    localparam [5:0]
+        S_IDLE         = 6&#x27;d0,
+        S_LOAD         = 6&#x27;d1,
+        S_GRAY         = 6&#x27;d2,
+        S_HIST_CLEAR   = 6&#x27;d3,
+        S_LB_INIT      = 6&#x27;d4,   // 載入初始 line buffer（3 行）
+        S_LB_ROW       = 6&#x27;d5,   // 載入單一 row → linebuf_next
+        S_GAUSS_HIST   = 6&#x27;d6,
+        S_OTSU_INIT    = 6&#x27;d7,
+        S_OTSU_SCAN    = 6&#x27;d8,
+        S_COUNT_HI     = 6&#x27;d9,
+        S_POLARITY     = 6&#x27;d10,
+        S_MASK_WRITE   = 6&#x27;d11,
+        S_PARENT_INIT  = 6&#x27;d12,  // V16: clear parent/bbox arrays before CCL
+        S_LB_INIT2     = 6&#x27;d13,  // CCL 前重新載入 line buffer
+        S_CCL_SCAN     = 6&#x27;d14,
+        S_LB_ROW2      = 6&#x27;d15,  // CCL 跨列 line buffer 更新
+        S_BBOX_INIT    = 6&#x27;d16,
+        S_BBOX_SCAN    = 6&#x27;d17,
+        S_BOXMAP_CLEAR = 6&#x27;d18,
+        S_BOXMAP_GEN   = 6&#x27;d19,
+        S_DRAW_WRITE   = 6&#x27;d20,
+        S_DONE         = 6&#x27;d21,
+        // V19: split Otsu into multi-cycle states so DC sees one shared multiplier instead of many huge multipliers
+        S_OTSU_LHS     = 6&#x27;d22,
+        S_OTSU_DENOM   = 6&#x27;d23,
+        S_OTSU_SQUARE  = 6&#x27;d24,
+        S_OTSU_CMP1    = 6&#x27;d25,
+        S_OTSU_CMP2    = 6&#x27;d26;
+</pre>
+        </div>
+        <div class="tabpane" data-tabpane="sample">
+          <table class="line-table">
+            <thead><tr><th>Line</th><th>原始程式碼</th><th>流程分類</th><th>中文說明</th></tr></thead>
+            <tbody><tr data-search="26     output reg         ans_wen, 二、常數與 fsm state 定義 宣告輸出埠，提供 done 或控制 imgrom / sram 介面訊號。"><td class='ln'>26</td><td class='code'><pre>    output reg         Ans_WEN,</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>宣告輸出埠，提供 done 或控制 ImgROM / SRAM 介面訊號。</td></tr>
+<tr data-search="27     output reg [31:0]  ans_d, 二、常數與 fsm state 定義 宣告輸出埠，提供 done 或控制 imgrom / sram 介面訊號。"><td class='ln'>27</td><td class='code'><pre>    output reg [31:0]  Ans_D,</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>宣告輸出埠，提供 done 或控制 ImgROM / SRAM 介面訊號。</td></tr>
+<tr data-search="28     output reg [15:0]  ans_a 二、常數與 fsm state 定義 宣告輸出埠，提供 done 或控制 imgrom / sram 介面訊號。"><td class='ln'>28</td><td class='code'><pre>    output reg [15:0]  Ans_A</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>宣告輸出埠，提供 done 或控制 ImgROM / SRAM 介面訊號。</td></tr>
+<tr data-search="29 ); 二、常數與 fsm state 定義 此行屬於 二、常數與 fsm state 定義，用來完成 drawbbox 的控制或資料路徑。"><td class='ln'>29</td><td class='code'><pre>);</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>此行屬於 二、常數與 FSM State 定義，用來完成 drawBbox 的控制或資料路徑。</td></tr>
+<tr data-search="30  二、常數與 fsm state 定義 空白行，用來分隔段落，提升可讀性。"><td class='ln'>30</td><td class='code'><pre></pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="31     localparam [31:0] green       = 32&#x27;h0000_ff00; 二、常數與 fsm state 定義 宣告 green 常數，最後畫框時會把對應 pixel 寫成綠色。"><td class='ln'>31</td><td class='code'><pre>    localparam [31:0] GREEN       = 32&#x27;h0000_FF00;</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>宣告 GREEN 常數，最後畫框時會把對應 pixel 寫成綠色。</td></tr>
+<tr data-search="32     localparam [16:0] npix        = 17&#x27;d65536; 二、常數與 fsm state 定義 宣告常數參數，供 fsm 或資料路徑共用。"><td class='ln'>32</td><td class='code'><pre>    localparam [16:0] NPIX        = 17&#x27;d65536;</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>宣告常數參數，供 FSM 或資料路徑共用。</td></tr>
+<tr data-search="33     localparam [15:0] npix_last   = 16&#x27;hffff; 二、常數與 fsm state 定義 宣告常數參數，供 fsm 或資料路徑共用。"><td class='ln'>33</td><td class='code'><pre>    localparam [15:0] NPIX_LAST   = 16&#x27;hFFFF;</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>宣告常數參數，供 FSM 或資料路徑共用。</td></tr>
+<tr data-search="34     localparam [9:0]  max_labels  = 10&#x27;d512; 二、常數與 fsm state 定義 宣告常數參數，供 fsm 或資料路徑共用。"><td class='ln'>34</td><td class='code'><pre>    localparam [9:0]  MAX_LABELS  = 10&#x27;d512;</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>宣告常數參數，供 FSM 或資料路徑共用。</td></tr>
+<tr data-search="35     localparam [8:0]  max_label_idx = 9&#x27;d511; 二、常數與 fsm state 定義 宣告常數參數，供 fsm 或資料路徑共用。"><td class='ln'>35</td><td class='code'><pre>    localparam [8:0]  MAX_LABEL_IDX = 9&#x27;d511;</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>宣告常數參數，供 FSM 或資料路徑共用。</td></tr>
+<tr data-search="36  二、常數與 fsm state 定義 空白行，用來分隔段落，提升可讀性。"><td class='ln'>36</td><td class='code'><pre></pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="37     localparam [5:0] 二、常數與 fsm state 定義 宣告常數參數，供 fsm 或資料路徑共用。"><td class='ln'>37</td><td class='code'><pre>    localparam [5:0]</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>宣告常數參數，供 FSM 或資料路徑共用。</td></tr>
+<tr data-search="38         s_idle         = 6&#x27;d0, 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>38</td><td class='code'><pre>        S_IDLE         = 6&#x27;d0,</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr>
+<tr data-search="39         s_load         = 6&#x27;d1, 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>39</td><td class='code'><pre>        S_LOAD         = 6&#x27;d1,</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr>
+<tr data-search="40         s_gray         = 6&#x27;d2, 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>40</td><td class='code'><pre>        S_GRAY         = 6&#x27;d2,</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr>
+<tr data-search="41         s_hist_clear   = 6&#x27;d3, 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>41</td><td class='code'><pre>        S_HIST_CLEAR   = 6&#x27;d3,</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr>
+<tr data-search="42         s_lb_init      = 6&#x27;d4,   // 載入初始 line buffer（3 行） 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>42</td><td class='code'><pre>        S_LB_INIT      = 6&#x27;d4,   // 載入初始 line buffer（3 行）</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr>
+<tr data-search="43         s_lb_row       = 6&#x27;d5,   // 載入單一 row → linebuf_next 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>43</td><td class='code'><pre>        S_LB_ROW       = 6&#x27;d5,   // 載入單一 row → linebuf_next</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr>
+<tr data-search="44         s_gauss_hist   = 6&#x27;d6, 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>44</td><td class='code'><pre>        S_GAUSS_HIST   = 6&#x27;d6,</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr>
+<tr data-search="45         s_otsu_init    = 6&#x27;d7, 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>45</td><td class='code'><pre>        S_OTSU_INIT    = 6&#x27;d7,</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr>
+<tr data-search="46         s_otsu_scan    = 6&#x27;d8, 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>46</td><td class='code'><pre>        S_OTSU_SCAN    = 6&#x27;d8,</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr>
+<tr data-search="47         s_count_hi     = 6&#x27;d9, 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>47</td><td class='code'><pre>        S_COUNT_HI     = 6&#x27;d9,</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr>
+<tr data-search="48         s_polarity     = 6&#x27;d10, 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>48</td><td class='code'><pre>        S_POLARITY     = 6&#x27;d10,</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr>
+<tr data-search="49         s_mask_write   = 6&#x27;d11, 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>49</td><td class='code'><pre>        S_MASK_WRITE   = 6&#x27;d11,</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr>
+<tr data-search="50         s_parent_init  = 6&#x27;d12,  // v16: clear parent/bbox arrays before ccl 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>50</td><td class='code'><pre>        S_PARENT_INIT  = 6&#x27;d12,  // V16: clear parent/bbox arrays before CCL</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr>
+<tr data-search="51         s_lb_init2     = 6&#x27;d13,  // ccl 前重新載入 line buffer 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>51</td><td class='code'><pre>        S_LB_INIT2     = 6&#x27;d13,  // CCL 前重新載入 line buffer</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr>
+<tr data-search="52         s_ccl_scan     = 6&#x27;d14, 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>52</td><td class='code'><pre>        S_CCL_SCAN     = 6&#x27;d14,</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr>
+<tr data-search="53         s_lb_row2      = 6&#x27;d15,  // ccl 跨列 line buffer 更新 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>53</td><td class='code'><pre>        S_LB_ROW2      = 6&#x27;d15,  // CCL 跨列 line buffer 更新</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr>
+<tr data-search="54         s_bbox_init    = 6&#x27;d16, 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>54</td><td class='code'><pre>        S_BBOX_INIT    = 6&#x27;d16,</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr>
+<tr data-search="55         s_bbox_scan    = 6&#x27;d17, 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>55</td><td class='code'><pre>        S_BBOX_SCAN    = 6&#x27;d17,</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr>
+<tr data-search="56         s_boxmap_clear = 6&#x27;d18, 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>56</td><td class='code'><pre>        S_BOXMAP_CLEAR = 6&#x27;d18,</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr>
+<tr data-search="57         s_boxmap_gen   = 6&#x27;d19, 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>57</td><td class='code'><pre>        S_BOXMAP_GEN   = 6&#x27;d19,</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr>
+<tr data-search="58         s_draw_write   = 6&#x27;d20, 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>58</td><td class='code'><pre>        S_DRAW_WRITE   = 6&#x27;d20,</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr>
+<tr data-search="59         s_done         = 6&#x27;d21, 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>59</td><td class='code'><pre>        S_DONE         = 6&#x27;d21,</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr>
+<tr data-search="60         // v19: split otsu into multi-cycle states so dc sees one shared multiplier instead of many huge multipliers 二、常數與 fsm state 定義 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>60</td><td class='code'><pre>        // V19: split Otsu into multi-cycle states so DC sees one shared multiplier instead of many huge multipliers</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="61         s_otsu_lhs     = 6&#x27;d22, 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>61</td><td class='code'><pre>        S_OTSU_LHS     = 6&#x27;d22,</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr>
+<tr data-search="62         s_otsu_denom   = 6&#x27;d23, 二、常數與 fsm state 定義 阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 fsm state 定義。"><td class='ln'>62</td><td class='code'><pre>        S_OTSU_DENOM   = 6&#x27;d23,</pre></td><td class='phase'>二、常數與 FSM State 定義</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 二、常數與 FSM State 定義。</td></tr></tbody>
+          </table>
+          <p class="muted">若要看完整逐行內容，請進入「逐行說明」頁。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>中文重點整理</h2>
+      <ul>
+        <li><strong>程式位置：</strong>Lines 26–66</li>
+        <li><strong>此段主要目標：</strong>定義 GREEN、NPIX、MAX_LABELS 與所有狀態編碼。</li>
+        <li><strong>閱讀建議：</strong>先看相關圖檔，再看原始 code，最後看逐行說明示範。</li>
+        <li><strong>對報告的幫助：</strong>這一頁的圖片與說明很適合直接當作一個報告子段落。</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+</div>
+<div id="imgModal" class="modal">
+  <div class="modal-content">
+    <img id="imgModalImage" src="" alt="preview">
+    <div id="imgModalCaption" class="modal-caption"></div>
+  </div>
+</div>
+<div class="footer">drawBbox 互動式多網頁閱讀包 · 內含原始 code、逐行說明、流程圖與 pattern 圖</div>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>閱讀導覽</title>
+<link rel="stylesheet" href="../style.css">
+<script src="../script.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Reading Guide</span>
+  <h1>閱讀導覽</h1>
+  <p class="lead">如果你是第一次閱讀這份 drawBbox 程式，建議不要直接從第 1 行一路硬看。比較好的方式是先建立『整體流程』，再回到每段 code 看細節。</p>
+</header>
+<div class="layout">
+  <aside class="sidebar"><h3>網站導覽</h3><a href="../index.html">首頁</a><a href="../pages/guide.html">閱讀導覽</a><a href="../pages/flow_overview.html">流程總覽</a><a href="../pages/architecture.html">架構圖與記憶體</a><a href="../pages/pattern_gallery.html">Pattern 結果圖</a><a href="../pages/code_map.html">程式總覽</a><a href="../pages/line_by_line.html">逐行說明</a><a href="../pages/stages/io.html">Module 介面與記憶體協定</a><a href="../pages/stages/const-state.html">常數與 FSM State 定義</a><a href="../pages/stages/registers.html">內部暫存器、陣列與資料結構</a><a href="../pages/stages/helper.html">輔助函式與 Task</a><a href="../pages/stages/ccl-comb.html">CCL 組合邏輯</a><a href="../pages/stages/sync-reset.html">同步 always、reset 與預設控制</a><a href="../pages/stages/load-gray.html">Input / RGB-to-Gray / Original Backup</a><a href="../pages/stages/hist-lbinit.html">Histogram Clear 與 Gaussian Line Buffer 初始化</a><a href="../pages/stages/gauss-hist.html">Gaussian Filtering 與 Histogram Construction</a><a href="../pages/stages/otsu.html">Otsu Thresholding</a><a href="../pages/stages/polarity.html">High-Pixel Counting 與 Auto-Polarity</a><a href="../pages/stages/parent-init.html">Union-Find / BBox Table 初始化</a><a href="../pages/stages/ccl.html">CCL Line Buffer 初始化與 8-Connected CCL 掃描</a><a href="../pages/stages/merge.html">CCL 跨列更新與 Root Label Merge</a><a href="../pages/stages/overlay.html">物件過濾、BBox Overlay 與特殊補框</a><a href="../pages/stages/done.html">Done 與 Testbench 驗證觀念</a></aside>
+  <main>
+    <section class="section">
+      <h2>建議閱讀順序</h2>
+      <div class="grid">
+        <div class="card"><div class="num">1</div><h3>先看流程總覽</h3><p>先知道這份作業要做什麼：Input、Gray、Gaussian、Otsu、Auto-Polarity、CCL、BBox、Overlay、Done。</p></div>
+        <div class="card"><div class="num">2</div><h3>再看架構圖與記憶體</h3><p>搞懂 ImgROM、UrSRAM、AnsSRAM 分別存什麼，以及 top FSM 怎麼控制它們。</p></div>
+        <div class="card"><div class="num">3</div><h3>看各流程分頁</h3><p>每一頁都會告訴你該段 code 的目的、重點變數、對應的結果圖與中文說明。</p></div>
+        <div class="card"><div class="num">4</div><h3>最後看逐行說明</h3><p>如果要寫報告、demo 或 debug，再回到逐行頁面看更細的中文註解。</p></div>
+      </div>
+    </section>
+    <section class="section">
+      <h2>你可以怎麼用這個網站</h2>
+      <ul>
+        <li>如果你要寫報告：先用流程頁面抓段落架構，再截圖流程圖與成果圖。</li>
+        <li>如果你要準備 demo：先看架構頁與 CCL / Otsu 頁，這兩頁最容易被問。</li>
+        <li>如果你要 debug：先看 line-by-line 頁，再搭配 pattern gallery 觀察結果。</li>
+        <li>如果你要重構程式：先看 registers / helper / CCL / overlay 四頁，能最快理解資料路徑。</li>
+      </ul>
+      <p class="note">這一版特別把圖檔整合進來，所以你不只是在看 code，而是能把「程式行為」和「實際輸出圖」對照起來理解。</p>
+    </section>
+  </main>
+</div>
+
+</div>
+<div id="imgModal" class="modal">
+  <div class="modal-content">
+    <img id="imgModalImage" src="" alt="preview">
+    <div id="imgModalCaption" class="modal-caption"></div>
+  </div>
+</div>
+<div class="footer">drawBbox 互動式多網頁閱讀包 · 內含原始 code、逐行說明、流程圖與 pattern 圖</div>
+</body>
+</html>

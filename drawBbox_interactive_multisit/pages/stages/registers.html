@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>三、內部暫存器、陣列與資料結構</title>
+<link rel="stylesheet" href="../../style.css">
+<script src="../../script.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Stage 03</span>
+  <h1>三、內部暫存器、陣列與資料結構</h1>
+  <p class="lead">包含 histogram、line buffer、union-find、bbox table 與各種控制計數器。</p>
+  <div class="nav">
+    <a class="btn" href="const-state.html">← 上一頁</a>
+    <a class="btn" href="../flow_overview.html">流程總覽</a>
+    <a class="btn" href="helper.html">下一頁 →</a>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar"><h3>網站導覽</h3><a href="../../index.html">首頁</a><a href="../../pages/guide.html">閱讀導覽</a><a href="../../pages/flow_overview.html">流程總覽</a><a href="../../pages/architecture.html">架構圖與記憶體</a><a href="../../pages/pattern_gallery.html">Pattern 結果圖</a><a href="../../pages/code_map.html">程式總覽</a><a href="../../pages/line_by_line.html">逐行說明</a><a href="../../pages/stages/io.html">Module 介面與記憶體協定</a><a href="../../pages/stages/const-state.html">常數與 FSM State 定義</a><a href="../../pages/stages/registers.html">內部暫存器、陣列與資料結構</a><a href="../../pages/stages/helper.html">輔助函式與 Task</a><a href="../../pages/stages/ccl-comb.html">CCL 組合邏輯</a><a href="../../pages/stages/sync-reset.html">同步 always、reset 與預設控制</a><a href="../../pages/stages/load-gray.html">Input / RGB-to-Gray / Original Backup</a><a href="../../pages/stages/hist-lbinit.html">Histogram Clear 與 Gaussian Line Buffer 初始化</a><a href="../../pages/stages/gauss-hist.html">Gaussian Filtering 與 Histogram Construction</a><a href="../../pages/stages/otsu.html">Otsu Thresholding</a><a href="../../pages/stages/polarity.html">High-Pixel Counting 與 Auto-Polarity</a><a href="../../pages/stages/parent-init.html">Union-Find / BBox Table 初始化</a><a href="../../pages/stages/ccl.html">CCL Line Buffer 初始化與 8-Connected CCL 掃描</a><a href="../../pages/stages/merge.html">CCL 跨列更新與 Root Label Merge</a><a href="../../pages/stages/overlay.html">物件過濾、BBox Overlay 與特殊補框</a><a href="../../pages/stages/done.html">Done 與 Testbench 驗證觀念</a></aside>
+  <main>
+    <section class="section">
+      <h2>這一段在整個作業流程中的角色</h2>
+      <p>這一段是資料路徑的核心。你可以從這裡看出設計不是把整張圖存進大陣列，而是透過 line buffer、histogram、parent table 逐步完成處理。</p>
+      <p class="note">如果老師問你『為什麼 synthesis 會慢』，通常就是因為這裡出現了不少大陣列，例如 hist、parent、bbox table 等，合成器需要對它們進行大量分析與優化。</p>
+      <div><span class="tag">hist</span><span class="tag">linebuf</span><span class="tag">parent</span><span class="tag">bbox</span><span class="tag">count_hi</span></div>
+    </section>
+
+    <section class="section">
+      <div data-tabs>
+        <div class="topbar">
+          <h2>圖像與示意</h2>
+          <div class="tabs">
+            <button class="tabbtn active" data-tabbtn="gallery">相關圖檔</button>
+            <button class="tabbtn" data-tabbtn="code">原始 code 片段</button>
+            <button class="tabbtn" data-tabbtn="sample">逐行說明示範</button>
+          </div>
+        </div>
+        <div class="tabpane active" data-tabpane="gallery">
+          <div class="gallery"><div class="thumb" data-fullimg="../assets/internal_architecture_enhanced.svg" data-caption="internal architecture enhanced"><img src="../assets/internal_architecture_enhanced.svg"><div class="cap">internal architecture enhanced</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="../assets/counter_control.svg" data-caption="counter control"><img src="../assets/counter_control.svg"><div class="cap">counter control</div><small>點擊可放大</small></div></div>
+        </div>
+        <div class="tabpane" data-tabpane="code">
+          <pre>    reg [5:0] state;
+    reg done_r;
+    assign done = done_r;
+
+    wire [31:0] unused_zero = (Ans_Q ^ Ans_Q);
+
+    // ============================================================
+    // 3-Row Line Buffer（取代 gray_mem[65535:0]）
+    // ============================================================
+    // V21: 3-bank line buffer.
+    // Instead of physically rotating 256 columns (prev&lt;=curr, curr&lt;=next),
+    // we keep three physical banks and rotate only 2-bit selectors.
+    // This preserves RTL alignment but is much easier for Design Compiler.
+    reg [7:0] linebuf_bank0 [0:255];
+    reg [7:0] linebuf_bank1 [0:255];
+    reg [7:0] linebuf_bank2 [0:255];
+    reg [1:0] lb_prev_sel, lb_curr_sel, lb_next_sel;
+
+    reg [31:0] hist [255:0];
+
+    reg [8:0]  row_label    [0:255];
+    reg [8:0]  left_label;
+    reg [8:0]  nw_label_hold;
+    reg [8:0]  cur_label_comb;
+
+    reg [8:0]  parent      [MAX_LABELS-1:0];
+    reg        bbox_valid  [MAX_LABELS-1:0];
+    reg        bbox_border [MAX_LABELS-1:0];
+    reg [7:0]  bbox_xmin   [MAX_LABELS-1:0];
+    reg [7:0]  bbox_xmax   [MAX_LABELS-1:0];
+    reg [7:0]  bbox_ymin   [MAX_LABELS-1:0];
+    reg [7:0]  bbox_ymax   [MAX_LABELS-1:0];
+
+    reg [15:0] addr_cnt;
+    reg [16:0] req_cnt;
+    reg [8:0]  next_label;
+    reg [8:0]  label_idx;
+    reg [7:0]  edge_ctr;
+    reg [1:0]  edge_stage;
+
+    // Line buffer loader
+    reg [7:0]  lb_col;    // 目前載入的欄
+    reg [7:0]  lb_row;    // 要從 UrSRAM 讀的列（供 S_LB_ROW 用）
+    reg [1:0]  lb_phase;  // 0=送addr, 1=等latency, 2=存資料
+    reg [1:0]  lb_seq;    // S_LB_INIT 階段序號 (0=prev, 1=curr, 2=next)
+
+    // lb_row_w：S_LB_INIT 階段根據 lb_seq 選擇要讀的 row
+    // 用 wire 避免 nonblocking timing 問題
+    wire [7:0] lb_init_row = (lb_seq == 2&#x27;d1) ? 8&#x27;d0 : 8&#x27;d1;
+    //   seq=0: 讀 row1 (reflect of y=-1) → prev
+    //   seq=1: 讀 row0                   → curr
+    //   seq=2: 讀 row1                   → next
+
+    reg [7:0]  otsu_t;
+    reg        invert_sel;
+    reg [16:0] count_hi;
+    reg [31:0] wb_acc, sum_b_acc;
+    reg [7:0]  otsu_idx;
+    reg [63:0] lhs48, rhs48;
+    reg [64:0] diff48;
+    reg [63:0] denom32;
+    reg [31:0] sum_total, wb_next, sum_b_next, otsu_idx32;
+    reg [129:0] square96, best_num;
+    reg [63:0]  best_den;
+    reg [193:0] cmp_lhs, cmp_rhs;
+
+    // V19 synthesis-fast shared multiplier for Otsu.
+    // The original V18 S_OTSU_SCAN described several large multipliers in one cycle
+    // (32x32, 65x65, 130x64, 130x64). DC may spend a very long time optimizing them.
+    // Here all Otsu products go through one 130x64 combinational multiplier across
+    // several FSM states. RTL cycles increase by only ~5*256, but synthesis becomes much lighter.
+    reg  [129:0] otsu_mul_a;
+    reg  [63:0]  otsu_mul_b;
+    wire [193:0] otsu_mul_y = otsu_mul_a * otsu_mul_b;
+
+    reg [7:0]  ccl_x, ccl_y, ccl_base;
+    reg        ccl_fg;
+    reg [8:0]  ccl_n_w, ccl_n_nw, ccl_n_n, ccl_n_ne;
+    reg [8:0]  ccl_chosen_label;
+    reg        ccl_new_label;
+    reg [8:0]  root_label;
+    reg [7:0]  draw_ymax;
+
+    reg [31:0] first_pixel;
+    reg [1:0]  special_box_idx;
+    reg [7:0]  x_i, y_i, base_i;
+
+    // ============================================================
+    // function: refl101
+    // ============================================================</pre>
+        </div>
+        <div class="tabpane" data-tabpane="sample">
+          <table class="line-table">
+            <thead><tr><th>Line</th><th>原始程式碼</th><th>流程分類</th><th>中文說明</th></tr></thead>
+            <tbody><tr data-search="67     reg [5:0] state; 三、內部暫存器、陣列與資料結構 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>67</td><td class='code'><pre>    reg [5:0] state;</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="68     reg done_r; 三、內部暫存器、陣列與資料結構 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>68</td><td class='code'><pre>    reg done_r;</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="69     assign done = done_r; 三、內部暫存器、陣列與資料結構 把內部 done_r 連接到輸出 done。"><td class='ln'>69</td><td class='code'><pre>    assign done = done_r;</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>把內部 done_r 連接到輸出 done。</td></tr>
+<tr data-search="70  三、內部暫存器、陣列與資料結構 空白行，用來分隔段落，提升可讀性。"><td class='ln'>70</td><td class='code'><pre></pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="71     wire [31:0] unused_zero = (ans_q ^ ans_q); 三、內部暫存器、陣列與資料結構 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>71</td><td class='code'><pre>    wire [31:0] unused_zero = (Ans_Q ^ Ans_Q);</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="72  三、內部暫存器、陣列與資料結構 空白行，用來分隔段落，提升可讀性。"><td class='ln'>72</td><td class='code'><pre></pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="73     // ============================================================ 三、內部暫存器、陣列與資料結構 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>73</td><td class='code'><pre>    // ============================================================</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="74     // 3-row line buffer（取代 gray_mem[65535:0]） 三、內部暫存器、陣列與資料結構 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>74</td><td class='code'><pre>    // 3-Row Line Buffer（取代 gray_mem[65535:0]）</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="75     // ============================================================ 三、內部暫存器、陣列與資料結構 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>75</td><td class='code'><pre>    // ============================================================</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="76     // v21: 3-bank line buffer. 三、內部暫存器、陣列與資料結構 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>76</td><td class='code'><pre>    // V21: 3-bank line buffer.</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="77     // instead of physically rotating 256 columns (prev&lt;=curr, curr&lt;=next), 三、內部暫存器、陣列與資料結構 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>77</td><td class='code'><pre>    // Instead of physically rotating 256 columns (prev&lt;=curr, curr&lt;=next),</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="78     // we keep three physical banks and rotate only 2-bit selectors. 三、內部暫存器、陣列與資料結構 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>78</td><td class='code'><pre>    // we keep three physical banks and rotate only 2-bit selectors.</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="79     // this preserves rtl alignment but is much easier for design compiler. 三、內部暫存器、陣列與資料結構 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>79</td><td class='code'><pre>    // This preserves RTL alignment but is much easier for Design Compiler.</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="80     reg [7:0] linebuf_bank0 [0:255]; 三、內部暫存器、陣列與資料結構 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>80</td><td class='code'><pre>    reg [7:0] linebuf_bank0 [0:255];</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="81     reg [7:0] linebuf_bank1 [0:255]; 三、內部暫存器、陣列與資料結構 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>81</td><td class='code'><pre>    reg [7:0] linebuf_bank1 [0:255];</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="82     reg [7:0] linebuf_bank2 [0:255]; 三、內部暫存器、陣列與資料結構 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>82</td><td class='code'><pre>    reg [7:0] linebuf_bank2 [0:255];</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="83     reg [1:0] lb_prev_sel, lb_curr_sel, lb_next_sel; 三、內部暫存器、陣列與資料結構 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>83</td><td class='code'><pre>    reg [1:0] lb_prev_sel, lb_curr_sel, lb_next_sel;</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="84  三、內部暫存器、陣列與資料結構 空白行，用來分隔段落，提升可讀性。"><td class='ln'>84</td><td class='code'><pre></pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="85     reg [31:0] hist [255:0]; 三、內部暫存器、陣列與資料結構 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>85</td><td class='code'><pre>    reg [31:0] hist [255:0];</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="86  三、內部暫存器、陣列與資料結構 空白行，用來分隔段落，提升可讀性。"><td class='ln'>86</td><td class='code'><pre></pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="87     reg [8:0]  row_label    [0:255]; 三、內部暫存器、陣列與資料結構 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>87</td><td class='code'><pre>    reg [8:0]  row_label    [0:255];</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="88     reg [8:0]  left_label; 三、內部暫存器、陣列與資料結構 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>88</td><td class='code'><pre>    reg [8:0]  left_label;</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="89     reg [8:0]  nw_label_hold; 三、內部暫存器、陣列與資料結構 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>89</td><td class='code'><pre>    reg [8:0]  nw_label_hold;</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="90     reg [8:0]  cur_label_comb; 三、內部暫存器、陣列與資料結構 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>90</td><td class='code'><pre>    reg [8:0]  cur_label_comb;</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="91  三、內部暫存器、陣列與資料結構 空白行，用來分隔段落，提升可讀性。"><td class='ln'>91</td><td class='code'><pre></pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="92     reg [8:0]  parent      [max_labels-1:0]; 三、內部暫存器、陣列與資料結構 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>92</td><td class='code'><pre>    reg [8:0]  parent      [MAX_LABELS-1:0];</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="93     reg        bbox_valid  [max_labels-1:0]; 三、內部暫存器、陣列與資料結構 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>93</td><td class='code'><pre>    reg        bbox_valid  [MAX_LABELS-1:0];</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="94     reg        bbox_border [max_labels-1:0]; 三、內部暫存器、陣列與資料結構 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>94</td><td class='code'><pre>    reg        bbox_border [MAX_LABELS-1:0];</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="95     reg [7:0]  bbox_xmin   [max_labels-1:0]; 三、內部暫存器、陣列與資料結構 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>95</td><td class='code'><pre>    reg [7:0]  bbox_xmin   [MAX_LABELS-1:0];</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="96     reg [7:0]  bbox_xmax   [max_labels-1:0]; 三、內部暫存器、陣列與資料結構 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>96</td><td class='code'><pre>    reg [7:0]  bbox_xmax   [MAX_LABELS-1:0];</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="97     reg [7:0]  bbox_ymin   [max_labels-1:0]; 三、內部暫存器、陣列與資料結構 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>97</td><td class='code'><pre>    reg [7:0]  bbox_ymin   [MAX_LABELS-1:0];</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="98     reg [7:0]  bbox_ymax   [max_labels-1:0]; 三、內部暫存器、陣列與資料結構 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>98</td><td class='code'><pre>    reg [7:0]  bbox_ymax   [MAX_LABELS-1:0];</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="99  三、內部暫存器、陣列與資料結構 空白行，用來分隔段落，提升可讀性。"><td class='ln'>99</td><td class='code'><pre></pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="100     reg [15:0] addr_cnt; 三、內部暫存器、陣列與資料結構 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>100</td><td class='code'><pre>    reg [15:0] addr_cnt;</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="101     reg [16:0] req_cnt; 三、內部暫存器、陣列與資料結構 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>101</td><td class='code'><pre>    reg [16:0] req_cnt;</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="102     reg [8:0]  next_label; 三、內部暫存器、陣列與資料結構 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>102</td><td class='code'><pre>    reg [8:0]  next_label;</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="103     reg [8:0]  label_idx; 三、內部暫存器、陣列與資料結構 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>103</td><td class='code'><pre>    reg [8:0]  label_idx;</pre></td><td class='phase'>三、內部暫存器、陣列與資料結構</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr></tbody>
+          </table>
+          <p class="muted">若要看完整逐行內容，請進入「逐行說明」頁。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>中文重點整理</h2>
+      <ul>
+        <li><strong>程式位置：</strong>Lines 67–156</li>
+        <li><strong>此段主要目標：</strong>包含 histogram、line buffer、union-find、bbox table 與各種控制計數器。</li>
+        <li><strong>閱讀建議：</strong>先看相關圖檔，再看原始 code，最後看逐行說明示範。</li>
+        <li><strong>對報告的幫助：</strong>這一頁的圖片與說明很適合直接當作一個報告子段落。</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+</div>
+<div id="imgModal" class="modal">
+  <div class="modal-content">
+    <img id="imgModalImage" src="" alt="preview">
+    <div id="imgModalCaption" class="modal-caption"></div>
+  </div>
+</div>
+<div class="footer">drawBbox 互動式多網頁閱讀包 · 內含原始 code、逐行說明、流程圖與 pattern 圖</div>
+</body>
+</html>

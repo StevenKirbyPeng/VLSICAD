@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>drawBbox 多網頁閱讀版</title>
+<link rel="stylesheet" href="style.css">
+<script src="script.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">VLSI CAD Lab7 · drawBbox 互動式多網頁閱讀版</span>
+  <h1>drawBbox 程式閱讀與理解網站</h1>
+  <p class="lead">我已把你上傳的 <code>drawBbox.v</code> 重新整理成更漂亮、更多互動、更多中文說明的多網頁結構。這一版整合了你提供的圖檔資源，加入流程圖、架構圖、Pattern 結果圖、逐段解說、逐行說明與多頁面導覽，讓程式閱讀和報告整理更方便。</p>
+  <div class="nav">
+    <a class="btn" href="drawBbox_original.v">原始 drawBbox.v</a>
+    <a class="btn" href="drawBbox_annotated_every_line.v">逐行註解 Verilog</a>
+    <a class="btn" href="pages/line_by_line.html">進入逐行說明</a>
+    <a class="btn" href="pages/pattern_gallery.html">看 Pattern 圖片</a>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar"><h3>網站導覽</h3><a href="index.html">首頁</a><a href="pages/guide.html">閱讀導覽</a><a href="pages/flow_overview.html">流程總覽</a><a href="pages/architecture.html">架構圖與記憶體</a><a href="pages/pattern_gallery.html">Pattern 結果圖</a><a href="pages/code_map.html">程式總覽</a><a href="pages/line_by_line.html">逐行說明</a><a href="pages/stages/io.html">Module 介面與記憶體協定</a><a href="pages/stages/const-state.html">常數與 FSM State 定義</a><a href="pages/stages/registers.html">內部暫存器、陣列與資料結構</a><a href="pages/stages/helper.html">輔助函式與 Task</a><a href="pages/stages/ccl-comb.html">CCL 組合邏輯</a><a href="pages/stages/sync-reset.html">同步 always、reset 與預設控制</a><a href="pages/stages/load-gray.html">Input / RGB-to-Gray / Original Backup</a><a href="pages/stages/hist-lbinit.html">Histogram Clear 與 Gaussian Line Buffer 初始化</a><a href="pages/stages/gauss-hist.html">Gaussian Filtering 與 Histogram Construction</a><a href="pages/stages/otsu.html">Otsu Thresholding</a><a href="pages/stages/polarity.html">High-Pixel Counting 與 Auto-Polarity</a><a href="pages/stages/parent-init.html">Union-Find / BBox Table 初始化</a><a href="pages/stages/ccl.html">CCL Line Buffer 初始化與 8-Connected CCL 掃描</a><a href="pages/stages/merge.html">CCL 跨列更新與 Root Label Merge</a><a href="pages/stages/overlay.html">物件過濾、BBox Overlay 與特殊補框</a><a href="pages/stages/done.html">Done 與 Testbench 驗證觀念</a></aside>
+  <main>
+    <section class="section">
+      <h2>整體流程</h2>
+      <div class="flowline">Input → RGB-to-Gray → Original Backup → Histogram Clear → Gaussian Line Buffer Init → Gaussian Filtering → Histogram Construction → Otsu Thresholding → High-Pixel Counting → Auto-Polarity → Union-Find / BBox Init → CCL Line Buffer Init → Binary Mask → 8-Connected CCL → Root Label Merge → Border / Large Object Filtering → BBox Overlay → Done</div>
+      <p class="note">這個網站不是只放 code，而是把程式、圖檔、流程、成果圖整合在一起。你可以從流程頁面看「某段 code 為什麼存在」，也可以從 Pattern 圖回頭理解前處理、mask、label、overlay 的實際效果。</p>
+    </section>
+
+    <section class="section">
+      <h2>首頁互動入口</h2>
+      <input id="cardSearch" class="search" placeholder="搜尋頁面或流程，例如 Otsu、CCL、BBox、Overlay...">
+      <div class="grid" style="margin-top:16px">
+        
+<a class="card searchCard" href="pages/stages/io.html">
+  <div class="num">01</div>
+  <h3>Module 介面與記憶體協定</h3>
+  <p>定義 top module 的 I/O 與 ImgROM、UrSRAM、AnsSRAM 的讀寫介面。</p>
+</a>
+
+<a class="card searchCard" href="pages/stages/const-state.html">
+  <div class="num">02</div>
+  <h3>常數與 FSM State 定義</h3>
+  <p>定義 GREEN、NPIX、MAX_LABELS 與所有狀態編碼。</p>
+</a>
+
+<a class="card searchCard" href="pages/stages/registers.html">
+  <div class="num">03</div>
+  <h3>內部暫存器、陣列與資料結構</h3>
+  <p>包含 histogram、line buffer、union-find、bbox table 與各種控制計數器。</p>
+</a>
+
+<a class="card searchCard" href="pages/stages/helper.html">
+  <div class="num">04</div>
+  <h3>輔助函式與 Task</h3>
+  <p>包含 Reflect-101、RGB-to-Gray、Gaussian、find_root、update_bbox、union_pair 等可重用邏輯。</p>
+</a>
+
+<a class="card searchCard" href="pages/stages/ccl-comb.html">
+  <div class="num">05</div>
+  <h3>CCL 組合邏輯</h3>
+  <p>在 S_CCL_SCAN 狀態時，即時計算 ccl_fg、鄰居 label 與 cur_label_comb。</p>
+</a>
+
+<a class="card searchCard" href="pages/stages/sync-reset.html">
+  <div class="num">06</div>
+  <h3>同步 always、reset 與預設控制</h3>
+  <p>clock 上升緣更新主要暫存器，reset 時將系統回到初始狀態。</p>
+</a>
+
+<a class="card searchCard" href="pages/stages/load-gray.html">
+  <div class="num">07</div>
+  <h3>Input / RGB-to-Gray / Original Backup</h3>
+  <p>S_IDLE、S_LOAD、S_GRAY：開始讀圖、轉灰階、把灰階寫入 UrSRAM，並備份原圖到 AnsSRAM。</p>
+</a>
+
+<a class="card searchCard" href="pages/stages/hist-lbinit.html">
+  <div class="num">08</div>
+  <h3>Histogram Clear 與 Gaussian Line Buffer 初始化</h3>
+  <p>清空 histogram，並從 UrSRAM 載入三列資料到 line buffer。</p>
+</a>
+
+<a class="card searchCard" href="pages/stages/gauss-hist.html">
+  <div class="num">09</div>
+  <h3>Gaussian Filtering 與 Histogram Construction</h3>
+  <p>利用 gaussian_lb() 計算平滑灰階，同步更新 histogram 與 sum_total。</p>
+</a>
+
+<a class="card searchCard" href="pages/stages/otsu.html">
+  <div class="num">10</div>
+  <h3>Otsu Thresholding</h3>
+  <p>把 Otsu 計算拆成多個 state：scan、lhs、denom、square、compare。</p>
+</a>
+
+<a class="card searchCard" href="pages/stages/polarity.html">
+  <div class="num">11</div>
+  <h3>High-Pixel Counting 與 Auto-Polarity</h3>
+  <p>統計 histogram 中大於 otsu_t 的 pixel 數量，若超過半張圖就反相。</p>
+</a>
+
+<a class="card searchCard" href="pages/stages/parent-init.html">
+  <div class="num">12</div>
+  <h3>Union-Find / BBox Table 初始化</h3>
+  <p>初始化 parent[]、bbox_valid[]、bbox_border[] 以及 bbox 座標表。</p>
+</a>
+
+<a class="card searchCard" href="pages/stages/ccl.html">
+  <div class="num">13</div>
+  <h3>CCL Line Buffer 初始化與 8-Connected CCL 掃描</h3>
+  <p>重新載入 CCL line buffer，並在 S_CCL_SCAN 中做 binary mask、label assignment、union 與 bbox update。</p>
+</a>
+
+<a class="card searchCard" href="pages/stages/merge.html">
+  <div class="num">14</div>
+  <h3>CCL 跨列更新與 Root Label Merge</h3>
+  <p>處理 CCL line buffer row update，以及把非 root label 的 bbox 合併回 root label。</p>
+</a>
+
+<a class="card searchCard" href="pages/stages/overlay.html">
+  <div class="num">15</div>
+  <h3>物件過濾、BBox Overlay 與特殊補框</h3>
+  <p>排除邊界物件與太小物件，再把有效 bbox 畫成綠色框；某些情況還有 special box compensation。</p>
+</a>
+
+<a class="card searchCard" href="pages/stages/done.html">
+  <div class="num">16</div>
+  <h3>Done 與 Testbench 驗證觀念</h3>
+  <p>S_DONE 拉高 done，testbench 再接手做 golden image comparison。</p>
+</a>
+
+      </div>
+    </section>
+
+    <section class="section">
+      <div data-tabs>
+        <div class="topbar">
+          <h2>快速預覽</h2>
+          <div class="tabs">
+            <button class="tabbtn active" data-tabbtn="pipeline">流程圖</button>
+            <button class="tabbtn" data-tabbtn="arch">架構圖</button>
+            <button class="tabbtn" data-tabbtn="result">成果圖</button>
+          </div>
+        </div>
+        <div class="tabpane active" data-tabpane="pipeline">
+          <img class="heroimg" src="assets/algorithm_pipeline_enhanced.svg" alt="pipeline">
+        </div>
+        <div class="tabpane" data-tabpane="arch">
+          <img class="heroimg" src="assets/internal_architecture_enhanced.svg" alt="arch">
+        </div>
+        <div class="tabpane" data-tabpane="result">
+          <div class="gallery">
+            <div class="thumb" data-fullimg="assets/drawBbox_result_p1_enhanced.png" data-caption="Pattern 1 最終結果"><img src="assets/drawBbox_result_p1_enhanced.png"><div class="cap">Pattern 1 結果圖</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="assets/drawBbox_result_p2_enhanced.png" data-caption="Pattern 2 最終結果"><img src="assets/drawBbox_result_p2_enhanced.png"><div class="cap">Pattern 2 結果圖</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="assets/drawBbox_result_p3_enhanced.png" data-caption="Pattern 3 最終結果"><img src="assets/drawBbox_result_p3_enhanced.png"><div class="cap">Pattern 3 結果圖</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="assets/drawBbox_result_p4_enhanced.png" data-caption="Pattern 4 最終結果"><img src="assets/drawBbox_result_p4_enhanced.png"><div class="cap">Pattern 4 結果圖</div><small>點擊可放大</small></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+</div>
+<div id="imgModal" class="modal">
+  <div class="modal-content">
+    <img id="imgModalImage" src="" alt="preview">
+    <div id="imgModalCaption" class="modal-caption"></div>
+  </div>
+</div>
+<div class="footer">drawBbox 互動式多網頁閱讀包 · 內含原始 code、逐行說明、流程圖與 pattern 圖</div>
+</body>
+</html>

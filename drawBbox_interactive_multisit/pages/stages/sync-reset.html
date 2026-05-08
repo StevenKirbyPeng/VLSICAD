@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>六、同步 always、reset 與預設控制</title>
+<link rel="stylesheet" href="../../style.css">
+<script src="../../script.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Stage 06</span>
+  <h1>六、同步 always、reset 與預設控制</h1>
+  <p class="lead">clock 上升緣更新主要暫存器，reset 時將系統回到初始狀態。</p>
+  <div class="nav">
+    <a class="btn" href="ccl-comb.html">← 上一頁</a>
+    <a class="btn" href="../flow_overview.html">流程總覽</a>
+    <a class="btn" href="load-gray.html">下一頁 →</a>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar"><h3>網站導覽</h3><a href="../../index.html">首頁</a><a href="../../pages/guide.html">閱讀導覽</a><a href="../../pages/flow_overview.html">流程總覽</a><a href="../../pages/architecture.html">架構圖與記憶體</a><a href="../../pages/pattern_gallery.html">Pattern 結果圖</a><a href="../../pages/code_map.html">程式總覽</a><a href="../../pages/line_by_line.html">逐行說明</a><a href="../../pages/stages/io.html">Module 介面與記憶體協定</a><a href="../../pages/stages/const-state.html">常數與 FSM State 定義</a><a href="../../pages/stages/registers.html">內部暫存器、陣列與資料結構</a><a href="../../pages/stages/helper.html">輔助函式與 Task</a><a href="../../pages/stages/ccl-comb.html">CCL 組合邏輯</a><a href="../../pages/stages/sync-reset.html">同步 always、reset 與預設控制</a><a href="../../pages/stages/load-gray.html">Input / RGB-to-Gray / Original Backup</a><a href="../../pages/stages/hist-lbinit.html">Histogram Clear 與 Gaussian Line Buffer 初始化</a><a href="../../pages/stages/gauss-hist.html">Gaussian Filtering 與 Histogram Construction</a><a href="../../pages/stages/otsu.html">Otsu Thresholding</a><a href="../../pages/stages/polarity.html">High-Pixel Counting 與 Auto-Polarity</a><a href="../../pages/stages/parent-init.html">Union-Find / BBox Table 初始化</a><a href="../../pages/stages/ccl.html">CCL Line Buffer 初始化與 8-Connected CCL 掃描</a><a href="../../pages/stages/merge.html">CCL 跨列更新與 Root Label Merge</a><a href="../../pages/stages/overlay.html">物件過濾、BBox Overlay 與特殊補框</a><a href="../../pages/stages/done.html">Done 與 Testbench 驗證觀念</a></aside>
+  <main>
+    <section class="section">
+      <h2>這一段在整個作業流程中的角色</h2>
+      <p>這一段決定所有狀態與記憶體控制訊號的時序行為，是理解 RTL 是否同步正確的關鍵。</p>
+      <p class="note">如果波形不對，通常先回這一頁檢查 reset 後 state 是否真的回到 S_IDLE，以及預設 memory 控制訊號是否有正確釋放。</p>
+      <div><span class="tag">always @(posedge clk)</span><span class="tag">rst</span><span class="tag">done_r</span><span class="tag">state</span></div>
+    </section>
+
+    <section class="section">
+      <div data-tabs>
+        <div class="topbar">
+          <h2>圖像與示意</h2>
+          <div class="tabs">
+            <button class="tabbtn active" data-tabbtn="gallery">相關圖檔</button>
+            <button class="tabbtn" data-tabbtn="code">原始 code 片段</button>
+            <button class="tabbtn" data-tabbtn="sample">逐行說明示範</button>
+          </div>
+        </div>
+        <div class="tabpane active" data-tabpane="gallery">
+          <div class="gallery"><div class="thumb" data-fullimg="../assets/compile_warning_explanation.svg" data-caption="compile warning explanation"><img src="../assets/compile_warning_explanation.svg"><div class="cap">compile warning explanation</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="../assets/architecture_debug_enhanced.svg" data-caption="architecture debug enhanced"><img src="../assets/architecture_debug_enhanced.svg"><div class="cap">architecture debug enhanced</div><small>點擊可放大</small></div></div>
+        </div>
+        <div class="tabpane" data-tabpane="code">
+          <pre>    always @(posedge clk) begin
+        if (rst) begin
+            state    &lt;= S_IDLE;  done_r &lt;= 1&#x27;b0;
+            Img_CEN  &lt;= 1&#x27;b1;   Img_A  &lt;= 16&#x27;d0;
+            Ur_CEN   &lt;= 1&#x27;b1;   Ur_WEN &lt;= 1&#x27;b1;  Ur_D &lt;= 32&#x27;d0;  Ur_A &lt;= 16&#x27;d0;
+            Ans_CEN  &lt;= 1&#x27;b1;   Ans_WEN&lt;= 1&#x27;b1;  Ans_D&lt;= 32&#x27;d0;  Ans_A&lt;= 16&#x27;d0;
+            addr_cnt &lt;= 16&#x27;d0;  req_cnt&lt;= 17&#x27;d0;
+            next_label&lt;=9&#x27;d1;   label_idx&lt;=9&#x27;d0;
+            left_label&lt;=9&#x27;d0;   nw_label_hold&lt;=9&#x27;d0;
+            edge_ctr &lt;=8&#x27;d0;    edge_stage&lt;=2&#x27;d0;
+            otsu_t   &lt;=8&#x27;d0;    invert_sel&lt;=1&#x27;b0; count_hi&lt;=17&#x27;d0;
+            wb_acc   &lt;=32&#x27;d0;   sum_b_acc&lt;=32&#x27;d0; otsu_idx&lt;=8&#x27;d0;
+            best_num &lt;=130&#x27;d0;  best_den &lt;=64&#x27;d1; sum_total&lt;=32&#x27;d0;
+            otsu_mul_a &lt;=130&#x27;d0; otsu_mul_b &lt;=64&#x27;d0; cmp_lhs&lt;=194&#x27;d0; cmp_rhs&lt;=194&#x27;d0;
+            first_pixel&lt;=32&#x27;d0; special_box_idx&lt;=2&#x27;d0;
+            lb_col   &lt;=8&#x27;d0;    lb_row  &lt;=8&#x27;d0;
+            lb_phase &lt;=2&#x27;d0;    lb_seq  &lt;=2&#x27;d0;
+            lb_prev_sel&lt;=2&#x27;d0; lb_curr_sel&lt;=2&#x27;d1; lb_next_sel&lt;=2&#x27;d2;
+        end else begin
+            done_r  &lt;=1&#x27;b0;
+            Img_CEN &lt;=1&#x27;b1;  Ur_CEN &lt;=1&#x27;b1;  Ur_WEN &lt;=1&#x27;b1;
+            Ans_CEN &lt;=1&#x27;b1;  Ans_WEN&lt;=1&#x27;b1;
+
+            case (state)
+
+                // -----------------------------------------------</pre>
+        </div>
+        <div class="tabpane" data-tabpane="sample">
+          <table class="line-table">
+            <thead><tr><th>Line</th><th>原始程式碼</th><th>流程分類</th><th>中文說明</th></tr></thead>
+            <tbody><tr data-search="388     always @(posedge clk) begin 六、同步 always、reset 與預設控制 開始同步時序 always block，fsm 與大部分暫存器都在 clock 上升緣更新。"><td class='ln'>388</td><td class='code'><pre>    always @(posedge clk) begin</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>開始同步時序 always block，FSM 與大部分暫存器都在 clock 上升緣更新。</td></tr>
+<tr data-search="389         if (rst) begin 六、同步 always、reset 與預設控制 reset 條件成立時，把系統帶回初始狀態。"><td class='ln'>389</td><td class='code'><pre>        if (rst) begin</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>reset 條件成立時，把系統帶回初始狀態。</td></tr>
+<tr data-search="390             state    &lt;= s_idle;  done_r &lt;= 1&#x27;b0; 六、同步 always、reset 與預設控制 非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。"><td class='ln'>390</td><td class='code'><pre>            state    &lt;= S_IDLE;  done_r &lt;= 1&#x27;b0;</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。</td></tr>
+<tr data-search="391             img_cen  &lt;= 1&#x27;b1;   img_a  &lt;= 16&#x27;d0; 六、同步 always、reset 與預設控制 非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。"><td class='ln'>391</td><td class='code'><pre>            Img_CEN  &lt;= 1&#x27;b1;   Img_A  &lt;= 16&#x27;d0;</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。</td></tr>
+<tr data-search="392             ur_cen   &lt;= 1&#x27;b1;   ur_wen &lt;= 1&#x27;b1;  ur_d &lt;= 32&#x27;d0;  ur_a &lt;= 16&#x27;d0; 六、同步 always、reset 與預設控制 非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。"><td class='ln'>392</td><td class='code'><pre>            Ur_CEN   &lt;= 1&#x27;b1;   Ur_WEN &lt;= 1&#x27;b1;  Ur_D &lt;= 32&#x27;d0;  Ur_A &lt;= 16&#x27;d0;</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。</td></tr>
+<tr data-search="393             ans_cen  &lt;= 1&#x27;b1;   ans_wen&lt;= 1&#x27;b1;  ans_d&lt;= 32&#x27;d0;  ans_a&lt;= 16&#x27;d0; 六、同步 always、reset 與預設控制 非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。"><td class='ln'>393</td><td class='code'><pre>            Ans_CEN  &lt;= 1&#x27;b1;   Ans_WEN&lt;= 1&#x27;b1;  Ans_D&lt;= 32&#x27;d0;  Ans_A&lt;= 16&#x27;d0;</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。</td></tr>
+<tr data-search="394             addr_cnt &lt;= 16&#x27;d0;  req_cnt&lt;= 17&#x27;d0; 六、同步 always、reset 與預設控制 非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。"><td class='ln'>394</td><td class='code'><pre>            addr_cnt &lt;= 16&#x27;d0;  req_cnt&lt;= 17&#x27;d0;</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。</td></tr>
+<tr data-search="395             next_label&lt;=9&#x27;d1;   label_idx&lt;=9&#x27;d0; 六、同步 always、reset 與預設控制 非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。"><td class='ln'>395</td><td class='code'><pre>            next_label&lt;=9&#x27;d1;   label_idx&lt;=9&#x27;d0;</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。</td></tr>
+<tr data-search="396             left_label&lt;=9&#x27;d0;   nw_label_hold&lt;=9&#x27;d0; 六、同步 always、reset 與預設控制 非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。"><td class='ln'>396</td><td class='code'><pre>            left_label&lt;=9&#x27;d0;   nw_label_hold&lt;=9&#x27;d0;</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。</td></tr>
+<tr data-search="397             edge_ctr &lt;=8&#x27;d0;    edge_stage&lt;=2&#x27;d0; 六、同步 always、reset 與預設控制 非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。"><td class='ln'>397</td><td class='code'><pre>            edge_ctr &lt;=8&#x27;d0;    edge_stage&lt;=2&#x27;d0;</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。</td></tr>
+<tr data-search="398             otsu_t   &lt;=8&#x27;d0;    invert_sel&lt;=1&#x27;b0; count_hi&lt;=17&#x27;d0; 六、同步 always、reset 與預設控制 非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。"><td class='ln'>398</td><td class='code'><pre>            otsu_t   &lt;=8&#x27;d0;    invert_sel&lt;=1&#x27;b0; count_hi&lt;=17&#x27;d0;</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。</td></tr>
+<tr data-search="399             wb_acc   &lt;=32&#x27;d0;   sum_b_acc&lt;=32&#x27;d0; otsu_idx&lt;=8&#x27;d0; 六、同步 always、reset 與預設控制 非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。"><td class='ln'>399</td><td class='code'><pre>            wb_acc   &lt;=32&#x27;d0;   sum_b_acc&lt;=32&#x27;d0; otsu_idx&lt;=8&#x27;d0;</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。</td></tr>
+<tr data-search="400             best_num &lt;=130&#x27;d0;  best_den &lt;=64&#x27;d1; sum_total&lt;=32&#x27;d0; 六、同步 always、reset 與預設控制 非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。"><td class='ln'>400</td><td class='code'><pre>            best_num &lt;=130&#x27;d0;  best_den &lt;=64&#x27;d1; sum_total&lt;=32&#x27;d0;</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。</td></tr>
+<tr data-search="401             otsu_mul_a &lt;=130&#x27;d0; otsu_mul_b &lt;=64&#x27;d0; cmp_lhs&lt;=194&#x27;d0; cmp_rhs&lt;=194&#x27;d0; 六、同步 always、reset 與預設控制 非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。"><td class='ln'>401</td><td class='code'><pre>            otsu_mul_a &lt;=130&#x27;d0; otsu_mul_b &lt;=64&#x27;d0; cmp_lhs&lt;=194&#x27;d0; cmp_rhs&lt;=194&#x27;d0;</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。</td></tr>
+<tr data-search="402             first_pixel&lt;=32&#x27;d0; special_box_idx&lt;=2&#x27;d0; 六、同步 always、reset 與預設控制 非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。"><td class='ln'>402</td><td class='code'><pre>            first_pixel&lt;=32&#x27;d0; special_box_idx&lt;=2&#x27;d0;</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。</td></tr>
+<tr data-search="403             lb_col   &lt;=8&#x27;d0;    lb_row  &lt;=8&#x27;d0; 六、同步 always、reset 與預設控制 非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。"><td class='ln'>403</td><td class='code'><pre>            lb_col   &lt;=8&#x27;d0;    lb_row  &lt;=8&#x27;d0;</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。</td></tr>
+<tr data-search="404             lb_phase &lt;=2&#x27;d0;    lb_seq  &lt;=2&#x27;d0; 六、同步 always、reset 與預設控制 非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。"><td class='ln'>404</td><td class='code'><pre>            lb_phase &lt;=2&#x27;d0;    lb_seq  &lt;=2&#x27;d0;</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。</td></tr>
+<tr data-search="405             lb_prev_sel&lt;=2&#x27;d0; lb_curr_sel&lt;=2&#x27;d1; lb_next_sel&lt;=2&#x27;d2; 六、同步 always、reset 與預設控制 非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。"><td class='ln'>405</td><td class='code'><pre>            lb_prev_sel&lt;=2&#x27;d0; lb_curr_sel&lt;=2&#x27;d1; lb_next_sel&lt;=2&#x27;d2;</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。</td></tr>
+<tr data-search="406         end else begin 六、同步 always、reset 與預設控制 此行屬於 六、同步 always、reset 與預設控制，用來完成 drawbbox 的控制或資料路徑。"><td class='ln'>406</td><td class='code'><pre>        end else begin</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>此行屬於 六、同步 always、reset 與預設控制，用來完成 drawBbox 的控制或資料路徑。</td></tr>
+<tr data-search="407             done_r  &lt;=1&#x27;b0; 六、同步 always、reset 與預設控制 非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。"><td class='ln'>407</td><td class='code'><pre>            done_r  &lt;=1&#x27;b0;</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。</td></tr>
+<tr data-search="408             img_cen &lt;=1&#x27;b1;  ur_cen &lt;=1&#x27;b1;  ur_wen &lt;=1&#x27;b1; 六、同步 always、reset 與預設控制 非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。"><td class='ln'>408</td><td class='code'><pre>            Img_CEN &lt;=1&#x27;b1;  Ur_CEN &lt;=1&#x27;b1;  Ur_WEN &lt;=1&#x27;b1;</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。</td></tr>
+<tr data-search="409             ans_cen &lt;=1&#x27;b1;  ans_wen&lt;=1&#x27;b1; 六、同步 always、reset 與預設控制 非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。"><td class='ln'>409</td><td class='code'><pre>            Ans_CEN &lt;=1&#x27;b1;  Ans_WEN&lt;=1&#x27;b1;</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 六、同步 always、reset 與預設控制。</td></tr>
+<tr data-search="410  六、同步 always、reset 與預設控制 空白行，用來分隔段落，提升可讀性。"><td class='ln'>410</td><td class='code'><pre></pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="411             case (state) 六、同步 always、reset 與預設控制 開始 case 分支，根據 state 或 phase 執行不同控制流程。"><td class='ln'>411</td><td class='code'><pre>            case (state)</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>開始 case 分支，根據 state 或 phase 執行不同控制流程。</td></tr>
+<tr data-search="412  六、同步 always、reset 與預設控制 空白行，用來分隔段落，提升可讀性。"><td class='ln'>412</td><td class='code'><pre></pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="413                 // ----------------------------------------------- 六、同步 always、reset 與預設控制 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>413</td><td class='code'><pre>                // -----------------------------------------------</pre></td><td class='phase'>六、同步 always、reset 與預設控制</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr></tbody>
+          </table>
+          
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>中文重點整理</h2>
+      <ul>
+        <li><strong>程式位置：</strong>Lines 388–413</li>
+        <li><strong>此段主要目標：</strong>clock 上升緣更新主要暫存器，reset 時將系統回到初始狀態。</li>
+        <li><strong>閱讀建議：</strong>先看相關圖檔，再看原始 code，最後看逐行說明示範。</li>
+        <li><strong>對報告的幫助：</strong>這一頁的圖片與說明很適合直接當作一個報告子段落。</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+</div>
+<div id="imgModal" class="modal">
+  <div class="modal-content">
+    <img id="imgModalImage" src="" alt="preview">
+    <div id="imgModalCaption" class="modal-caption"></div>
+  </div>
+</div>
+<div class="footer">drawBbox 互動式多網頁閱讀包 · 內含原始 code、逐行說明、流程圖與 pattern 圖</div>
+</body>
+</html>

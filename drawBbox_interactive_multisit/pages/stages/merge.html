@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>十四、CCL 跨列更新與 Root Label Merge</title>
+<link rel="stylesheet" href="../../style.css">
+<script src="../../script.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Stage 14</span>
+  <h1>十四、CCL 跨列更新與 Root Label Merge</h1>
+  <p class="lead">處理 CCL line buffer row update，以及把非 root label 的 bbox 合併回 root label。</p>
+  <div class="nav">
+    <a class="btn" href="ccl.html">← 上一頁</a>
+    <a class="btn" href="../flow_overview.html">流程總覽</a>
+    <a class="btn" href="overlay.html">下一頁 →</a>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar"><h3>網站導覽</h3><a href="../../index.html">首頁</a><a href="../../pages/guide.html">閱讀導覽</a><a href="../../pages/flow_overview.html">流程總覽</a><a href="../../pages/architecture.html">架構圖與記憶體</a><a href="../../pages/pattern_gallery.html">Pattern 結果圖</a><a href="../../pages/code_map.html">程式總覽</a><a href="../../pages/line_by_line.html">逐行說明</a><a href="../../pages/stages/io.html">Module 介面與記憶體協定</a><a href="../../pages/stages/const-state.html">常數與 FSM State 定義</a><a href="../../pages/stages/registers.html">內部暫存器、陣列與資料結構</a><a href="../../pages/stages/helper.html">輔助函式與 Task</a><a href="../../pages/stages/ccl-comb.html">CCL 組合邏輯</a><a href="../../pages/stages/sync-reset.html">同步 always、reset 與預設控制</a><a href="../../pages/stages/load-gray.html">Input / RGB-to-Gray / Original Backup</a><a href="../../pages/stages/hist-lbinit.html">Histogram Clear 與 Gaussian Line Buffer 初始化</a><a href="../../pages/stages/gauss-hist.html">Gaussian Filtering 與 Histogram Construction</a><a href="../../pages/stages/otsu.html">Otsu Thresholding</a><a href="../../pages/stages/polarity.html">High-Pixel Counting 與 Auto-Polarity</a><a href="../../pages/stages/parent-init.html">Union-Find / BBox Table 初始化</a><a href="../../pages/stages/ccl.html">CCL Line Buffer 初始化與 8-Connected CCL 掃描</a><a href="../../pages/stages/merge.html">CCL 跨列更新與 Root Label Merge</a><a href="../../pages/stages/overlay.html">物件過濾、BBox Overlay 與特殊補框</a><a href="../../pages/stages/done.html">Done 與 Testbench 驗證觀念</a></aside>
+  <main>
+    <section class="section">
+      <h2>這一段在整個作業流程中的角色</h2>
+      <p>這一段解決 union-find 後的 label 等價問題，確保同一物件的 bbox 會被整合到同一個 root component。</p>
+      <p class="note">CCL 完成後，某些 provisional label 其實屬於同一個 root component，所以 bbox 也要一起 merge，否則最後畫框會分裂。</p>
+      <div><span class="tag">S_LB_ROW2</span><span class="tag">S_BBOX_INIT</span><span class="tag">find_root_func</span><span class="tag">bbox</span></div>
+    </section>
+
+    <section class="section">
+      <div data-tabs>
+        <div class="topbar">
+          <h2>圖像與示意</h2>
+          <div class="tabs">
+            <button class="tabbtn active" data-tabbtn="gallery">相關圖檔</button>
+            <button class="tabbtn" data-tabbtn="code">原始 code 片段</button>
+            <button class="tabbtn" data-tabbtn="sample">逐行說明示範</button>
+          </div>
+        </div>
+        <div class="tabpane active" data-tabpane="gallery">
+          <div class="gallery"><div class="thumb" data-fullimg="../assets/P1_labels.png" data-caption="P1 labels"><img src="../assets/P1_labels.png"><div class="cap">P1 labels</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="../assets/architecture_debug_enhanced.svg" data-caption="architecture debug enhanced"><img src="../assets/architecture_debug_enhanced.svg"><div class="cap">architecture debug enhanced</div><small>點擊可放大</small></div></div>
+        </div>
+        <div class="tabpane" data-tabpane="code">
+          <pre>                S_LB_ROW2: begin
+                    case (lb_phase)
+                        2&#x27;d0: begin
+                            Ur_CEN&lt;=1&#x27;b0; Ur_WEN&lt;=1&#x27;b1;
+                            Ur_A&lt;={lb_row, lb_col};
+                            lb_phase&lt;=2&#x27;d1;
+                        end
+                        2&#x27;d1: begin
+                            Ur_CEN&lt;=1&#x27;b0; Ur_WEN&lt;=1&#x27;b1;
+                            Ur_A&lt;={lb_row, lb_col};
+                            lb_phase&lt;=2&#x27;d2;
+                        end
+                        2&#x27;d2: begin
+                            // CCL line buffer uses the same V21 bank-select update.
+                            case (lb_prev_sel)
+                                2&#x27;d0: linebuf_bank0[lb_col]&lt;=Ur_Q[7:0];
+                                2&#x27;d1: linebuf_bank1[lb_col]&lt;=Ur_Q[7:0];
+                                2&#x27;d2: linebuf_bank2[lb_col]&lt;=Ur_Q[7:0];
+                                default: ;
+                            endcase
+                            lb_phase&lt;=2&#x27;d0;
+                            if (lb_col==8&#x27;d255) begin
+                                lb_prev_sel &lt;= lb_curr_sel;
+                                lb_curr_sel &lt;= lb_next_sel;
+                                lb_next_sel &lt;= lb_prev_sel;
+                                lb_col&lt;=8&#x27;d0; state&lt;=S_CCL_SCAN;
+                            end else lb_col&lt;=lb_col+8&#x27;d1;
+                        end
+                        default: lb_phase&lt;=2&#x27;d0;
+                    endcase
+                end
+
+                // -----------------------------------------------
+                // S_BBOX_INIT
+                // -----------------------------------------------
+                S_BBOX_INIT: begin
+                    if (label_idx&lt;next_label) begin
+                        root_label = find_root_func(label_idx);
+                        if ((root_label!=label_idx)&amp;&amp;bbox_valid[label_idx]) begin
+                            bbox_valid[root_label]&lt;=1&#x27;b1;
+                            if (bbox_xmin[label_idx]&lt;bbox_xmin[root_label]) bbox_xmin[root_label]&lt;=bbox_xmin[label_idx];
+                            if (bbox_xmax[label_idx]&gt;bbox_xmax[root_label]) bbox_xmax[root_label]&lt;=bbox_xmax[label_idx];
+                            if (bbox_ymin[label_idx]&lt;bbox_ymin[root_label]) bbox_ymin[root_label]&lt;=bbox_ymin[label_idx];
+                            if (bbox_ymax[label_idx]&gt;bbox_ymax[root_label]) bbox_ymax[root_label]&lt;=bbox_ymax[label_idx];
+                            if (bbox_border[label_idx]) bbox_border[root_label]&lt;=1&#x27;b1;
+                            bbox_valid[label_idx]&lt;=1&#x27;b0;
+                        end
+                        label_idx&lt;=label_idx+9&#x27;d1;
+                    end else begin
+                        addr_cnt&lt;=16&#x27;d0; req_cnt&lt;=17&#x27;d0; label_idx&lt;=9&#x27;d1;
+                        edge_stage&lt;=2&#x27;d0; edge_ctr&lt;=8&#x27;d0;
+                        state&lt;=S_BOXMAP_GEN;
+                    end
+                end
+</pre>
+        </div>
+        <div class="tabpane" data-tabpane="sample">
+          <table class="line-table">
+            <thead><tr><th>Line</th><th>原始程式碼</th><th>流程分類</th><th>中文說明</th></tr></thead>
+            <tbody><tr data-search="778                 s_lb_row2: begin 十四、ccl 跨列更新與 root label merge 進入狀態 s_lb_row2：ccl 每完成一列後更新 line buffer。"><td class='ln'>778</td><td class='code'><pre>                S_LB_ROW2: begin</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>進入狀態 S_LB_ROW2：CCL 每完成一列後更新 line buffer。</td></tr>
+<tr data-search="779                     case (lb_phase) 十四、ccl 跨列更新與 root label merge 開始 case 分支，根據 state 或 phase 執行不同控制流程。"><td class='ln'>779</td><td class='code'><pre>                    case (lb_phase)</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>開始 case 分支，根據 state 或 phase 執行不同控制流程。</td></tr>
+<tr data-search="780                         2&#x27;d0: begin 十四、ccl 跨列更新與 root label merge 此行屬於 十四、ccl 跨列更新與 root label merge，用來完成 drawbbox 的控制或資料路徑。"><td class='ln'>780</td><td class='code'><pre>                        2&#x27;d0: begin</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>此行屬於 十四、CCL 跨列更新與 Root Label Merge，用來完成 drawBbox 的控制或資料路徑。</td></tr>
+<tr data-search="781                             ur_cen&lt;=1&#x27;b0; ur_wen&lt;=1&#x27;b1; 十四、ccl 跨列更新與 root label merge 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、ccl 跨列更新與 root label merge。"><td class='ln'>781</td><td class='code'><pre>                            Ur_CEN&lt;=1&#x27;b0; Ur_WEN&lt;=1&#x27;b1;</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、CCL 跨列更新與 Root Label Merge。</td></tr>
+<tr data-search="782                             ur_a&lt;={lb_row, lb_col}; 十四、ccl 跨列更新與 root label merge 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、ccl 跨列更新與 root label merge。"><td class='ln'>782</td><td class='code'><pre>                            Ur_A&lt;={lb_row, lb_col};</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、CCL 跨列更新與 Root Label Merge。</td></tr>
+<tr data-search="783                             lb_phase&lt;=2&#x27;d1; 十四、ccl 跨列更新與 root label merge 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、ccl 跨列更新與 root label merge。"><td class='ln'>783</td><td class='code'><pre>                            lb_phase&lt;=2&#x27;d1;</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、CCL 跨列更新與 Root Label Merge。</td></tr>
+<tr data-search="784                         end 十四、ccl 跨列更新與 root label merge 結束目前 begin-end 區塊。"><td class='ln'>784</td><td class='code'><pre>                        end</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="785                         2&#x27;d1: begin 十四、ccl 跨列更新與 root label merge 此行屬於 十四、ccl 跨列更新與 root label merge，用來完成 drawbbox 的控制或資料路徑。"><td class='ln'>785</td><td class='code'><pre>                        2&#x27;d1: begin</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>此行屬於 十四、CCL 跨列更新與 Root Label Merge，用來完成 drawBbox 的控制或資料路徑。</td></tr>
+<tr data-search="786                             ur_cen&lt;=1&#x27;b0; ur_wen&lt;=1&#x27;b1; 十四、ccl 跨列更新與 root label merge 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、ccl 跨列更新與 root label merge。"><td class='ln'>786</td><td class='code'><pre>                            Ur_CEN&lt;=1&#x27;b0; Ur_WEN&lt;=1&#x27;b1;</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、CCL 跨列更新與 Root Label Merge。</td></tr>
+<tr data-search="787                             ur_a&lt;={lb_row, lb_col}; 十四、ccl 跨列更新與 root label merge 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、ccl 跨列更新與 root label merge。"><td class='ln'>787</td><td class='code'><pre>                            Ur_A&lt;={lb_row, lb_col};</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、CCL 跨列更新與 Root Label Merge。</td></tr>
+<tr data-search="788                             lb_phase&lt;=2&#x27;d2; 十四、ccl 跨列更新與 root label merge 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、ccl 跨列更新與 root label merge。"><td class='ln'>788</td><td class='code'><pre>                            lb_phase&lt;=2&#x27;d2;</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、CCL 跨列更新與 Root Label Merge。</td></tr>
+<tr data-search="789                         end 十四、ccl 跨列更新與 root label merge 結束目前 begin-end 區塊。"><td class='ln'>789</td><td class='code'><pre>                        end</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="790                         2&#x27;d2: begin 十四、ccl 跨列更新與 root label merge 此行屬於 十四、ccl 跨列更新與 root label merge，用來完成 drawbbox 的控制或資料路徑。"><td class='ln'>790</td><td class='code'><pre>                        2&#x27;d2: begin</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>此行屬於 十四、CCL 跨列更新與 Root Label Merge，用來完成 drawBbox 的控制或資料路徑。</td></tr>
+<tr data-search="791                             // ccl line buffer uses the same v21 bank-select update. 十四、ccl 跨列更新與 root label merge 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>791</td><td class='code'><pre>                            // CCL line buffer uses the same V21 bank-select update.</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="792                             case (lb_prev_sel) 十四、ccl 跨列更新與 root label merge 開始 case 分支，根據 state 或 phase 執行不同控制流程。"><td class='ln'>792</td><td class='code'><pre>                            case (lb_prev_sel)</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>開始 case 分支，根據 state 或 phase 執行不同控制流程。</td></tr>
+<tr data-search="793                                 2&#x27;d0: linebuf_bank0[lb_col]&lt;=ur_q[7:0]; 十四、ccl 跨列更新與 root label merge 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、ccl 跨列更新與 root label merge。"><td class='ln'>793</td><td class='code'><pre>                                2&#x27;d0: linebuf_bank0[lb_col]&lt;=Ur_Q[7:0];</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、CCL 跨列更新與 Root Label Merge。</td></tr>
+<tr data-search="794                                 2&#x27;d1: linebuf_bank1[lb_col]&lt;=ur_q[7:0]; 十四、ccl 跨列更新與 root label merge 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、ccl 跨列更新與 root label merge。"><td class='ln'>794</td><td class='code'><pre>                                2&#x27;d1: linebuf_bank1[lb_col]&lt;=Ur_Q[7:0];</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、CCL 跨列更新與 Root Label Merge。</td></tr>
+<tr data-search="795                                 2&#x27;d2: linebuf_bank2[lb_col]&lt;=ur_q[7:0]; 十四、ccl 跨列更新與 root label merge 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、ccl 跨列更新與 root label merge。"><td class='ln'>795</td><td class='code'><pre>                                2&#x27;d2: linebuf_bank2[lb_col]&lt;=Ur_Q[7:0];</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、CCL 跨列更新與 Root Label Merge。</td></tr>
+<tr data-search="796                                 default: ; 十四、ccl 跨列更新與 root label merge 此行屬於 十四、ccl 跨列更新與 root label merge，用來完成 drawbbox 的控制或資料路徑。"><td class='ln'>796</td><td class='code'><pre>                                default: ;</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>此行屬於 十四、CCL 跨列更新與 Root Label Merge，用來完成 drawBbox 的控制或資料路徑。</td></tr>
+<tr data-search="797                             endcase 十四、ccl 跨列更新與 root label merge 結束 case 分支。"><td class='ln'>797</td><td class='code'><pre>                            endcase</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>結束 case 分支。</td></tr>
+<tr data-search="798                             lb_phase&lt;=2&#x27;d0; 十四、ccl 跨列更新與 root label merge 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、ccl 跨列更新與 root label merge。"><td class='ln'>798</td><td class='code'><pre>                            lb_phase&lt;=2&#x27;d0;</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、CCL 跨列更新與 Root Label Merge。</td></tr>
+<tr data-search="799                             if (lb_col==8&#x27;d255) begin 十四、ccl 跨列更新與 root label merge 條件判斷，用來控制 十四、ccl 跨列更新與 root label merge 的流程分支、邊界條件或狀態轉移。"><td class='ln'>799</td><td class='code'><pre>                            if (lb_col==8&#x27;d255) begin</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>條件判斷，用來控制 十四、CCL 跨列更新與 Root Label Merge 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="800                                 lb_prev_sel &lt;= lb_curr_sel; 十四、ccl 跨列更新與 root label merge 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、ccl 跨列更新與 root label merge。"><td class='ln'>800</td><td class='code'><pre>                                lb_prev_sel &lt;= lb_curr_sel;</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、CCL 跨列更新與 Root Label Merge。</td></tr>
+<tr data-search="801                                 lb_curr_sel &lt;= lb_next_sel; 十四、ccl 跨列更新與 root label merge 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、ccl 跨列更新與 root label merge。"><td class='ln'>801</td><td class='code'><pre>                                lb_curr_sel &lt;= lb_next_sel;</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、CCL 跨列更新與 Root Label Merge。</td></tr>
+<tr data-search="802                                 lb_next_sel &lt;= lb_prev_sel; 十四、ccl 跨列更新與 root label merge 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、ccl 跨列更新與 root label merge。"><td class='ln'>802</td><td class='code'><pre>                                lb_next_sel &lt;= lb_prev_sel;</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、CCL 跨列更新與 Root Label Merge。</td></tr>
+<tr data-search="803                                 lb_col&lt;=8&#x27;d0; state&lt;=s_ccl_scan; 十四、ccl 跨列更新與 root label merge 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、ccl 跨列更新與 root label merge。"><td class='ln'>803</td><td class='code'><pre>                                lb_col&lt;=8&#x27;d0; state&lt;=S_CCL_SCAN;</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、CCL 跨列更新與 Root Label Merge。</td></tr>
+<tr data-search="804                             end else lb_col&lt;=lb_col+8&#x27;d1; 十四、ccl 跨列更新與 root label merge 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、ccl 跨列更新與 root label merge。"><td class='ln'>804</td><td class='code'><pre>                            end else lb_col&lt;=lb_col+8&#x27;d1;</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、CCL 跨列更新與 Root Label Merge。</td></tr>
+<tr data-search="805                         end 十四、ccl 跨列更新與 root label merge 結束目前 begin-end 區塊。"><td class='ln'>805</td><td class='code'><pre>                        end</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="806                         default: lb_phase&lt;=2&#x27;d0; 十四、ccl 跨列更新與 root label merge 非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、ccl 跨列更新與 root label merge。"><td class='ln'>806</td><td class='code'><pre>                        default: lb_phase&lt;=2&#x27;d0;</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>非阻塞指定，在 clock 邊緣更新暫存器；屬於 十四、CCL 跨列更新與 Root Label Merge。</td></tr>
+<tr data-search="807                     endcase 十四、ccl 跨列更新與 root label merge 結束 case 分支。"><td class='ln'>807</td><td class='code'><pre>                    endcase</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>結束 case 分支。</td></tr>
+<tr data-search="808                 end 十四、ccl 跨列更新與 root label merge 結束目前 begin-end 區塊。"><td class='ln'>808</td><td class='code'><pre>                end</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="809  十四、ccl 跨列更新與 root label merge 空白行，用來分隔段落，提升可讀性。"><td class='ln'>809</td><td class='code'><pre></pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="810                 // ----------------------------------------------- 十四、ccl 跨列更新與 root label merge 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>810</td><td class='code'><pre>                // -----------------------------------------------</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="811                 // s_bbox_init 十四、ccl 跨列更新與 root label merge 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>811</td><td class='code'><pre>                // S_BBOX_INIT</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="812                 // ----------------------------------------------- 十四、ccl 跨列更新與 root label merge 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>812</td><td class='code'><pre>                // -----------------------------------------------</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="813                 s_bbox_init: begin 十四、ccl 跨列更新與 root label merge 進入狀態 s_bbox_init：把非 root label 的 bbox 合併到 root label。"><td class='ln'>813</td><td class='code'><pre>                S_BBOX_INIT: begin</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>進入狀態 S_BBOX_INIT：把非 root label 的 bbox 合併到 root label。</td></tr>
+<tr data-search="814                     if (label_idx&lt;next_label) begin 十四、ccl 跨列更新與 root label merge 條件判斷，用來控制 十四、ccl 跨列更新與 root label merge 的流程分支、邊界條件或狀態轉移。"><td class='ln'>814</td><td class='code'><pre>                    if (label_idx&lt;next_label) begin</pre></td><td class='phase'>十四、CCL 跨列更新與 Root Label Merge</td><td class='exp'>條件判斷，用來控制 十四、CCL 跨列更新與 Root Label Merge 的流程分支、邊界條件或狀態轉移。</td></tr></tbody>
+          </table>
+          <p class="muted">若要看完整逐行內容，請進入「逐行說明」頁。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>中文重點整理</h2>
+      <ul>
+        <li><strong>程式位置：</strong>Lines 778–832</li>
+        <li><strong>此段主要目標：</strong>處理 CCL line buffer row update，以及把非 root label 的 bbox 合併回 root label。</li>
+        <li><strong>閱讀建議：</strong>先看相關圖檔，再看原始 code，最後看逐行說明示範。</li>
+        <li><strong>對報告的幫助：</strong>這一頁的圖片與說明很適合直接當作一個報告子段落。</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+</div>
+<div id="imgModal" class="modal">
+  <div class="modal-content">
+    <img id="imgModalImage" src="" alt="preview">
+    <div id="imgModalCaption" class="modal-caption"></div>
+  </div>
+</div>
+<div class="footer">drawBbox 互動式多網頁閱讀包 · 內含原始 code、逐行說明、流程圖與 pattern 圖</div>
+</body>
+</html>

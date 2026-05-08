@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="570" viewBox="0 0 1200 570">
+<defs>
+  <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#eef7ff"/>
+    <stop offset="100%" stop-color="#ffffff"/>
+  </linearGradient>
+  <linearGradient id="blue" x1="0" x2="1">
+    <stop offset="0%" stop-color="#dff0ff"/>
+    <stop offset="100%" stop-color="#b9dbff"/>
+  </linearGradient>
+  <linearGradient id="green" x1="0" x2="1">
+    <stop offset="0%" stop-color="#e7f8ec"/>
+    <stop offset="100%" stop-color="#c9efd4"/>
+  </linearGradient>
+  <linearGradient id="orange" x1="0" x2="1">
+    <stop offset="0%" stop-color="#fff3df"/>
+    <stop offset="100%" stop-color="#ffe0ad"/>
+  </linearGradient>
+  <linearGradient id="purple" x1="0" x2="1">
+    <stop offset="0%" stop-color="#f1e7ff"/>
+    <stop offset="100%" stop-color="#d9c5ff"/>
+  </linearGradient>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#174b78" flood-opacity="0.18"/>
+  </filter>
+  <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+    <path d="M2,2 L10,6 L2,10 Z" fill="#39536b"/>
+  </marker>
+<style>
+.title{font-family:Arial,'Microsoft JhengHei',sans-serif;font-size:34px;font-weight:800;fill:#174b78}
+.txt{font-family:Arial,'Microsoft JhengHei',sans-serif;font-size:23px;fill:#1f2937}
+.small{font-family:Arial,'Microsoft JhengHei',sans-serif;font-size:18px;fill:#374151}
+.tiny{font-family:Arial,'Microsoft JhengHei',sans-serif;font-size:15px;fill:#52606d}
+.box{stroke:#4b83c3;stroke-width:2.5;rx:20;filter:url(#shadow)}
+.arrow{stroke:#39536b;stroke-width:4;marker-end:url(#arrow);fill:none}
+.dash{stroke:#6385a7;stroke-width:3;stroke-dasharray:8 7;fill:none}
+</style>
+</defs>
+<rect width="1200" height="570" fill="url(#bg)"/>
+
+<text x="55" y="62" class="title">Role of tb.sv / CYCLE_MAX.sv / drawBbox.v</text>
+<rect x="70" y="125" width="310" height="135" fill="url(#blue)" class="box"/>
+<text x="110" y="170" class="txt">tb.sv</text>
+<text x="105" y="205" class="small">clock / reset / pattern</text>
+<text x="105" y="235" class="small">ImgROM / AnsSRAM / checker</text>
+
+<path d="M380 190 H460" class="arrow"/>
+<rect x="460" y="125" width="310" height="135" fill="url(#green)" class="box"/>
+<text x="500" y="170" class="txt">drawBbox.v</text>
+<text x="495" y="205" class="small">DUT: image processing pipeline</text>
+<text x="495" y="235" class="small">Gray / Gaussian / Otsu / CCL / BBox</text>
+
+<path d="M770 190 H850" class="arrow"/>
+<rect x="850" y="125" width="280" height="135" fill="url(#orange)" class="box"/>
+<text x="890" y="170" class="txt">Output Check</text>
+<text x="885" y="205" class="small">BMP generation</text>
+<text x="885" y="235" class="small">Golden comparison</text>
+
+<rect x="290" y="355" width="620" height="115" fill="url(#purple)" class="box"/>
+<text x="370" y="400" class="txt">CYCLE_MAX.sv</text>
+<text x="350" y="435" class="small">timeout guard: prevents infinite simulation when done is not asserted</text>
+
+</svg>

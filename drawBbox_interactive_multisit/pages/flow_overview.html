@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>流程總覽</title>
+<link rel="stylesheet" href="../style.css">
+<script src="../script.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Flow Overview</span>
+  <h1>流程總覽</h1>
+  <p class="lead">這頁把整個 Lab7 作業流程拆成 16 個閱讀階段，每個階段都有對應的 code 範圍、重點圖檔與中文說明。</p>
+</header>
+<div class="layout">
+  <aside class="sidebar"><h3>網站導覽</h3><a href="../index.html">首頁</a><a href="../pages/guide.html">閱讀導覽</a><a href="../pages/flow_overview.html">流程總覽</a><a href="../pages/architecture.html">架構圖與記憶體</a><a href="../pages/pattern_gallery.html">Pattern 結果圖</a><a href="../pages/code_map.html">程式總覽</a><a href="../pages/line_by_line.html">逐行說明</a><a href="../pages/stages/io.html">Module 介面與記憶體協定</a><a href="../pages/stages/const-state.html">常數與 FSM State 定義</a><a href="../pages/stages/registers.html">內部暫存器、陣列與資料結構</a><a href="../pages/stages/helper.html">輔助函式與 Task</a><a href="../pages/stages/ccl-comb.html">CCL 組合邏輯</a><a href="../pages/stages/sync-reset.html">同步 always、reset 與預設控制</a><a href="../pages/stages/load-gray.html">Input / RGB-to-Gray / Original Backup</a><a href="../pages/stages/hist-lbinit.html">Histogram Clear 與 Gaussian Line Buffer 初始化</a><a href="../pages/stages/gauss-hist.html">Gaussian Filtering 與 Histogram Construction</a><a href="../pages/stages/otsu.html">Otsu Thresholding</a><a href="../pages/stages/polarity.html">High-Pixel Counting 與 Auto-Polarity</a><a href="../pages/stages/parent-init.html">Union-Find / BBox Table 初始化</a><a href="../pages/stages/ccl.html">CCL Line Buffer 初始化與 8-Connected CCL 掃描</a><a href="../pages/stages/merge.html">CCL 跨列更新與 Root Label Merge</a><a href="../pages/stages/overlay.html">物件過濾、BBox Overlay 與特殊補框</a><a href="../pages/stages/done.html">Done 與 Testbench 驗證觀念</a></aside>
+  <main>
+    <section class="section">
+      <h2>作業流程圖</h2>
+      <img class="heroimg" src="../assets/algorithm_pipeline_enhanced.svg" alt="flow">
+    </section>
+    <section class="section">
+      <h2>閱讀階段地圖</h2>
+      <input id="cardSearch" class="search" placeholder="搜尋流程階段...">
+      <div class="grid" style="margin-top:16px"><a class="card searchCard" href="stages/io.html"><div class="num">01</div><h3>Module 介面與記憶體協定</h3><p>這一段是整個硬體系統與外部記憶體互動的入口。先看懂 I/O，就能理解後面狀態機為什麼要一直切換 CEN、WEN、A、D。</p></a><a class="card searchCard" href="stages/const-state.html"><div class="num">02</div><h3>常數與 FSM State 定義</h3><p>這裡把作業的核心常數集中定義。尤其 GREEN = 32&#x27;h0000_FF00 對應 Lab7 畫框要求；state 編碼則決定整個控制流程。</p></a><a class="card searchCard" href="stages/registers.html"><div class="num">03</div><h3>內部暫存器、陣列與資料結構</h3><p>這一段是資料路徑的核心。你可以從這裡看出設計不是把整張圖存進大陣列，而是透過 line buffer、histogram、parent table 逐步完成處理。</p></a><a class="card searchCard" href="stages/helper.html"><div class="num">04</div><h3>輔助函式與 Task</h3><p>這一段把會重複使用的運算封裝成 function/task，使主 FSM 不需要把所有細節攤開。</p></a><a class="card searchCard" href="stages/ccl-comb.html"><div class="num">05</div><h3>CCL 組合邏輯</h3><p>CCL 是整份作業最重要的地方之一。這裡會看到 8-connected 的鄰居判定是如何組合出來的。</p></a><a class="card searchCard" href="stages/sync-reset.html"><div class="num">06</div><h3>同步 always、reset 與預設控制</h3><p>這一段決定所有狀態與記憶體控制訊號的時序行為，是理解 RTL 是否同步正確的關鍵。</p></a><a class="card searchCard" href="stages/load-gray.html"><div class="num">07</div><h3>Input / RGB-to-Gray / Original Backup</h3><p>這一段把前處理整合在一個主要 state。看懂後，你就能知道整張圖是怎麼先被準備好，提供後面的 Gaussian 和畫框使用。</p></a><a class="card searchCard" href="stages/hist-lbinit.html"><div class="num">08</div><h3>Histogram Clear 與 Gaussian Line Buffer 初始化</h3><p>這一段是 Gaussian 的前置準備。因為 3×3 filter 需要上下左右鄰居，所以必須先把 prev/curr/next row 放進 line buffer。</p></a><a class="card searchCard" href="stages/gauss-hist.html"><div class="num">09</div><h3>Gaussian Filtering 與 Histogram Construction</h3><p>這一段是後續 threshold 的基礎。先降低雜訊，Otsu 才會更穩定。</p></a><a class="card searchCard" href="stages/otsu.html"><div class="num">10</div><h3>Otsu Thresholding</h3><p>這是整份程式最像 datapath optimization 的地方。把大乘法拆開，有助於 synthesis 與 timing。</p></a><a class="card searchCard" href="stages/polarity.html"><div class="num">11</div><h3>High-Pixel Counting 與 Auto-Polarity</h3><p>有些圖案做完 threshold 後，前景與背景可能反過來。這一段就是根據整體亮暗比例，自動修正 foreground 定義。</p></a><a class="card searchCard" href="stages/parent-init.html"><div class="num">12</div><h3>Union-Find / BBox Table 初始化</h3><p>CCL 與 BBox 的資料結構在這裡被清成乾淨狀態。沒有這一步，上一張影像的 label 資料會污染下一張。</p></a><a class="card searchCard" href="stages/ccl.html"><div class="num">13</div><h3>CCL Line Buffer 初始化與 8-Connected CCL 掃描</h3><p>這是整份 code 最重要的核心階段。它把 Gaussian、Threshold、Polarity 結果轉成 component labels，並同時累積出 bbox。</p></a><a class="card searchCard" href="stages/merge.html"><div class="num">14</div><h3>CCL 跨列更新與 Root Label Merge</h3><p>這一段解決 union-find 後的 label 等價問題，確保同一物件的 bbox 會被整合到同一個 root component。</p></a><a class="card searchCard" href="stages/overlay.html"><div class="num">15</div><h3>物件過濾、BBox Overlay 與特殊補框</h3><p>這一段直接決定最後結果圖長什麼樣子，也最接近你在 bmp 圖上看到的綠色框效果。</p></a><a class="card searchCard" href="stages/done.html"><div class="num">16</div><h3>Done 與 Testbench 驗證觀念</h3><p>RTL 到這裡就完成了，但整個作業流程還有 testbench 驗證這一步。這一段把 RTL 的終點和驗證流程串起來。</p></a></div>
+    </section>
+  </main>
+</div>
+
+</div>
+<div id="imgModal" class="modal">
+  <div class="modal-content">
+    <img id="imgModalImage" src="" alt="preview">
+    <div id="imgModalCaption" class="modal-caption"></div>
+  </div>
+</div>
+<div class="footer">drawBbox 互動式多網頁閱讀包 · 內含原始 code、逐行說明、流程圖與 pattern 圖</div>
+</body>
+</html>

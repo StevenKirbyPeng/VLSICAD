@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>四、輔助函式與 Task</title>
+<link rel="stylesheet" href="../../style.css">
+<script src="../../script.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="badge">Stage 04</span>
+  <h1>四、輔助函式與 Task</h1>
+  <p class="lead">包含 Reflect-101、RGB-to-Gray、Gaussian、find_root、update_bbox、union_pair 等可重用邏輯。</p>
+  <div class="nav">
+    <a class="btn" href="registers.html">← 上一頁</a>
+    <a class="btn" href="../flow_overview.html">流程總覽</a>
+    <a class="btn" href="ccl-comb.html">下一頁 →</a>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar"><h3>網站導覽</h3><a href="../../index.html">首頁</a><a href="../../pages/guide.html">閱讀導覽</a><a href="../../pages/flow_overview.html">流程總覽</a><a href="../../pages/architecture.html">架構圖與記憶體</a><a href="../../pages/pattern_gallery.html">Pattern 結果圖</a><a href="../../pages/code_map.html">程式總覽</a><a href="../../pages/line_by_line.html">逐行說明</a><a href="../../pages/stages/io.html">Module 介面與記憶體協定</a><a href="../../pages/stages/const-state.html">常數與 FSM State 定義</a><a href="../../pages/stages/registers.html">內部暫存器、陣列與資料結構</a><a href="../../pages/stages/helper.html">輔助函式與 Task</a><a href="../../pages/stages/ccl-comb.html">CCL 組合邏輯</a><a href="../../pages/stages/sync-reset.html">同步 always、reset 與預設控制</a><a href="../../pages/stages/load-gray.html">Input / RGB-to-Gray / Original Backup</a><a href="../../pages/stages/hist-lbinit.html">Histogram Clear 與 Gaussian Line Buffer 初始化</a><a href="../../pages/stages/gauss-hist.html">Gaussian Filtering 與 Histogram Construction</a><a href="../../pages/stages/otsu.html">Otsu Thresholding</a><a href="../../pages/stages/polarity.html">High-Pixel Counting 與 Auto-Polarity</a><a href="../../pages/stages/parent-init.html">Union-Find / BBox Table 初始化</a><a href="../../pages/stages/ccl.html">CCL Line Buffer 初始化與 8-Connected CCL 掃描</a><a href="../../pages/stages/merge.html">CCL 跨列更新與 Root Label Merge</a><a href="../../pages/stages/overlay.html">物件過濾、BBox Overlay 與特殊補框</a><a href="../../pages/stages/done.html">Done 與 Testbench 驗證觀念</a></aside>
+  <main>
+    <section class="section">
+      <h2>這一段在整個作業流程中的角色</h2>
+      <p>這一段把會重複使用的運算封裝成 function/task，使主 FSM 不需要把所有細節攤開。</p>
+      <p class="note">從程式閱讀角度來看，function/task 就像『局部子模組』。雖然沒有真的拆成不同 RTL module，但可讀性和重用性都會提升。</p>
+      <div><span class="tag">function</span><span class="tag">task</span><span class="tag">gray_round_rgb</span><span class="tag">gaussian_lb</span><span class="tag">find_root_func</span><span class="tag">update_bbox_task</span><span class="tag">union_pair</span></div>
+    </section>
+
+    <section class="section">
+      <div data-tabs>
+        <div class="topbar">
+          <h2>圖像與示意</h2>
+          <div class="tabs">
+            <button class="tabbtn active" data-tabbtn="gallery">相關圖檔</button>
+            <button class="tabbtn" data-tabbtn="code">原始 code 片段</button>
+            <button class="tabbtn" data-tabbtn="sample">逐行說明示範</button>
+          </div>
+        </div>
+        <div class="tabpane active" data-tabpane="gallery">
+          <div class="gallery"><div class="thumb" data-fullimg="../assets/algorithm_pipeline_enhanced.svg" data-caption="algorithm pipeline enhanced"><img src="../assets/algorithm_pipeline_enhanced.svg"><div class="cap">algorithm pipeline enhanced</div><small>點擊可放大</small></div><div class="thumb" data-fullimg="../assets/fsm_datapath_relation.svg" data-caption="fsm datapath relation"><img src="../assets/fsm_datapath_relation.svg"><div class="cap">fsm datapath relation</div><small>點擊可放大</small></div></div>
+        </div>
+        <div class="tabpane" data-tabpane="code">
+          <pre>    function [7:0] refl101;
+        input signed [31:0] v;
+        reg signed [31:0] t;
+        reg [31:0] tu;
+        begin
+            t = 32&#x27;sd0; tu = 32&#x27;d0;
+            if (v &lt; 32&#x27;sd0)        t = -v;
+            else if (v &gt; 32&#x27;sd255) t = 32&#x27;sd510 - v;
+            else                   t = v;
+            tu = $unsigned(t);
+            refl101 = tu[7:0];
+        end
+    endfunction
+
+    // ============================================================
+    // function: gray_round_rgb
+    // ============================================================
+    function [7:0] gray_round_rgb;
+        input [31:0] pix;
+        reg [17:0] gs;
+        reg [9:0]  gq;
+        reg [7:0]  gr;
+        begin
+            gs = ({10&#x27;d0,pix[23:16]}*18&#x27;d77)+
+                 ({10&#x27;d0,pix[15:8]} *18&#x27;d150)+
+                 ({10&#x27;d0,pix[7:0]}  *18&#x27;d29);
+            gq = gs[17:8]; gr = gs[7:0];
+            if ((gr&gt;8&#x27;d128)||((gr==8&#x27;d128)&amp;&amp;(gq[0]==1&#x27;b1)))
+                gray_round_rgb = gq[7:0]+8&#x27;d1;
+            else
+                gray_round_rgb = gq[7:0];
+        end
+    endfunction
+
+    // ============================================================
+    // function: lb_read
+    // 從 line buffer 讀取，dy 為相對 row（-1/0/+1），含 x reflect
+    // ============================================================
+    function [7:0] lb_bank_read;
+        input [1:0] sel;
+        input [7:0] idx;
+        begin
+            case (sel)
+                2&#x27;d0: lb_bank_read = linebuf_bank0[idx];
+                2&#x27;d1: lb_bank_read = linebuf_bank1[idx];
+                2&#x27;d2: lb_bank_read = linebuf_bank2[idx];
+                default: lb_bank_read = 8&#x27;d0;
+            endcase
+        end
+    endfunction
+
+    function [7:0] lb_read;
+        input signed [31:0] xx;
+        input signed [31:0] dy;  // -1, 0, +1（改用 signed 32-bit，DC 友善）
+        reg [7:0] rx;
+        begin
+            rx = refl101(xx);
+            if (dy &lt; 32&#x27;sd0)      lb_read = lb_bank_read(lb_prev_sel, rx);
+            else if (dy &gt; 32&#x27;sd0) lb_read = lb_bank_read(lb_next_sel, rx);
+            else                  lb_read = lb_bank_read(lb_curr_sel, rx);
+        end
+    endfunction
+
+    // ============================================================
+    // function: gaussian_lb
+    // 3x3 Gaussian using line buffer
+    // ============================================================
+    function [7:0] gaussian_lb;
+        input [7:0] cx;
+        reg [31:0] gs;
+        reg [7:0]  gq;
+        reg [3:0]  gr;
+        reg signed [31:0] sx;
+        begin
+            sx = $signed({24&#x27;d0, cx});
+            gs =  {24&#x27;d0, lb_read(sx-32&#x27;sd1, -32&#x27;sd1)} +
+                 ({24&#x27;d0, lb_read(sx,         -32&#x27;sd1)} &lt;&lt; 32&#x27;d1) +
+                  {24&#x27;d0, lb_read(sx+32&#x27;sd1, -32&#x27;sd1)} +
+                 ({24&#x27;d0, lb_read(sx-32&#x27;sd1,  32&#x27;sd0)} &lt;&lt; 32&#x27;d1) +
+                 ({24&#x27;d0, lb_read(sx,          32&#x27;sd0)} &lt;&lt; 32&#x27;d2) +
+                 ({24&#x27;d0, lb_read(sx+32&#x27;sd1,  32&#x27;sd0)} &lt;&lt; 32&#x27;d1) +
+                  {24&#x27;d0, lb_read(sx-32&#x27;sd1,  32&#x27;sd1)} +
+                 ({24&#x27;d0, lb_read(sx,          32&#x27;sd1)} &lt;&lt; 32&#x27;d1) +
+                  {24&#x27;d0, lb_read(sx+32&#x27;sd1,  32&#x27;sd1)};
+            gq = gs[11:4]; gr = gs[3:0];
+            if ((gr&gt;4&#x27;d8)||((gr==4&#x27;d8)&amp;&amp;(gq[0]==1&#x27;b1)))
+                gaussian_lb = gq[7:0]+8&#x27;d1;
+            else
+                gaussian_lb = gq[7:0];
+        end
+    endfunction
+
+    // ============================================================
+    // function: find_root_func
+    // ============================================================
+    function [8:0] find_root_func;
+        input [8:0] node;
+        integer k;
+        reg [8:0] cur;
+        begin
+            cur = node;
+            for (k=0; k&lt;16; k=k+1)
+                if (parent[cur]!=cur) cur=parent[cur];
+            find_root_func = cur;
+        end
+    endfunction
+
+    // ============================================================
+    // function: adjusted_ymax
+    // ============================================================
+    function [7:0] adjusted_ymax;
+        input [7:0] bxmin, bxmax, bymin, bymax;
+        begin
+            if ((bxmin==8&#x27;d161)&amp;&amp;(bxmax==8&#x27;d225)&amp;&amp;(bymin==8&#x27;d32)&amp;&amp;(bymax==8&#x27;d91))
+                adjusted_ymax = 8&#x27;d90;
+            else
+                adjusted_ymax = bymax;
+        end
+    endfunction
+
+    // ============================================================
+    // function: is_large_bbox
+    // ============================================================
+    function is_large_bbox;
+        input [7:0] bxmin, bxmax, bymin, bymax;
+        reg [9:0] bw, bh;
+        begin
+            bw = {2&#x27;b0,bxmax}-{2&#x27;b0,bxmin}+10&#x27;d1;
+            bh = {2&#x27;b0,bymax}-{2&#x27;b0,bymin}+10&#x27;d1;
+            is_large_bbox = (bw&gt;=10&#x27;d16)&amp;&amp;(bh&gt;=10&#x27;d16);
+        end
+    endfunction
+
+    // ============================================================
+    // task: update_bbox_task
+    // ============================================================
+    task update_bbox_task;
+        input [8:0] lab; input [7:0] px, py;
+        reg [8:0] rr;
+        begin
+            rr = 9&#x27;d0;
+            if (lab!=9&#x27;d0) begin
+                rr = find_root_func(lab);
+                if (rr!=9&#x27;d0) begin
+                    bbox_valid[rr] &lt;= 1&#x27;b1;
+                    if (px&lt;bbox_xmin[rr]) bbox_xmin[rr]&lt;=px;
+                    if (px&gt;bbox_xmax[rr]) bbox_xmax[rr]&lt;=px;
+                    if (py&lt;bbox_ymin[rr]) bbox_ymin[rr]&lt;=py;
+                    if (py&gt;bbox_ymax[rr]) bbox_ymax[rr]&lt;=py;
+                    if ((px==8&#x27;d0)||(px==8&#x27;d255)||(py==8&#x27;d0)||(py==8&#x27;d255))
+                        bbox_border[rr]&lt;=1&#x27;b1;
+                end
+            end
+        end
+    endtask
+
+    // ============================================================
+    // task: union_pair
+    // ============================================================
+    task union_pair;
+        input [8:0] a, b;
+        reg [8:0] ra, rb;
+        begin
+            ra=9&#x27;d0; rb=9&#x27;d0;
+            if ((a!=9&#x27;d0)&amp;&amp;(b!=9&#x27;d0)) begin
+                ra=find_root_func(a); rb=find_root_func(b);
+                if ((ra!=9&#x27;d0)&amp;&amp;(rb!=9&#x27;d0)&amp;&amp;(ra&lt;rb)) begin
+                    parent[rb]&lt;=ra;
+                    if (bbox_valid[rb]) begin
+                        bbox_valid[ra]&lt;=1&#x27;b1;
+                        if (bbox_xmin[rb]&lt;bbox_xmin[ra]) bbox_xmin[ra]&lt;=bbox_xmin[rb];
+                        if (bbox_xmax[rb]&gt;bbox_xmax[ra]) bbox_xmax[ra]&lt;=bbox_xmax[rb];
+                        if (bbox_ymin[rb]&lt;bbox_ymin[ra]) bbox_ymin[ra]&lt;=bbox_ymin[rb];
+                        if (bbox_ymax[rb]&gt;bbox_ymax[ra]) bbox_ymax[ra]&lt;=bbox_ymax[rb];
+                        if (bbox_border[rb]) bbox_border[ra]&lt;=1&#x27;b1;
+                    end
+                end else if (rb&lt;ra) begin
+                    parent[ra]&lt;=rb;
+                    if (bbox_valid[ra]) begin
+                        bbox_valid[rb]&lt;=1&#x27;b1;
+                        if (bbox_xmin[ra]&lt;bbox_xmin[rb]) bbox_xmin[rb]&lt;=bbox_xmin[ra];
+                        if (bbox_xmax[ra]&gt;bbox_xmax[rb]) bbox_xmax[rb]&lt;=bbox_xmax[ra];
+                        if (bbox_ymin[ra]&lt;bbox_ymin[rb]) bbox_ymin[rb]&lt;=bbox_ymin[ra];
+                        if (bbox_ymax[ra]&gt;bbox_ymax[rb]) bbox_ymax[rb]&lt;=bbox_ymax[ra];
+                        if (bbox_border[ra]) bbox_border[rb]&lt;=1&#x27;b1;
+                    end
+                end
+            end
+        end
+    endtask
+
+    // ============================================================
+    // CCL 組合邏輯（使用 line buffer）
+    // ============================================================</pre>
+        </div>
+        <div class="tabpane" data-tabpane="sample">
+          <table class="line-table">
+            <thead><tr><th>Line</th><th>原始程式碼</th><th>流程分類</th><th>中文說明</th></tr></thead>
+            <tbody><tr data-search="157     function [7:0] refl101; 四、輔助函式與 task 開始定義函式 refl101，用來封裝可重複使用的組合邏輯。"><td class='ln'>157</td><td class='code'><pre>    function [7:0] refl101;</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>開始定義函式 refl101，用來封裝可重複使用的組合邏輯。</td></tr>
+<tr data-search="158         input signed [31:0] v; 四、輔助函式與 task 宣告輸入埠，接收 clock、reset、enable 或外部記憶體讀入資料。"><td class='ln'>158</td><td class='code'><pre>        input signed [31:0] v;</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>宣告輸入埠，接收 clock、reset、enable 或外部記憶體讀入資料。</td></tr>
+<tr data-search="159         reg signed [31:0] t; 四、輔助函式與 task 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>159</td><td class='code'><pre>        reg signed [31:0] t;</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="160         reg [31:0] tu; 四、輔助函式與 task 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>160</td><td class='code'><pre>        reg [31:0] tu;</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="161         begin 四、輔助函式與 task begin 區塊開始，表示接下來有多行程式屬於同一控制區塊。"><td class='ln'>161</td><td class='code'><pre>        begin</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>begin 區塊開始，表示接下來有多行程式屬於同一控制區塊。</td></tr>
+<tr data-search="162             t = 32&#x27;sd0; tu = 32&#x27;d0; 四、輔助函式與 task 阻塞/組合指定，用來立即計算中間值；屬於 四、輔助函式與 task。"><td class='ln'>162</td><td class='code'><pre>            t = 32&#x27;sd0; tu = 32&#x27;d0;</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 四、輔助函式與 Task。</td></tr>
+<tr data-search="163             if (v &lt; 32&#x27;sd0)        t = -v; 四、輔助函式與 task 條件判斷，用來控制 四、輔助函式與 task 的流程分支、邊界條件或狀態轉移。"><td class='ln'>163</td><td class='code'><pre>            if (v &lt; 32&#x27;sd0)        t = -v;</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>條件判斷，用來控制 四、輔助函式與 Task 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="164             else if (v &gt; 32&#x27;sd255) t = 32&#x27;sd510 - v; 四、輔助函式與 task 補充條件分支，處理 四、輔助函式與 task 的其他情況。"><td class='ln'>164</td><td class='code'><pre>            else if (v &gt; 32&#x27;sd255) t = 32&#x27;sd510 - v;</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>補充條件分支，處理 四、輔助函式與 Task 的其他情況。</td></tr>
+<tr data-search="165             else                   t = v; 四、輔助函式與 task 補充條件分支，處理 四、輔助函式與 task 的其他情況。"><td class='ln'>165</td><td class='code'><pre>            else                   t = v;</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>補充條件分支，處理 四、輔助函式與 Task 的其他情況。</td></tr>
+<tr data-search="166             tu = $unsigned(t); 四、輔助函式與 task 阻塞/組合指定，用來立即計算中間值；屬於 四、輔助函式與 task。"><td class='ln'>166</td><td class='code'><pre>            tu = $unsigned(t);</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 四、輔助函式與 Task。</td></tr>
+<tr data-search="167             refl101 = tu[7:0]; 四、輔助函式與 task 阻塞/組合指定，用來立即計算中間值；屬於 四、輔助函式與 task。"><td class='ln'>167</td><td class='code'><pre>            refl101 = tu[7:0];</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 四、輔助函式與 Task。</td></tr>
+<tr data-search="168         end 四、輔助函式與 task 結束目前 begin-end 區塊。"><td class='ln'>168</td><td class='code'><pre>        end</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="169     endfunction 四、輔助函式與 task 結束函式 refl101。"><td class='ln'>169</td><td class='code'><pre>    endfunction</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>結束函式 refl101。</td></tr>
+<tr data-search="170  四、輔助函式與 task 空白行，用來分隔段落，提升可讀性。"><td class='ln'>170</td><td class='code'><pre></pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="171     // ============================================================ 四、輔助函式與 task 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>171</td><td class='code'><pre>    // ============================================================</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="172     // function: gray_round_rgb 四、輔助函式與 task 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>172</td><td class='code'><pre>    // function: gray_round_rgb</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="173     // ============================================================ 四、輔助函式與 task 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>173</td><td class='code'><pre>    // ============================================================</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="174     function [7:0] gray_round_rgb; 四、輔助函式與 task 開始定義函式 gray_round_rgb，用來封裝可重複使用的組合邏輯。"><td class='ln'>174</td><td class='code'><pre>    function [7:0] gray_round_rgb;</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>開始定義函式 gray_round_rgb，用來封裝可重複使用的組合邏輯。</td></tr>
+<tr data-search="175         input [31:0] pix; 四、輔助函式與 task 宣告輸入埠，接收 clock、reset、enable 或外部記憶體讀入資料。"><td class='ln'>175</td><td class='code'><pre>        input [31:0] pix;</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>宣告輸入埠，接收 clock、reset、enable 或外部記憶體讀入資料。</td></tr>
+<tr data-search="176         reg [17:0] gs; 四、輔助函式與 task 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>176</td><td class='code'><pre>        reg [17:0] gs;</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="177         reg [9:0]  gq; 四、輔助函式與 task 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>177</td><td class='code'><pre>        reg [9:0]  gq;</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="178         reg [7:0]  gr; 四、輔助函式與 task 宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。"><td class='ln'>178</td><td class='code'><pre>        reg [7:0]  gr;</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>宣告內部 reg/wire，用於保存狀態、計數器或中間運算結果。</td></tr>
+<tr data-search="179         begin 四、輔助函式與 task begin 區塊開始，表示接下來有多行程式屬於同一控制區塊。"><td class='ln'>179</td><td class='code'><pre>        begin</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>begin 區塊開始，表示接下來有多行程式屬於同一控制區塊。</td></tr>
+<tr data-search="180             gs = ({10&#x27;d0,pix[23:16]}*18&#x27;d77)+ 四、輔助函式與 task 阻塞/組合指定，用來立即計算中間值；屬於 四、輔助函式與 task。"><td class='ln'>180</td><td class='code'><pre>            gs = ({10&#x27;d0,pix[23:16]}*18&#x27;d77)+</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 四、輔助函式與 Task。</td></tr>
+<tr data-search="181                  ({10&#x27;d0,pix[15:8]} *18&#x27;d150)+ 四、輔助函式與 task 此行屬於 四、輔助函式與 task，用來完成 drawbbox 的控制或資料路徑。"><td class='ln'>181</td><td class='code'><pre>                 ({10&#x27;d0,pix[15:8]} *18&#x27;d150)+</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>此行屬於 四、輔助函式與 Task，用來完成 drawBbox 的控制或資料路徑。</td></tr>
+<tr data-search="182                  ({10&#x27;d0,pix[7:0]}  *18&#x27;d29); 四、輔助函式與 task 此行屬於 四、輔助函式與 task，用來完成 drawbbox 的控制或資料路徑。"><td class='ln'>182</td><td class='code'><pre>                 ({10&#x27;d0,pix[7:0]}  *18&#x27;d29);</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>此行屬於 四、輔助函式與 Task，用來完成 drawBbox 的控制或資料路徑。</td></tr>
+<tr data-search="183             gq = gs[17:8]; gr = gs[7:0]; 四、輔助函式與 task 阻塞/組合指定，用來立即計算中間值；屬於 四、輔助函式與 task。"><td class='ln'>183</td><td class='code'><pre>            gq = gs[17:8]; gr = gs[7:0];</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 四、輔助函式與 Task。</td></tr>
+<tr data-search="184             if ((gr&gt;8&#x27;d128)||((gr==8&#x27;d128)&amp;&amp;(gq[0]==1&#x27;b1))) 四、輔助函式與 task 條件判斷，用來控制 四、輔助函式與 task 的流程分支、邊界條件或狀態轉移。"><td class='ln'>184</td><td class='code'><pre>            if ((gr&gt;8&#x27;d128)||((gr==8&#x27;d128)&amp;&amp;(gq[0]==1&#x27;b1)))</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>條件判斷，用來控制 四、輔助函式與 Task 的流程分支、邊界條件或狀態轉移。</td></tr>
+<tr data-search="185                 gray_round_rgb = gq[7:0]+8&#x27;d1; 四、輔助函式與 task 阻塞/組合指定，用來立即計算中間值；屬於 四、輔助函式與 task。"><td class='ln'>185</td><td class='code'><pre>                gray_round_rgb = gq[7:0]+8&#x27;d1;</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 四、輔助函式與 Task。</td></tr>
+<tr data-search="186             else 四、輔助函式與 task 補充條件分支，處理 四、輔助函式與 task 的其他情況。"><td class='ln'>186</td><td class='code'><pre>            else</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>補充條件分支，處理 四、輔助函式與 Task 的其他情況。</td></tr>
+<tr data-search="187                 gray_round_rgb = gq[7:0]; 四、輔助函式與 task 阻塞/組合指定，用來立即計算中間值；屬於 四、輔助函式與 task。"><td class='ln'>187</td><td class='code'><pre>                gray_round_rgb = gq[7:0];</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>阻塞/組合指定，用來立即計算中間值；屬於 四、輔助函式與 Task。</td></tr>
+<tr data-search="188         end 四、輔助函式與 task 結束目前 begin-end 區塊。"><td class='ln'>188</td><td class='code'><pre>        end</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>結束目前 begin-end 區塊。</td></tr>
+<tr data-search="189     endfunction 四、輔助函式與 task 結束函式 gray_round_rgb。"><td class='ln'>189</td><td class='code'><pre>    endfunction</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>結束函式 gray_round_rgb。</td></tr>
+<tr data-search="190  四、輔助函式與 task 空白行，用來分隔段落，提升可讀性。"><td class='ln'>190</td><td class='code'><pre></pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>空白行，用來分隔段落，提升可讀性。</td></tr>
+<tr data-search="191     // ============================================================ 四、輔助函式與 task 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>191</td><td class='code'><pre>    // ============================================================</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="192     // function: lb_read 四、輔助函式與 task 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>192</td><td class='code'><pre>    // function: lb_read</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr>
+<tr data-search="193     // 從 line buffer 讀取，dy 為相對 row（-1/0/+1），含 x reflect 四、輔助函式與 task 原始註解，用來說明此段設計目的或注意事項。"><td class='ln'>193</td><td class='code'><pre>    // 從 line buffer 讀取，dy 為相對 row（-1/0/+1），含 x reflect</pre></td><td class='phase'>四、輔助函式與 Task</td><td class='exp'>原始註解，用來說明此段設計目的或注意事項。</td></tr></tbody>
+          </table>
+          <p class="muted">若要看完整逐行內容，請進入「逐行說明」頁。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>中文重點整理</h2>
+      <ul>
+        <li><strong>程式位置：</strong>Lines 157–350</li>
+        <li><strong>此段主要目標：</strong>包含 Reflect-101、RGB-to-Gray、Gaussian、find_root、update_bbox、union_pair 等可重用邏輯。</li>
+        <li><strong>閱讀建議：</strong>先看相關圖檔，再看原始 code，最後看逐行說明示範。</li>
+        <li><strong>對報告的幫助：</strong>這一頁的圖片與說明很適合直接當作一個報告子段落。</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+</div>
+<div id="imgModal" class="modal">
+  <div class="modal-content">
+    <img id="imgModalImage" src="" alt="preview">
+    <div id="imgModalCaption" class="modal-caption"></div>
+  </div>
+</div>
+<div class="footer">drawBbox 互動式多網頁閱讀包 · 內含原始 code、逐行說明、流程圖與 pattern 圖</div>
+</body>
+</html>
