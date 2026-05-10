@@ -1,0 +1,21 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Lab8 報告與繳交</title><link rel="stylesheet" href="assets/css/style.css"></head><body><div class="layout"><aside class="sidebar"><div class="brand">VLSI CAD Lab8 + Lab9<small>完整作業製作流程網站</small></div><nav class="nav">
+<a href="index.html">首頁與總流程</a>
+<a href="lab8_overview.html">Lab8：HSPICE Pre-sim</a>
+<a href="lab8_code.html">Lab8：程式碼與波形</a>
+<a href="lab8_report.html">Lab8：報告與繳交</a>
+<a href="lab9_overview.html">Lab9：Laker Layout</a>
+<a href="lab9_drc_lvs_pex.html">Lab9：DRC / LVS / PEX</a>
+<a href="lab9_postsim.html">Lab9：Post-sim 與比較</a>
+<a href="final_submit.html">最終繳交版本產生</a>
+<a href="appendix.html">附錄：工具、圖片與檢查表</a>
+</nav></aside><main class="main">
+<section class="hero"><span class="tag">Lab8 Report</span><h1>Lab8 報告內容與繳交版本</h1><p class="subtitle">這一頁整理 Lab8 報告應該放什麼、截圖怎麼安排、最後 ZIP 怎麼產生。</p></section>
+<h2>一、報告內容建議</h2><div class="accordion"><details open><summary>封面與基本資料</summary><p>填寫學號、姓名、作業名稱。檔名建議：<b>Lab8_學號.pdf</b>。</p></details><details open><summary>Inverter</summary><p>放 inverter 的 HSPICE 電路描述或電路圖、terminal job concluded 截圖、WaveView 中 in 與 out_1 波形。</p></details><details><summary>NAND</summary><p>放 NAND 電路圖或 netlist、terminal job concluded 截圖、WaveView 中 A、B、out_2 波形。</p></details><details><summary>NOR</summary><p>放 NOR 電路圖或 netlist、terminal job concluded 截圖、WaveView 中 C、D、out_3 波形。</p></details><details><summary>結論 / 心得</summary><p>可寫 HSPICE netlist 與測試檔分工、PULSE 設定、WaveView 波形是否符合真值表。</p></details></div>
+<h2>二、可直接放進報告的文字</h2><div class="card"><h3>實驗目的</h3><p>本次 Lab8 主要目的為學習使用 HSPICE 建立 CMOS 基本邏輯閘之 transistor-level netlist，包含 inverter、NAND 與 NOR。透過 testbench 設定 VDD、GND 與 PULSE 輸入訊號，進行 transient analysis，並使用 WaveView 觀察輸入輸出波形，確認電路功能符合邏輯真值表。</p><h3>結果說明</h3><p>由模擬波形可確認 inverter 的輸出與輸入相反；NAND 在兩個輸入皆為高電位時輸出為低電位，其餘情況為高電位；NOR 則只有在兩個輸入皆為低電位時輸出為高電位。三個電路皆符合 CMOS 邏輯閘預期功能。</p></div>
+<h2>三、繳交檔案</h2><div class="imgbox"><img src="assets/img/lab8_homework_submit.jpg" alt="Lab8 講義列出的最後繳交要求：PDF、circuit.spi、testbench.sp 壓成 ZIP。"><div class="caption">Lab8 講義列出的最後繳交要求：PDF、circuit.spi、testbench.sp 壓成 ZIP。</div></div><pre>Lab8_學號/
+├── Lab8_學號.pdf
+├── circuit.spi
+└── testbench.sp
+
+zip -r Lab8_學號.zip Lab8_學號</pre>
+<div class="footer">本網站為 Lab8 與 Lab9 作業製作輔助說明，請依助教公告與 Moodle 要求為準。所有範例檔名與路徑可依你的帳號環境調整。</div></main></div><script src="assets/js/main.js"></script></body></html>

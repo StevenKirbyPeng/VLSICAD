@@ -1,0 +1,58 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Lab9 Post-simulation</title><link rel="stylesheet" href="assets/css/style.css"></head><body><div class="layout"><aside class="sidebar"><div class="brand">VLSI CAD Lab8 + Lab9<small>完整作業製作流程網站</small></div><nav class="nav">
+<a href="index.html">首頁與總流程</a>
+<a href="lab8_overview.html">Lab8：HSPICE Pre-sim</a>
+<a href="lab8_code.html">Lab8：程式碼與波形</a>
+<a href="lab8_report.html">Lab8：報告與繳交</a>
+<a href="lab9_overview.html">Lab9：Laker Layout</a>
+<a href="lab9_drc_lvs_pex.html">Lab9：DRC / LVS / PEX</a>
+<a href="lab9_postsim.html">Lab9：Post-sim 與比較</a>
+<a href="final_submit.html">最終繳交版本產生</a>
+<a href="appendix.html">附錄：工具、圖片與檢查表</a>
+</nav></aside><main class="main">
+<section class="hero"><span class="tag">Lab9 Post-sim</span><h1>Post-simulation 與 Pre-simulation 比較</h1><p class="subtitle">PEX 產生含寄生 RC 的 netlist 後，用 HSPICE 再跑一次。這就是 post-layout simulation，結果比 Lab8 pre-sim 更接近實際晶片。</p></section>
+<h2>一、Pre-sim 與 Post-sim 的差異</h2><table class="table"><tr><th>項目</th><th>Pre-sim</th><th>Post-sim</th></tr><tr><td>使用檔案</td><td>Lab8 的理想 transistor netlist</td><td>PEX 抽出的 layout netlist</td></tr><tr><td>是否含寄生</td><td>通常不含或較簡化</td><td>含 layout 產生的寄生 R / C / coupling C</td></tr><tr><td>波形特徵</td><td>切換較理想、延遲較小</td><td>可能有較大 delay、rise/fall 較慢</td></tr><tr><td>報告重點</td><td>確認邏輯正確</td><td>確認 layout 後仍邏輯正確，並討論 delay 差異</td></tr></table>
+<div class="imgbox"><img src="assets/img/lab9_hspice_post.jpg" alt="Lab9 講義示範：pre-sim include inv.sp；post-sim include PEX netlist。"><div class="caption">Lab9 講義示範：pre-sim include inv.sp；post-sim include PEX netlist。</div></div>
+<h2>二、post-sim testbench 範例</h2><button class="btn" onclick="copyCode('posttb')">複製 post-sim testbench</button><pre id="posttb"><code>*========================================================
+* nand_post_tb.sp - Lab9 PEX post-simulation example
+* 請依 PEX 實際產生的檔名與 subckt 腳位順序調整
+*========================================================
+.INC &#x27;nand.pex.netlist&#x27;
+.GLOBAL gnd
++ vdd
+
+.protect
+.lib &#x27;./cic018/model/cic018.l&#x27; TT
+.unprotect
+
+.op
+.options post
+.temp 25
+.tran 0.05n 160n
+
+VDD vdd gnd DC 1.8v
+VGND gnd 0 DC 0v
+VA A gnd PULSE(0 1.8 0 0.1n 0.1n 20n 40n)
+VB B gnd PULSE(0 1.8 0 0.1n 0.1n 40n 80n)
+
+* 假設 PEX netlist 中 subckt 名稱為 nand，腳位為 A B out_2 vdd gnd
+XNAND_POST A B out_2 vdd gnd nand
+
+.end
+</code></pre>
+<h2>三、執行 script 範例</h2><button class="btn" onclick="copyCode('runsh')">複製 run_lab89.sh</button><pre id="runsh"><code>#!/bin/bash
+# Lab8 / Lab9 simulation helper
+set -e
+
+# Lab8 pre-sim
+hspice testbench.sp -o lab8_pre.lis
+
+# Lab9 post-sim examples
+# hspice -i nand_post_tb.sp -o nand_post.lis
+# hspice -i nor_post_tb.sp  -o nor_post.lis
+
+# Open WaveView
+wv &amp;
+</code></pre>
+<h2>四、比較報告可以這樣寫</h2><div class="card"><p>由 pre-sim 與 post-sim 波形比較可知，NAND / NOR 在 layout 後仍符合原本邏輯功能。差異主要出現在切換邊緣與 propagation delay：post-sim 因為 PEX netlist 加入金屬走線、接觸孔與元件周圍的寄生電阻電容，因此輸出上升與下降時間可能比 pre-sim 稍慢。若波形邏輯仍正確且延遲差異合理，代表 layout 設計與驗證結果可接受。</p></div>
+<h2>五、Lab9 報告格式要求</h2><div class="grid two"><div><div class="imgbox"><img src="assets/img/lab9_submit.jpg" alt="Lab9 講義要求：layout 截圖、DRC/LVS、PEX、terminal job concluded、WaveView、pre/post 比較。"><div class="caption">Lab9 講義要求：layout 截圖、DRC/LVS、PEX、terminal job concluded、WaveView、pre/post 比較。</div></div></div><div><div class="imgbox"><img src="assets/img/lab9_notice.jpg" alt="注意：截圖請使用電腦截圖，不要用手機拍照。"><div class="caption">注意：截圖請使用電腦截圖，不要用手機拍照。</div></div></div></div>
+<div class="footer">本網站為 Lab8 與 Lab9 作業製作輔助說明，請依助教公告與 Moodle 要求為準。所有範例檔名與路徑可依你的帳號環境調整。</div></main></div><script src="assets/js/main.js"></script></body></html>

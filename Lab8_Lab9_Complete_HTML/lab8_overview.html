@@ -1,0 +1,23 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Lab8 完整流程</title><link rel="stylesheet" href="assets/css/style.css"></head><body><div class="layout"><aside class="sidebar"><div class="brand">VLSI CAD Lab8 + Lab9<small>完整作業製作流程網站</small></div><nav class="nav">
+<a href="index.html">首頁與總流程</a>
+<a href="lab8_overview.html">Lab8：HSPICE Pre-sim</a>
+<a href="lab8_code.html">Lab8：程式碼與波形</a>
+<a href="lab8_report.html">Lab8：報告與繳交</a>
+<a href="lab9_overview.html">Lab9：Laker Layout</a>
+<a href="lab9_drc_lvs_pex.html">Lab9：DRC / LVS / PEX</a>
+<a href="lab9_postsim.html">Lab9：Post-sim 與比較</a>
+<a href="final_submit.html">最終繳交版本產生</a>
+<a href="appendix.html">附錄：工具、圖片與檢查表</a>
+</nav></aside><main class="main">
+<section class="hero"><span class="tag">Lab8</span><h1>作業八：HSPICE Pre-simulation 完整流程</h1><p class="subtitle">Lab8 的重點是用 transistor-level netlist 寫出 inverter、NAND、NOR，透過 HSPICE 模擬確認輸入與輸出邏輯波形。</p></section>
+<h2>一、Lab8 目的</h2><div class="card"><p>Lab8 先不畫 layout，而是先把 CMOS 邏輯閘用 HSPICE 語法描述出來。這相當於 IC 設計流程中的 <b>Circuit Design</b> 與 <b>Pre-simulation</b>。完成後要得到每個電路的輸入與輸出波形，確認邏輯功能正確。</p></div>
+<h2>二、Lab8 製作流程</h2><div class="flow"><div class="step">登入工作站</div><span class="arrow">→</span><div class="step">複製 TSRI / cic018</div><span class="arrow">→</span><div class="step">寫 circuit.spi</div><span class="arrow">→</span><div class="step">寫 testbench.sp</div><span class="arrow">→</span><div class="step">跑 HSPICE</div><span class="arrow">→</span><div class="step">WaveView 看波形</div><span class="arrow">→</span><div class="step">截圖做報告</div></div>
+<div class="grid two"><div><div class="imgbox"><img src="assets/img/lab8_hspice_flow.jpg" alt="HSPICE 會把 MOS 元件語法轉成電路模擬結果，Lab8 主要使用 transient analysis。"><div class="caption">HSPICE 會把 MOS 元件語法轉成電路模擬結果，Lab8 主要使用 transient analysis。</div></div></div><div><div class="imgbox"><img src="assets/img/lab8_commands.jpg" alt="Lab8 講義的基本操作流程：cp TSRI、gedit、hspice、wv。"><div class="caption">Lab8 講義的基本操作流程：cp TSRI、gedit、hspice、wv。</div></div></div></div>
+<h2>三、要做的三個電路</h2><table class="table"><tr><th>電路</th><th>PMOS</th><th>NMOS</th><th>輸入</th><th>輸出</th><th>判斷重點</th></tr><tr><td>Inverter</td><td>1u / 0.18u</td><td>0.5u / 0.18u</td><td>in</td><td>out_1</td><td>輸出與輸入相反</td></tr><tr><td>NAND</td><td>1u / 0.18u</td><td>0.5u / 0.18u</td><td>A, B</td><td>out_2</td><td>只有 A=B=1 時輸出為 0</td></tr><tr><td>NOR</td><td>1u / 0.18u</td><td>0.5u / 0.18u</td><td>C, D</td><td>out_3</td><td>只有 C=D=0 時輸出為 1</td></tr></table>
+<div class="imgbox"><img src="assets/img/lab8_homework_gate.jpg" alt="Lab8 作業要求：使用 HSPICE 建立 inverter、NAND、NOR，尺寸如圖。"><div class="caption">Lab8 作業要求：使用 HSPICE 建立 inverter、NAND、NOR，尺寸如圖。</div></div>
+<h2>四、Lab8 input / output 設定</h2><div class="grid two"><div><div class="imgbox"><img src="assets/img/lab8_homework_tb.jpg" alt="Lab8 testbench 規定：VDD=1.8V、GND=0V、輸入 PULSE、模擬 160ns。"><div class="caption">Lab8 testbench 規定：VDD=1.8V、GND=0V、輸入 PULSE、模擬 160ns。</div></div></div><div class="card"><h3>輸入訊號</h3><pre>in: PULSE(0 1.8 0 0.1n 0.1n 20n 40n)
+A : PULSE(0 1.8 0 0.1n 0.1n 20n 40n)
+B : PULSE(0 1.8 0 0.1n 0.1n 40n 80n)
+C : PULSE(0 1.8 0 0.1n 0.1n 20n 40n)
+D : PULSE(0 1.8 0 0.1n 0.1n 40n 80n)</pre><h3>輸出訊號</h3><p><span class="pill">out_1</span> <span class="pill">out_2</span> <span class="pill">out_3</span></p></div></div>
+<div class="footer">本網站為 Lab8 與 Lab9 作業製作輔助說明，請依助教公告與 Moodle 要求為準。所有範例檔名與路徑可依你的帳號環境調整。</div></main></div><script src="assets/js/main.js"></script></body></html>

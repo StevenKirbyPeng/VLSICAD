@@ -1,0 +1,20 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>附錄</title><link rel="stylesheet" href="assets/css/style.css"></head><body><div class="layout"><aside class="sidebar"><div class="brand">VLSI CAD Lab8 + Lab9<small>完整作業製作流程網站</small></div><nav class="nav">
+<a href="index.html">首頁與總流程</a>
+<a href="lab8_overview.html">Lab8：HSPICE Pre-sim</a>
+<a href="lab8_code.html">Lab8：程式碼與波形</a>
+<a href="lab8_report.html">Lab8：報告與繳交</a>
+<a href="lab9_overview.html">Lab9：Laker Layout</a>
+<a href="lab9_drc_lvs_pex.html">Lab9：DRC / LVS / PEX</a>
+<a href="lab9_postsim.html">Lab9：Post-sim 與比較</a>
+<a href="final_submit.html">最終繳交版本產生</a>
+<a href="appendix.html">附錄：工具、圖片與檢查表</a>
+</nav></aside><main class="main">
+<section class="hero"><span class="tag">Appendix</span><h1>附錄：工具圖片、補充說明與作業檢查</h1><p class="subtitle">本頁放置補充圖、概念整理與可互動檢查表。</p></section>
+<h2>一、CMOS 與 Layout 補充圖</h2><div class="grid three"><div><div class="imgbox"><img src="assets/img/cmos_inverter.jpg" alt="CMOS inverter：PMOS / NMOS 作為開關形成反相器。"><div class="caption">CMOS inverter：PMOS / NMOS 作為開關形成反相器。</div></div></div><div><div class="imgbox"><img src="assets/img/cmos_layout_view.jpg" alt="Inverter layout view：transistors 與 wires 由 mask 定義。"><div class="caption">Inverter layout view：transistors 與 wires 由 mask 定義。</div></div></div><div><div class="imgbox"><img src="assets/img/cmos_masks.jpg" alt="Detailed mask views：n-well、polysilicon、diffusion、contact、metal。"><div class="caption">Detailed mask views：n-well、polysilicon、diffusion、contact、metal。</div></div></div></div>
+<h2>二、SPICE 補充圖</h2><div class="grid two"><div><div class="imgbox"><img src="assets/img/spice_sources.jpg" alt="SPICE source：DC、PWL、PULSE。"><div class="caption">SPICE source：DC、PWL、PULSE。</div></div></div><div><div class="imgbox"><img src="assets/img/spice_measure.jpg" alt="SPICE .measure 可量 delay、rise/fall time。"><div class="caption">SPICE .measure 可量 delay、rise/fall time。</div></div></div></div>
+<h2>三、互動式小測驗</h2><div data-tabs class="card"><div class="tabs"><button class="tabbtn active">Q1</button><button class="tabbtn">Q2</button><button class="tabbtn">Q3</button><button class="tabbtn">Q4</button></div><div class="tabpane active"><h3>Q1：NAND 的 CMOS 結構？</h3><p>答案：PMOS 並聯、NMOS 串聯。</p></div><div class="tabpane"><h3>Q2：NOR 的 CMOS 結構？</h3><p>答案：PMOS 串聯、NMOS 並聯。</p></div><div class="tabpane"><h3>Q3：DRC 和 LVS 差在哪？</h3><p>DRC 檢查 layout 幾何規則；LVS 檢查 layout 抽出的電路是否和 schematic / netlist 一樣。</p></div><div class="tabpane"><h3>Q4：為什麼 post-sim 會比 pre-sim 慢？</h3><p>因為 post-sim 加入 PEX 抽出的寄生電阻與電容，會增加延遲與改變波形邊緣。</p></div></div>
+<h2>四、範例檔案位置</h2><div class="card"><p>本 ZIP 內含以下範例程式碼：</p><pre>examples/circuit.spi
+examples/testbench.sp
+examples/nand_post_tb.sp
+examples/run_lab89.sh</pre></div>
+<div class="footer">本網站為 Lab8 與 Lab9 作業製作輔助說明，請依助教公告與 Moodle 要求為準。所有範例檔名與路徑可依你的帳號環境調整。</div></main></div><script src="assets/js/main.js"></script></body></html>

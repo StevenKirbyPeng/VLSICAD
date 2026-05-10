@@ -1,0 +1,90 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Lab8 程式碼與波形</title><link rel="stylesheet" href="assets/css/style.css"></head><body><div class="layout"><aside class="sidebar"><div class="brand">VLSI CAD Lab8 + Lab9<small>完整作業製作流程網站</small></div><nav class="nav">
+<a href="index.html">首頁與總流程</a>
+<a href="lab8_overview.html">Lab8：HSPICE Pre-sim</a>
+<a href="lab8_code.html">Lab8：程式碼與波形</a>
+<a href="lab8_report.html">Lab8：報告與繳交</a>
+<a href="lab9_overview.html">Lab9：Laker Layout</a>
+<a href="lab9_drc_lvs_pex.html">Lab9：DRC / LVS / PEX</a>
+<a href="lab9_postsim.html">Lab9：Post-sim 與比較</a>
+<a href="final_submit.html">最終繳交版本產生</a>
+<a href="appendix.html">附錄：工具、圖片與檢查表</a>
+</nav></aside><main class="main">
+<section class="hero"><span class="tag">Lab8 程式碼</span><h1>circuit.spi、testbench.sp 與 WaveView 波形判讀</h1><p class="subtitle">本頁提供可直接修改使用的範例程式碼，並說明怎麼跑 HSPICE 與怎麼判斷輸入輸出波形。</p></section>
+<h2>一、HSPICE 語法核心</h2><div class="grid two"><div><div class="imgbox"><img src="assets/img/lab8_tb_diff.jpg" alt="Lab8 講義示範：電路檔與測試檔分開，testbench 透過 .INC 匯入 netlist。"><div class="caption">Lab8 講義示範：電路檔與測試檔分開，testbench 透過 .INC 匯入 netlist。</div></div></div><div><div class="imgbox"><img src="assets/img/lab8_pulse.jpg" alt="PULSE 電壓格式：v1、v2、td、tr、tf、pw、per。"><div class="caption">PULSE 電壓格式：v1、v2、td、tr、tf、pw、per。</div></div></div></div>
+<div class="warn"><b>注意：</b>`.subckt` 結束要用 `.ends`；整份 testbench 結束要用 `.end`。`.lib` 的 cic018 路徑要依你工作站資料夾調整。</div>
+<h2>二、circuit.spi 範例</h2><button class="btn" onclick="copyCode('circuit')">複製 circuit.spi</button><pre id="circuit"><code>*========================================================
+* circuit.spi - Lab8 / Lab9 pre-sim source netlist
+* CMOS gates in TSRI CIC 0.18um virtual process
+*========================================================
+
+*---------------------
+* Inverter
+* pins: in out_1 VDD GND
+*---------------------
+.subckt inv in out_1 VDD GND
+MP_inv out_1 in VDD VDD p_18 W=1u   L=0.18u
+MN_inv out_1 in GND GND n_18 W=0.5u L=0.18u
+.ends inv
+
+*---------------------
+* 2-input NAND
+* PMOS parallel, NMOS series
+* pins: A B out_2 VDD GND
+*---------------------
+.subckt nand A B out_2 VDD GND
+MP_nand_A out_2 A VDD VDD p_18 W=1u   L=0.18u
+MP_nand_B out_2 B VDD VDD p_18 W=1u   L=0.18u
+MN_nand_A out_2 A n_mid GND n_18 W=0.5u L=0.18u
+MN_nand_B n_mid B GND   GND n_18 W=0.5u L=0.18u
+.ends nand
+
+*---------------------
+* 2-input NOR
+* PMOS series, NMOS parallel
+* pins: C D out_3 VDD GND
+*---------------------
+.subckt nor C D out_3 VDD GND
+MP_nor_C p_mid C VDD   VDD p_18 W=1u   L=0.18u
+MP_nor_D out_3 D p_mid VDD p_18 W=1u   L=0.18u
+MN_nor_C out_3 C GND   GND n_18 W=0.5u L=0.18u
+MN_nor_D out_3 D GND   GND n_18 W=0.5u L=0.18u
+.ends nor
+</code></pre>
+<h2>三、testbench.sp 範例</h2><button class="btn" onclick="copyCode('tb')">複製 testbench.sp</button><pre id="tb"><code>*========================================================
+* testbench.sp - Lab8 pre-simulation testbench
+*========================================================
+.INC &#x27;circuit.spi&#x27;
+.GLOBAL gnd
++ vdd
+
+.protect
+.lib &#x27;./cic018/model/cic018.l&#x27; TT
+.unprotect
+
+.op
+.options post
+.temp 25
+.tran 0.05n 160n
+
+* Power
+VDD vdd gnd DC 1.8v
+VGND gnd 0 DC 0v
+
+* Input patterns
+Vin in gnd PULSE(0 1.8 0 0.1n 0.1n 20n 40n)
+VA A gnd PULSE(0 1.8 0 0.1n 0.1n 20n 40n)
+VB B gnd PULSE(0 1.8 0 0.1n 0.1n 40n 80n)
+VC C gnd PULSE(0 1.8 0 0.1n 0.1n 20n 40n)
+VD D gnd PULSE(0 1.8 0 0.1n 0.1n 40n 80n)
+
+* DUTs
+XINV  in out_1 vdd gnd inv
+XNAND A B out_2 vdd gnd nand
+XNOR  C D out_3 vdd gnd nor
+
+.end
+</code></pre>
+<h2>四、執行與輸出檔案</h2><div class="grid two"><div class="card"><h3>執行 HSPICE</h3><pre>hspice testbench.sp -o result.lis</pre><p>看到 <b>job concluded</b> 代表成功。看到 <b>job aborted</b> 要回去看 .lis 錯誤。</p></div><div><div class="imgbox"><img src="assets/img/lab8_outputs.jpg" alt="HSPICE 每次模擬會產生 .lis、.tr0 等結果檔；WaveView 主要讀 .tr0。"><div class="caption">HSPICE 每次模擬會產生 .lis、.tr0 等結果檔；WaveView 主要讀 .tr0。</div></div></div></div>
+<h2>五、WaveView 看波形</h2><div class="grid three"><div><div class="imgbox"><img src="assets/img/lab8_waveview_open.jpg" alt="WaveView：Open Waveform，選擇 .tr0 檔。"><div class="caption">WaveView：Open Waveform，選擇 .tr0 檔。</div></div></div><div><div class="imgbox"><img src="assets/img/lab8_waveview_signal.jpg" alt="點 tr0 / toplevel，選擇要看的訊號。"><div class="caption">點 tr0 / toplevel，選擇要看的訊號。</div></div></div><div><div class="imgbox"><img src="assets/img/lab8_waveview_style.jpg" alt="可把波形背景改亮、線加粗，截圖更清楚。"><div class="caption">可把波形背景改亮、線加粗，截圖更清楚。</div></div></div></div>
+<h2>六、波形判斷</h2><table class="table"><tr><th>電路</th><th>正確波形特徵</th><th>報告要說明</th></tr><tr><td>Inverter</td><td>in 高時 out_1 低；in 低時 out_1 高</td><td>輸出為輸入反相</td></tr><tr><td>NAND</td><td>A、B 同時為高時 out_2 才拉低</td><td>PMOS 並聯、NMOS 串聯造成 NAND 邏輯</td></tr><tr><td>NOR</td><td>C、D 同時為低時 out_3 才拉高</td><td>PMOS 串聯、NMOS 並聯造成 NOR 邏輯</td></tr></table>
+<div class="footer">本網站為 Lab8 與 Lab9 作業製作輔助說明，請依助教公告與 Moodle 要求為準。所有範例檔名與路徑可依你的帳號環境調整。</div></main></div><script src="assets/js/main.js"></script></body></html>

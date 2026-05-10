@@ -1,0 +1,41 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>最終繳交版本產生</title><link rel="stylesheet" href="assets/css/style.css"></head><body><div class="layout"><aside class="sidebar"><div class="brand">VLSI CAD Lab8 + Lab9<small>完整作業製作流程網站</small></div><nav class="nav">
+<a href="index.html">首頁與總流程</a>
+<a href="lab8_overview.html">Lab8：HSPICE Pre-sim</a>
+<a href="lab8_code.html">Lab8：程式碼與波形</a>
+<a href="lab8_report.html">Lab8：報告與繳交</a>
+<a href="lab9_overview.html">Lab9：Laker Layout</a>
+<a href="lab9_drc_lvs_pex.html">Lab9：DRC / LVS / PEX</a>
+<a href="lab9_postsim.html">Lab9：Post-sim 與比較</a>
+<a href="final_submit.html">最終繳交版本產生</a>
+<a href="appendix.html">附錄：工具、圖片與檢查表</a>
+</nav></aside><main class="main">
+<section class="hero"><span class="tag">最後繳交</span><h1>從製作完成到繳交 ZIP：最終版本產生流程</h1><p class="subtitle">這一頁把 Lab8 與 Lab9 最後要交的檔案全部整理好，避免漏檔、檔名錯誤或 PDF 格式錯誤。</p></section>
+<h2>一、Lab8 最終資料夾</h2><pre>Lab8_學號/
+├── Lab8_學號.pdf
+├── circuit.spi
+└── testbench.sp</pre><pre>zip -r Lab8_學號.zip Lab8_學號</pre>
+<h2>二、Lab9 最終資料夾</h2><pre>Lab9_學號/
+├── Lab9_學號.pdf
+├── NAND.sp                  # LVS 產生或整理後的 NAND spice
+├── NOR.sp                   # LVS 產生或整理後的 NOR spice
+├── nand.pex.netlist
+├── nand.pex.netlist.pex
+├── nand.pex.netlist.NAND.pxi
+├── nand.drc.summary
+├── nand.lvs.report
+├── nor.pex.netlist
+├── nor.pex.netlist.pex
+├── nor.pex.netlist.NOR.pxi
+├── nor.drc.summary
+└── nor.lvs.report</pre><pre>zip -r Lab9_學號.zip Lab9_學號</pre>
+<h2>三、報告內容總表</h2><table class="table"><tr><th>報告</th><th>一定要有</th><th>建議補充</th></tr><tr><td>Lab8</td><td>三個電路設計、terminal job concluded、WaveView 波形</td><td>真值表、HSPICE 程式碼、波形判斷說明</td></tr><tr><td>Lab9 NAND</td><td>Pre-sim terminal / waveform、Post-sim terminal / waveform、DRC/LVS、layout 截圖</td><td>layout 長寬、PEX 檔案說明、pre/post 差異</td></tr><tr><td>Lab9 NOR</td><td>Pre-sim terminal / waveform、Post-sim terminal / waveform、DRC/LVS、layout 截圖</td><td>layout 長寬、PEX 檔案說明、pre/post 差異</td></tr></table>
+<h2>四、最後檢查表</h2><div class="checklist card"><label><input type="checkbox"> Lab8 PDF 檔名是 Lab8_學號.pdf</label><label><input type="checkbox"> Lab8 ZIP 內含 circuit.spi、testbench.sp</label><label><input type="checkbox"> Lab8 三個電路都有 job concluded 截圖</label><label><input type="checkbox"> Lab8 三個電路都有 WaveView 波形截圖</label><label><input type="checkbox"> Lab9 PDF 檔名是 Lab9_學號.pdf</label><label><input type="checkbox"> NAND / NOR layout 截圖有顯示長寬</label><label><input type="checkbox"> NAND / NOR 都有 DRC pass 截圖</label><label><input type="checkbox"> NAND / NOR 都有 LVS CORRECT / 笑臉截圖</label><label><input type="checkbox"> NAND / NOR 都有 PEX 產生檔</label><label><input type="checkbox"> NAND / NOR 都有 post-sim job concluded 與 WaveView 截圖</label><label><input type="checkbox"> 報告有 pre-sim 與 post-sim 比較討論</label><label><input type="checkbox"> ZIP 檔已經上傳 Moodle</label></div>
+<h2>五、常用指令總整理</h2><pre>mkdir Lab8_學號
+cp circuit.spi testbench.sp Lab8_學號/
+cp Lab8_學號.pdf Lab8_學號/
+zip -r Lab8_學號.zip Lab8_學號
+
+mkdir Lab9_學號
+cp Lab9_學號.pdf NAND.sp NOR.sp *.pex.netlist* *.drc.summary *.lvs.report Lab9_學號/
+zip -r Lab9_學號.zip Lab9_學號</pre>
+<div class="footer">本網站為 Lab8 與 Lab9 作業製作輔助說明，請依助教公告與 Moodle 要求為準。所有範例檔名與路徑可依你的帳號環境調整。</div></main></div><script src="assets/js/main.js"></script></body></html>

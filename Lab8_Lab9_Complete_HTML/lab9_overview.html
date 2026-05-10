@@ -1,0 +1,19 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Lab9 Laker Layout</title><link rel="stylesheet" href="assets/css/style.css"></head><body><div class="layout"><aside class="sidebar"><div class="brand">VLSI CAD Lab8 + Lab9<small>完整作業製作流程網站</small></div><nav class="nav">
+<a href="index.html">首頁與總流程</a>
+<a href="lab8_overview.html">Lab8：HSPICE Pre-sim</a>
+<a href="lab8_code.html">Lab8：程式碼與波形</a>
+<a href="lab8_report.html">Lab8：報告與繳交</a>
+<a href="lab9_overview.html">Lab9：Laker Layout</a>
+<a href="lab9_drc_lvs_pex.html">Lab9：DRC / LVS / PEX</a>
+<a href="lab9_postsim.html">Lab9：Post-sim 與比較</a>
+<a href="final_submit.html">最終繳交版本產生</a>
+<a href="appendix.html">附錄：工具、圖片與檢查表</a>
+</nav></aside><main class="main">
+<section class="hero"><span class="tag">Lab9</span><h1>作業九：Laker Layout 完整流程</h1><p class="subtitle">Lab9 接續 Lab8：用 Laker 畫 NAND / NOR layout，並使用 Calibre 完成 DRC、LVS、PEX，再用 HSPICE 做 post-sim。</p></section>
+<h2>一、Lab9 目的</h2><div class="card"><p>Lab9 的目的不是重新設計邏輯，而是把 Lab8 已經驗證過的 NAND 與 NOR 從 transistor-level netlist 延伸到實體 layout。Layout 做完後，要確認圖形符合 design rules，並確認 layout 抽出的電路與原本 schematic / netlist 相同，最後抽出寄生電阻與電容做 post-layout simulation。</p></div>
+<h2>二、Lab9 規格</h2><div class="grid two"><div><div class="imgbox"><img src="assets/img/lab9_homework_sheet.jpg" alt="Lab9 作業規格：完成 NAND / NOR layout，PMOS 1u/0.18u，NMOS 0.5u/0.18u。"><div class="caption">Lab9 作業規格：完成 NAND / NOR layout，PMOS 1u/0.18u，NMOS 0.5u/0.18u。</div></div></div><div class="card"><table class="table"><tr><th>項目</th><th>要求</th></tr><tr><td>電路</td><td>NAND、NOR</td></tr><tr><td>PMOS</td><td>W/L = 1u / 0.18u</td></tr><tr><td>NMOS</td><td>W/L = 0.5u / 0.18u</td></tr><tr><td>驗證</td><td>DRC、LVS、PEX 成功</td></tr><tr><td>模擬</td><td>完成 post-sim 並與 Lab8 pre-sim 比較</td></tr></table></div></div>
+<h2>三、工具與啟動</h2><div class="grid two"><div><div class="imgbox"><img src="assets/img/lab9_laker_intro.jpg" alt="Laker 用來畫 layout；Calibre 用來跑 DRC / LVS / PEX；HSPICE 用來 post-sim。"><div class="caption">Laker 用來畫 layout；Calibre 用來跑 DRC / LVS / PEX；HSPICE 用來 post-sim。</div></div></div><div><div class="imgbox"><img src="assets/img/lab9_env.jpg" alt="每次重新登入伺服器後，需 source Laker 環境，再輸入 laker &amp;。"><div class="caption">每次重新登入伺服器後，需 source Laker 環境，再輸入 laker &amp;。</div></div></div></div><pre>source /usr/cad/synopsys/CIC/laker_oa.cshrc
+laker &</pre>
+<h2>四、Laker 新建資料與快捷鍵</h2><div class="grid two"><div><div class="imgbox"><img src="assets/img/lab9_new_file.jpg" alt="Laker 建立 New Library / New Cell，並選擇 laker_gary.tf technology file。"><div class="caption">Laker 建立 New Library / New Cell，並選擇 laker_gary.tf technology file。</div></div></div><div><div class="imgbox"><img src="assets/img/lab9_shortcuts.jpg" alt="Laker 常用快捷鍵：r 矩形、p path、d 量距、q 屬性、m 移動、delete 刪除。"><div class="caption">Laker 常用快捷鍵：r 矩形、p path、d 量距、q 屬性、m 移動、delete 刪除。</div></div></div></div>
+<h2>五、Layer 與 MOS 結構</h2><div class="grid three"><div><div class="imgbox"><img src="assets/img/lab9_layers.jpg" alt="CIC 0.18um 1P6M layer：PO1、DIFF、CONT、ME1~ME6、VIA。"><div class="caption">CIC 0.18um 1P6M layer：PO1、DIFF、CONT、ME1~ME6、VIA。</div></div></div><div><div class="imgbox"><img src="assets/img/lab9_nmos.jpg" alt="NMOS layout example：DIFF、PO1、CONT、NIMP/PIMP 與 body。"><div class="caption">NMOS layout example：DIFF、PO1、CONT、NIMP/PIMP 與 body。</div></div></div><div><div class="imgbox"><img src="assets/img/lab9_pmos.jpg" alt="PMOS layout example：需要 NWELL，body 通常接 VDD。"><div class="caption">PMOS layout example：需要 NWELL，body 通常接 VDD。</div></div></div></div>
+<div class="footer">本網站為 Lab8 與 Lab9 作業製作輔助說明，請依助教公告與 Moodle 要求為準。所有範例檔名與路徑可依你的帳號環境調整。</div></main></div><script src="assets/js/main.js"></script></body></html>
