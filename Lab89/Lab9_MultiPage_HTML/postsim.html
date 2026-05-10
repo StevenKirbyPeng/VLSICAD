@@ -1,0 +1,39 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lab9 Post-sim</title><link rel="stylesheet" href="assets/css/style.css"></head><body><div class="wrap"><aside class="side"><div class="logo">Lab9 互動式作業說明</div><div class="tag">NAND / NOR Layout、DRC、LVS、PEX、Post-sim</div><nav class="nav">
+<a href="index.html">首頁總覽</a>
+<a href="tools.html">工具與環境</a>
+<a href="layout.html">Layout 製作</a>
+<a href="verify.html">DRC / LVS / PEX</a>
+<a href="postsim.html" class="active">Post-sim 與波形</a>
+<a href="examples.html">範例程式碼</a>
+<a href="report.html">報告與繳交</a>
+</nav></aside><main class="main">
+<section class="hero"><h1>Post-sim、WaveView 與 input/output 說明</h1><p class="lead">post-sim 是把 PEX 產生的寄生 netlist 放進 HSPICE 模擬。它的輸入與 Lab8 pre-sim 類似，但電路來源改成 layout extraction 後的 netlist。</p></section>
+<h2>Post-sim 流程</h2><div class="flow"><div class="step">PEX netlist</div><div class="arrow">→</div><div class="step">修改 pin order</div><div class="arrow">→</div><div class="step">testbench include</div><div class="arrow">→</div><div class="step">HSPICE</div><div class="arrow">→</div><div class="step">WaveView</div><div class="arrow">→</div><div class="step">比較 pre/post</div></div>
+<div class="imgbox"><img src="assets/img/lab9_laker_p29.png" alt="Lab9_Laker p.28：Lab8 pre-sim include 原 spi；Lab9 post-sim include PEX netlist，並用 hspice -i test.sp -o test.lis"><div class="caption">Lab9_Laker p.28：Lab8 pre-sim include 原 spi；Lab9 post-sim include PEX netlist，並用 hspice -i test.sp -o test.lis</div></div>
+<h2>Input / Output 規格</h2><div class="tabs"><button class="tabbtn active" data-tab-btn="io" data-target="io_nand" onclick="showTab('io','io_nand')">NAND</button><button class="tabbtn" data-tab-btn="io" data-target="io_nor" onclick="showTab('io','io_nor')">NOR</button></div><div id="io_nand" class="tab active" data-tab-group="io"><div class="table"><table><tr><th>訊號</th><th>用途</th><th>建議 PULSE / 判斷</th></tr><tr><td>A</td><td>NAND input 1</td><td>PULSE(0 1.8 0 0.1n 0.1n 20n 40n)</td></tr><tr><td>B</td><td>NAND input 2</td><td>PULSE(0 1.8 0 0.1n 0.1n 40n 80n)</td></tr><tr><td>out_2</td><td>NAND output</td><td>只有 A=1 且 B=1 時為 0，其餘為 1</td></tr></table></div></div><div id="io_nor" class="tab" data-tab-group="io"><div class="table"><table><tr><th>訊號</th><th>用途</th><th>建議 PULSE / 判斷</th></tr><tr><td>C</td><td>NOR input 1</td><td>PULSE(0 1.8 0 0.1n 0.1n 20n 40n)</td></tr><tr><td>D</td><td>NOR input 2</td><td>PULSE(0 1.8 0 0.1n 0.1n 40n 80n)</td></tr><tr><td>out_3</td><td>NOR output</td><td>只有 C=0 且 D=0 時為 1，其餘為 0</td></tr></table></div></div>
+<h2>Post-sim testbench 範例</h2><p>下面以 NAND 為例。實際檔名、subckt 名稱與 pin order 必須依你的 PEX 輸出調整。</p><div class="codebox"><button class="copy" data-copy="code_post" onclick="copyCode('code_post')">複製</button><pre><code id="code_post">* Example post-sim testbench. Modify include file and subckt pin order according to PEX output.
+.INC &#x27;NAND.pex.netlist&#x27;
+.GLOBAL gnd
++ vdd
+.protect
+.lib &#x27;cic018.l&#x27; TT
+.unprotect
+.op
+.options post
+.tran 0.05n 160n
+.temp 25
+
+VDD vdd gnd DC 1.8v
+VGND gnd gnd DC 0v
+VA A gnd PULSE(0 1.8 0 0.1n 0.1n 20n 40n)
+VB B gnd PULSE(0 1.8 0 0.1n 0.1n 40n 80n)
+
+* The final name and pin order must match the PEX subckt declaration.
+XNAND A B out_2 vdd gnd nand
+.end
+</code></pre></div>
+<h2>HSPICE 執行</h2><div class="codebox"><button class="copy" data-copy="code_hspice" onclick="copyCode('code_hspice')">複製</button><pre><code id="code_hspice">hspice -i test_nand_post.sp -o nand_post.lis
+wv &</code></pre></div>
+<h2>Pre-sim 與 Post-sim 比較怎麼寫？</h2><div class="grid"><div class="card"><h3>功能是否相同</h3><p>先說明 pre-sim 與 post-sim 的邏輯結果是否都符合 NAND / NOR 真值表。若 out 在相同 input combination 下都得到相同高低電位，表示功能一致。</p></div><div class="card"><h3>延遲可能變大</h3><p>post-sim 加入 layout 寄生電阻與電容，輸出切換邊緣可能較慢，rise time / fall time 或 propagation delay 可能比 pre-sim 大。</p></div><div class="card"><h3>波形邊緣更真實</h3><p>pre-sim 是理想 schematic netlist；post-sim 更接近 layout 後的真實電路，因此波形可能比較不理想，但更接近實際晶片。</p></div></div>
+<h2>可直接放報告的比較文字範例</h2><div class="card"><p>由 pre-sim 與 post-sim 波形比較可知，NAND / NOR 的輸入輸出邏輯關係皆符合真值表，因此 layout 電路在功能上與原本 schematic 設計一致。不過 post-sim 是使用 PEX 後的寄生 netlist 進行模擬，包含 layout 中金屬線、contact 與 diffusion 所造成的寄生電阻與寄生電容，因此輸出波形在轉態時可能出現較明顯的延遲，邊緣也可能比 pre-sim 更緩。這代表 post-sim 結果比 pre-sim 更接近實際晶片製作後的電路行為。</p></div>
+<div class="footer">本網站為 Lab9 作業說明整理版。圖片來源為課程提供之 Lab9_Laker、LAB9 Homework、Part II Introduction 等講義截圖；請以課程公告與 Moodle 要求為準。</div></main></div><script src="assets/js/main.js"></script></body></html>

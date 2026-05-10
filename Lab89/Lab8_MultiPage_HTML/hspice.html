@@ -1,0 +1,14 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>HSPICE語法｜Lab8 HTML 作業說明</title><link rel="stylesheet" href="assets/css/style.css"></head><body><div class="layout"><aside class="sidebar"><div class="brand">Lab8 多網頁互動說明<small>VLSI CAD / HSPICE Pre-simulation</small></div><nav class="nav"><a class="" href="index.html">▸ 首頁</a><a class="" href="purpose.html">▸ 目的與架構</a><a class="" href="tools.html">▸ 工具使用</a><a class="" href="flow.html">▸ 完整流程</a><a class="active" href="hspice.html">▸ HSPICE語法</a><a class="" href="circuits.html">▸ 電路設計</a><a class="" href="testbench.html">▸ Input/Output</a><a class="" href="run.html">▸ 執行與WaveView</a><a class="" href="example.html">▸ 完整範例程式碼</a><a class="" href="report.html">▸ 報告與繳交</a><a class="" href="appendix.html">▸ 延伸圖片資料</a></nav><div class="footer">建議由 index.html 開始閱讀。<br>本網站可離線開啟。</div></aside><main class="main"><section class="hero"><h1>HSPICE 語法說明</h1><p class="subtitle">Lab8 最重要的是會寫 MOSFET、subckt、include、power source、PULSE 與 .tran。</p></section><div data-tabs class="card"><div class="tabs"><button class="tabbtn active">MOSFET</button><button class="tabbtn">Subckt</button><button class="tabbtn">Testbench</button><button class="tabbtn">PULSE</button></div><div class="tabpane active"><h2>MOSFET 語法</h2><pre><code>Mname Drain Gate Source Body model W=width L=length</code></pre><p>例：<code>Mn_inv out_1 in GND GND n_18 W=0.5u L=0.18u</code></p></div><div class="tabpane"><h2>子電路語法</h2><pre><code>.subckt inv in out_1 VDD GND
+Mp_inv out_1 in VDD VDD p_18 W=1u L=0.18u
+Mn_inv out_1 in GND GND n_18 W=0.5u L=0.18u
+.ends inv</code></pre><p>注意：子電路結束是 <code>.ends</code>，整份 testbench 結束才是 <code>.end</code>。</p></div><div class="tabpane"><h2>測試檔基本架構</h2><pre><code>.INC 'circuit.spi'
+.GLOBAL gnd
++ vdd
+.protect
+.lib 'cic018.l' TT
+.unprotect
+.op
+.options post
+.tran 0.05n 160n
+.temp 25
+.end</code></pre></div><div class="tabpane"><h2>PULSE 語法</h2><pre><code>VVin Vin gnd PULSE(v1 v2 td tr tf pw per)</code></pre><p>v1 是低電位、v2 是高電位、td 是 delay、tr/tf 是上升/下降時間、pw 是高電位寬度、per 是週期。</p></div></div><h2>講義截圖輔助</h2><div class="grid two"><div class="imgbox"><img src="assets/img/lab8_testbench_samefile.png"><div class="caption">測試檔與電路檔寫在同一個 SPICE 檔的範例。</div></div><div class="imgbox"><img src="assets/img/lab8_pulse_syntax.png"><div class="caption">DC source 與 PULSE source 的語法格式。</div></div></div><div class="grid two"><div class="imgbox"><img src="assets/img/spice_sources.png"><div class="caption">Unit 3 補充：SPICE source 可使用 DC、PWL、PULSE。</div></div><div class="imgbox"><img src="assets/img/lab8_output_files.png"><div class="caption">HSPICE 執行後會產生 .lis、.tr# 等結果檔。</div></div></div><div class="footer">© Lab8 guide - HTML package. 使用瀏覽器直接開啟即可。</div></main></div><script src="assets/js/main.js"></script></body></html>

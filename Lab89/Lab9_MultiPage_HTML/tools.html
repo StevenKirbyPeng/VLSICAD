@@ -1,0 +1,19 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lab9 工具與環境</title><link rel="stylesheet" href="assets/css/style.css"></head><body><div class="wrap"><aside class="side"><div class="logo">Lab9 互動式作業說明</div><div class="tag">NAND / NOR Layout、DRC、LVS、PEX、Post-sim</div><nav class="nav">
+<a href="index.html">首頁總覽</a>
+<a href="tools.html" class="active">工具與環境</a>
+<a href="layout.html">Layout 製作</a>
+<a href="verify.html">DRC / LVS / PEX</a>
+<a href="postsim.html">Post-sim 與波形</a>
+<a href="examples.html">範例程式碼</a>
+<a href="report.html">報告與繳交</a>
+</nav></aside><main class="main">
+<section class="hero"><h1>工具軟體與使用環境</h1><p class="lead">Lab9 的主軸是 layout 與 post-layout verification，所以工具比 Lab8 多。Lab8 主要是 HSPICE / WaveView；Lab9 還需要 Laker 與 Calibre。</p></section>
+<h2>完整工具列表</h2><div class="grid"><div class="card"><h3>Unix-based 工作站</h3><p>所有 EDA 工具通常在學校工作站上執行。建議所有 Lab9 檔案放在同一個資料夾，避免 rule path、netlist path、PEX include path 混亂。</p></div><div class="card"><h3>Laker</h3><p>layout editor，用來畫 NAND 與 NOR 版圖、建立 library/cell、放置圖層、畫 pin text。</p></div><div class="card"><h3>Calibre DRC / LVS / PEX</h3><p>DRC 檢查 layout 幾何規則，LVS 比對 layout 與 netlist，PEX 抽出寄生 RC。</p></div><div class="card"><h3>HSPICE</h3><p>pre-sim 沿用 Lab8，post-sim 則 include PEX 產生的 netlist。</p></div><div class="card"><h3>WaveView</h3><p>讀取 HSPICE transient output，例如 .tr0，觀察 NAND / NOR 的輸入輸出波形。</p></div><div class="card"><h3>截圖與 PDF / ZIP 工具</h3><p>報告圖片不可用手機拍照，需電腦截圖；最後轉 PDF 並壓縮所有結果檔。</p></div></div>
+<h2>Laker 環境設定</h2><p>每次重新登入伺服器後，先 source Laker 環境，再啟動 Laker。</p><div class="codebox"><button class="copy" data-copy="code_tools" onclick="copyCode('code_tools')">複製</button><pre><code id="code_tools">source /usr/cad/synopsys/CIC/laker_oa.cshrc
+laker &</code></pre></div>
+<div class="imgbox"><img src="assets/img/lab9_laker_p04.png" alt="Lab9_Laker p.3：Lab9 位於 full-custom design flow 的 Layout Design 與 Post Layout verification 階段"><div class="caption">Lab9_Laker p.3：Lab9 位於 full-custom design flow 的 Layout Design 與 Post Layout verification 階段</div></div>
+<div class="imgbox"><img src="assets/img/lab9_laker_p06.png" alt="Lab9_Laker p.5：Laker 用於畫 layout；Calibre 用於 DRC、LVS、PEX；post-sim 比 pre-sim 更接近真實結果"><div class="caption">Lab9_Laker p.5：Laker 用於畫 layout；Calibre 用於 DRC、LVS、PEX；post-sim 比 pre-sim 更接近真實結果</div></div>
+<div class="imgbox"><img src="assets/img/lab9_laker_p07.png" alt="Lab9_Laker p.6：Laker 啟動指令 source laker_oa.cshrc 與 laker &amp;"><div class="caption">Lab9_Laker p.6：Laker 啟動指令 source laker_oa.cshrc 與 laker &</div></div>
+<h2>建立 Library / Cell</h2><p>進入 Laker 後，先建立 Library，再建立 NAND 或 NOR 的 Cell。Technology file 請選擇 TSRI 內的 <code>laker_gary.tf</code>。</p><div class="imgbox"><img src="assets/img/lab9_laker_p08.png" alt="Lab9_Laker p.7：Create New Library / Create New Cell，並選擇 laker_gary.tf"><div class="caption">Lab9_Laker p.7：Create New Library / Create New Cell，並選擇 laker_gary.tf</div></div>
+<h2>常用快捷鍵</h2><div class="imgbox"><img src="assets/img/lab9_laker_p09.png" alt="Lab9_Laker p.8：Laker 快捷鍵，包含 r 建立矩形、d 量測距離、p 建立 path、i 建立 instance、L 建立 text"><div class="caption">Lab9_Laker p.8：Laker 快捷鍵，包含 r 建立矩形、d 量測距離、p 建立 path、i 建立 instance、L 建立 text</div></div>
+<div class="footer">本網站為 Lab9 作業說明整理版。圖片來源為課程提供之 Lab9_Laker、LAB9 Homework、Part II Introduction 等講義截圖；請以課程公告與 Moodle 要求為準。</div></main></div><script src="assets/js/main.js"></script></body></html>

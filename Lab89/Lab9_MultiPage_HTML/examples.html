@@ -1,0 +1,78 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lab9 範例程式碼</title><link rel="stylesheet" href="assets/css/style.css"></head><body><div class="wrap"><aside class="side"><div class="logo">Lab9 互動式作業說明</div><div class="tag">NAND / NOR Layout、DRC、LVS、PEX、Post-sim</div><nav class="nav">
+<a href="index.html">首頁總覽</a>
+<a href="tools.html">工具與環境</a>
+<a href="layout.html">Layout 製作</a>
+<a href="verify.html">DRC / LVS / PEX</a>
+<a href="postsim.html">Post-sim 與波形</a>
+<a href="examples.html" class="active">範例程式碼</a>
+<a href="report.html">報告與繳交</a>
+</nav></aside><main class="main">
+<section class="hero"><h1>範例程式碼與檔案架構</h1><p class="lead">這一頁提供可參考的 NAND / NOR netlist、post-sim testbench 與執行腳本。實際作業仍要依你的 layout cell、LVS/PEX 輸出檔名與 pin order 修改。</p></section>
+<h2>建議資料夾結構</h2><pre><code>Lab9_學號/
+├── Lab9_學號.pdf
+├── NAND.sp                 # LVS 產生或使用的 NAND spice 檔
+├── NOR.sp                  # LVS 產生或使用的 NOR spice 檔
+├── NAND.pex.netlist
+├── NAND.pex.netlist.pex
+├── NAND.pex.netlist.NAND.pxi
+├── NAND.drc.summary
+├── NAND.lvs.report
+├── NOR.pex.netlist
+├── NOR.pex.netlist.pex
+├── NOR.pex.netlist.NOR.pxi
+├── NOR.drc.summary
+├── NOR.lvs.report
+├── test_nand_post.sp
+└── test_nor_post.sp</code></pre>
+<h2>NAND 參考 netlist</h2><div class="codebox"><button class="copy" data-copy="code_nand" onclick="copyCode('code_nand')">複製</button><pre><code id="code_nand">* NAND schematic netlist for LVS reference
+.subckt nand A B out_2 VDD GND
+* PMOS pull-up network: parallel
+MPA out_2 A VDD VDD p_18 W=1u L=0.18u
+MPB out_2 B VDD VDD p_18 W=1u L=0.18u
+* NMOS pull-down network: series
+MNA out_2 A n_mid GND n_18 W=0.5u L=0.18u
+MNB n_mid B GND GND n_18 W=0.5u L=0.18u
+.ends nand
+</code></pre></div>
+<h2>NOR 參考 netlist</h2><div class="codebox"><button class="copy" data-copy="code_nor" onclick="copyCode('code_nor')">複製</button><pre><code id="code_nor">* NOR schematic netlist for LVS reference
+.subckt nor C D out_3 VDD GND
+* PMOS pull-up network: series
+MPC out_3 C p_mid VDD p_18 W=1u L=0.18u
+MPD p_mid D VDD VDD p_18 W=1u L=0.18u
+* NMOS pull-down network: parallel
+MNC out_3 C GND GND n_18 W=0.5u L=0.18u
+MND out_3 D GND GND n_18 W=0.5u L=0.18u
+.ends nor
+</code></pre></div>
+<h2>Post-sim testbench 範例</h2><div class="codebox"><button class="copy" data-copy="code_post2" onclick="copyCode('code_post2')">複製</button><pre><code id="code_post2">* Example post-sim testbench. Modify include file and subckt pin order according to PEX output.
+.INC &#x27;NAND.pex.netlist&#x27;
+.GLOBAL gnd
++ vdd
+.protect
+.lib &#x27;cic018.l&#x27; TT
+.unprotect
+.op
+.options post
+.tran 0.05n 160n
+.temp 25
+
+VDD vdd gnd DC 1.8v
+VGND gnd gnd DC 0v
+VA A gnd PULSE(0 1.8 0 0.1n 0.1n 20n 40n)
+VB B gnd PULSE(0 1.8 0 0.1n 0.1n 40n 80n)
+
+* The final name and pin order must match the PEX subckt declaration.
+XNAND A B out_2 vdd gnd nand
+.end
+</code></pre></div>
+<h2>執行腳本</h2><div class="codebox"><button class="copy" data-copy="code_run" onclick="copyCode('code_run')">複製</button><pre><code id="code_run">#!/bin/bash
+# Lab9 HSPICE run example
+# Usage: bash run_postsim.sh test_nand_post.sp nand_post.lis
+IN=${1:-test_nand_post.sp}
+OUT=${2:-nand_post.lis}
+hspice -i &quot;$IN&quot; -o &quot;$OUT&quot;
+wv &amp;
+</code></pre></div>
+<h2>下載附帶範例檔</h2><div class="grid"><a class="card" href="assets/code/nand_reference.sp"><h3>nand_reference.sp</h3><p>NAND schematic 參考 netlist。</p></a><a class="card" href="assets/code/nor_reference.sp"><h3>nor_reference.sp</h3><p>NOR schematic 參考 netlist。</p></a><a class="card" href="assets/code/test_nand_post.sp"><h3>test_nand_post.sp</h3><p>NAND post-sim testbench 範例。</p></a><a class="card" href="assets/code/run_postsim.sh"><h3>run_postsim.sh</h3><p>簡單執行腳本。</p></a></div>
+<h2>常見錯誤提醒</h2><div class="grid"><div class="card"><h3>Pin order 不一致</h3><p>PEX netlist 的 .subckt 腳位順序要與 testbench 呼叫順序一致，不然波形可能錯或 LVS/post-sim 失敗。</p></div><div class="card"><h3>VDD/GND 大小寫或名稱不一致</h3><p>雖然 SPICE 多半不分大小寫，但 layout pin、source netlist、testbench 名稱最好保持一致。</p></div><div class="card"><h3>PEX include 檔名錯</h3><p>post-sim 通常 include <code>xxx.pex.netlist</code>，若檔名或路徑錯誤，HSPICE 會 job aborted。</p></div></div>
+<div class="footer">本網站為 Lab9 作業說明整理版。圖片來源為課程提供之 Lab9_Laker、LAB9 Homework、Part II Introduction 等講義截圖；請以課程公告與 Moodle 要求為準。</div></main></div><script src="assets/js/main.js"></script></body></html>
