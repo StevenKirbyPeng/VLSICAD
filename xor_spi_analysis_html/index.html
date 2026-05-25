@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>XOR.spi 電路圖與作業要求不一致問題分析</title>
+<style>
+:root{--bg:#0f172a;--card:#ffffff;--ink:#1f2937;--muted:#64748b;--blue:#2563eb;--red:#dc2626;--green:#15803d;--amber:#d97706;--line:#e5e7eb;--soft:#f8fafc;}
+*{box-sizing:border-box} body{margin:0;background:linear-gradient(135deg,#0f172a,#1e293b);font-family:"Microsoft JhengHei",Arial,sans-serif;color:var(--ink);line-height:1.75}.wrap{max-width:1180px;margin:auto;padding:32px 18px}.hero{background:#fff;border-radius:24px;padding:30px;box-shadow:0 22px 60px rgba(0,0,0,.28);margin-bottom:22px}.hero h1{margin:0 0 10px;font-size:30px;color:#0f172a}.hero p{margin:6px 0;color:#475569}.badge{display:inline-block;padding:5px 12px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-weight:700;margin-right:8px}.card{background:#fff;border-radius:20px;padding:24px;margin:18px 0;box-shadow:0 12px 30px rgba(15,23,42,.16)}h2{margin-top:0;color:#1e3a8a;border-left:6px solid var(--blue);padding-left:12px}h3{color:#334155;margin-bottom:8px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.note{border-left:6px solid var(--amber);background:#fffbeb;padding:14px 18px;border-radius:12px}.ok{border-left:6px solid var(--green);background:#f0fdf4;padding:14px 18px;border-radius:12px}.bad{border-left:6px solid var(--red);background:#fef2f2;padding:14px 18px;border-radius:12px}.imgbox{background:#020617;border-radius:16px;padding:12px;text-align:center;overflow:auto}.imgbox img{max-width:100%;border-radius:10px;background:white}.caption{color:#64748b;font-size:14px;margin-top:8px}.mark{background:#fef08a;padding:2px 5px;border-radius:5px}.red{color:var(--red);font-weight:800}.green{color:var(--green);font-weight:800}.blue{color:var(--blue);font-weight:800}pre{background:#0b1020;color:#e5e7eb;border-radius:14px;padding:18px;overflow:auto;font-size:14px;line-height:1.55}code{font-family:Consolas,"Courier New",monospace}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #e5e7eb;padding:10px;vertical-align:top}th{background:#eff6ff;color:#1e3a8a}.flow{display:flex;flex-wrap:wrap;gap:10px}.step{background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:12px 14px;min-width:170px;flex:1}.step b{color:#1d4ed8}.arrow{font-weight:900;color:#64748b;align-self:center}.toc a{display:inline-block;margin:4px 8px 4px 0;padding:6px 10px;border-radius:999px;background:#f1f5f9;color:#0f172a;text-decoration:none}.callout-title{font-size:18px;font-weight:800;margin-bottom:4px}@media(max-width:800px){.grid{grid-template-columns:1fr}.hero h1{font-size:24px}}</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="hero">
+    <span class="badge">Lab10 XOR</span><span class="badge">xor.spi 檢查</span><span class="badge">Laker / HSPICE</span>
+    <h1>XOR.spi 電路圖與作業要求不一致：問題分析與修改方法</h1>
+    <p>本頁整理剛才的問題、判斷結果、錯誤可能來源、建議修改版本，以及之後做 Layout / LVS 時應注意的地方。</p>
+    <div class="toc">
+      <a href="#summary">結論</a><a href="#image">附圖說明</a><a href="#why">為什麼看起來不同</a><a href="#check">檢查重點</a><a href="#fix">建議修改程式</a><a href="#layout">Layout 對應提醒</a>
+    </div>
+  </section>
+
+  <section class="card" id="summary">
+    <h2>一、最重要結論</h2>
+    <div class="ok">
+      <div class="callout-title">你的 xor.spi 功能上大致沒有寫錯。</div>
+      它被 Laker / 工具自動整理成「兩個 inverter + 一個 OAI(22) compound gate」的形式，所以畫出來的符號圖看起來和作業給的 transistor-level 圖不一樣。
+    </div>
+    <br>
+    <div class="bad">
+      <div class="callout-title">真正需要注意的問題</div>
+      Lab10 明確要求使用題目提供的 XOR transistor 架構。如果你的 SPICE、schematic、layout 的 pin 名稱或內部節點對不上，後面 LVS 很容易失敗。因此建議把節點名稱改得更清楚，讓它可以直接對應作業圖。
+    </div>
+  </section>
+
+  <section class="card" id="image">
+    <h2>二、附圖：你的電路圖與作業要求比較</h2>
+    <div class="imgbox">
+      <img src="assets/xor_schematic_vs_requirement.png" alt="xor schematic and assignment requirement">
+    </div>
+    <p class="caption">上圖左／上方是 xor.spi 產生的 schematic 表示；下方是作業要求的 XOR transistor 架構。兩者外觀不同，但邏輯可以是等效的。</p>
+    <div class="note">
+      <b>觀察重點：</b>工具把你的 XOR 主體辨識成 <span class="mark">OAI(22)</span> 類型的 compound gate，所以符號圖不像題目中的 PMOS / NMOS 串並聯圖。這不是代表 XOR 一定錯，而是工具進行了階層化或等效化顯示。
+    </div>
+  </section>
+
+  <section class="card" id="why">
+    <h2>三、為什麼電路圖看起來和作業要求不同？</h2>
+    <table>
+      <tr><th>項目</th><th>你的圖</th><th>作業要求圖</th><th>判斷</th></tr>
+      <tr><td>輸入反相器</td><td>XinvA、XinvB 產生 A'、B'</td><td>題目下方也有 A、B 的 inverter</td><td class="green">符合</td></tr>
+      <tr><td>XOR 主體</td><td>顯示成 OAI(22)</td><td>顯示成 transistor 串並聯</td><td class="blue">等效顯示不同</td></tr>
+      <tr><td>PMOS / NMOS 尺寸</td><td>PMOS 1u/0.18u，NMOS 0.5u/0.18u</td><td>PMOS 1u/0.18u，NMOS 0.5u/0.18u</td><td class="green">符合</td></tr>
+      <tr><td>可能風險</td><td>OUT / NA / NB / net_n1 名稱不直觀</td><td>題目用 Y、A'、B'</td><td class="red">建議修改命名</td></tr>
+    </table>
+  </section>
+
+  <section class="card" id="check">
+    <h2>四、你原本 xor.spi 的主要結構檢查</h2>
+    <p>原本程式的核心大致是：</p>
+<pre><code>.subckt xor A B OUT VDD GND
+XinvA A NA VDD GND inv
+XinvB B NB VDD GND inv
+
+MP1 net_p1 A  VDD VDD p_18 W=1u L=0.18u
+MP2 net_p2 NA VDD VDD p_18 W=1u L=0.18u
+MP3 OUT NB net_p1 VDD p_18 W=1u L=0.18u
+MP4 OUT B  net_p2 VDD p_18 W=1u L=0.18u
+
+MN1 OUT A  net_n1 GND n_18 W=0.5u L=0.18u
+MN2 OUT NB net_n1 GND n_18 W=0.5u L=0.18u
+MN3 net_n1 NA GND GND n_18 W=0.5u L=0.18u
+MN4 net_n1 B  GND GND n_18 W=0.5u L=0.18u
+.ends xor</code></pre>
+    <div class="note">
+      這個寫法的邏輯可對應 XOR，但是 <b>NA / NB</b> 不夠直觀，建議改成 <b>ABAR / BBAR</b>；輸出 <b>OUT</b> 若作業與 layout 用 Y，則也建議統一改成 <b>Y</b>。
+    </div>
+  </section>
+
+  <section class="card" id="fix">
+    <h2>五、建議修改後的 xor.spi 版本</h2>
+    <p>這個版本把節點名稱改成更接近作業圖，方便你看 schematic、畫 layout、跑 LVS。</p>
+<pre><code>*** inverter ***
+.subckt inv in out VDD GND
+Mp_inv out in VDD VDD p_18 W=1u L=0.18u
+Mn_inv out in GND GND n_18 W=0.5u L=0.18u
+.ends inv
+
+*** XOR ***
+.subckt xor A B Y VDD GND
+
+* Generate A' and B'
+XinvA A ABAR VDD GND inv
+XinvB B BBAR VDD GND inv
+
+* PMOS pull-up network
+* Branch 1: VDD -- A -- p_mid1 -- B' -- Y
+MP1 p_mid1 A    VDD    VDD p_18 W=1u L=0.18u
+MP2 Y      BBAR p_mid1 VDD p_18 W=1u L=0.18u
+
+* Branch 2: VDD -- A' -- p_mid2 -- B -- Y
+MP3 p_mid2 ABAR VDD    VDD p_18 W=1u L=0.18u
+MP4 Y      B    p_mid2 VDD p_18 W=1u L=0.18u
+
+* NMOS pull-down network
+* Upper parallel group: Y -- (A or B') -- n_mid
+MN1 Y A    n_mid GND n_18 W=0.5u L=0.18u
+MN2 Y BBAR n_mid GND n_18 W=0.5u L=0.18u
+
+* Lower parallel group: n_mid -- (A' or B) -- GND
+MN3 n_mid ABAR GND GND n_18 W=0.5u L=0.18u
+MN4 n_mid B    GND GND n_18 W=0.5u L=0.18u
+
+.ends xor</code></pre>
+    <div class="ok">
+      <b>修改重點：</b>不是改變 XOR 架構，而是把名稱改清楚：<br>
+      NA → ABAR，NB → BBAR，OUT → Y，net_n1 → n_mid。這樣你比較容易對照題目圖，也比較不容易在 layout pin / LVS 對應時出錯。
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>六、原本版本與建議版本差異</h2>
+    <table>
+      <tr><th>原本名稱</th><th>建議名稱</th><th>意思</th><th>為什麼要改</th></tr>
+      <tr><td>OUT</td><td>Y</td><td>XOR 輸出</td><td>與作業圖一致</td></tr>
+      <tr><td>NA</td><td>ABAR</td><td>A 的反相信號 A'</td><td>比較清楚，不會誤認為一般內部節點</td></tr>
+      <tr><td>NB</td><td>BBAR</td><td>B 的反相信號 B'</td><td>比較清楚，不會誤認為一般內部節點</td></tr>
+      <tr><td>net_n1</td><td>n_mid</td><td>NMOS 上下 parallel group 的中間節點</td><td>方便 layout 對應 diffusion / metal 連接</td></tr>
+      <tr><td>net_p1 / net_p2</td><td>p_mid1 / p_mid2</td><td>PMOS 串聯分支中間節點</td><td>方便確認兩條 pull-up branch</td></tr>
+    </table>
+  </section>
+
+  <section class="card" id="layout">
+    <h2>七、Layout / LVS 最容易出錯的地方</h2>
+    <div class="grid">
+      <div class="bad">
+        <b>錯誤 1：pin 名稱不一致</b><br>
+        SPICE 用 OUT，但 layout text pin 用 Y 或 F，可能導致 LVS ports mismatch。<br><br>
+        <b>解法：</b>SPICE、schematic、layout pin 名稱全部統一，例如都用 A、B、Y、VDD、GND。
+      </div>
+      <div class="bad">
+        <b>錯誤 2：把不該共用的 diffusion 接在一起</b><br>
+        XOR 不是單純 NAND/NOR，不能隨便把所有 NMOS active 連成一整條。<br><br>
+        <b>解法：</b>依照 n_mid、p_mid1、p_mid2 分清楚，必要時切 diffusion，用 Metal1 重新連接。
+      </div>
+    </div>
+    <br>
+    <div class="bad">
+      <b>錯誤 3：A' / B' 接反</b><br>
+      你的主體同時需要 A、B、A'、B'。若 inverter 輸出 ABAR / BBAR 拉錯到 gate，功能會變成 XNOR 或其他錯誤邏輯。
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>八、建議你接下來的檢查流程</h2>
+    <div class="flow">
+      <div class="step"><b>1</b><br>先統一 pin 名稱：A、B、Y、VDD、GND</div>
+      <div class="arrow">→</div>
+      <div class="step"><b>2</b><br>確認 inverter 產生 ABAR、BBAR</div>
+      <div class="arrow">→</div>
+      <div class="step"><b>3</b><br>對照 PMOS 兩條 pull-up branch</div>
+      <div class="arrow">→</div>
+      <div class="step"><b>4</b><br>對照 NMOS 上下兩組 parallel group</div>
+      <div class="arrow">→</div>
+      <div class="step"><b>5</b><br>重新產生 schematic / CDL / SPICE</div>
+      <div class="arrow">→</div>
+      <div class="step"><b>6</b><br>重跑 LVS，若錯誤再 highlight mismatch net</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>九、可以放進報告的討論文字</h2>
+    <p>本次檢查 xor.spi 時，發現由 SPICE 產生的 schematic 圖形與作業提供的 transistor-level XOR 圖看起來不同。經分析後，主要原因並非 XOR 功能錯誤，而是工具將 transistor-level 的 XOR 主體自動辨識並整理為 OAI(22) compound gate 的符號表示，因此在視覺上與作業圖不完全相同。作業要求的 XOR 結構包含兩個 inverter 產生 A' 與 B'，再由 PMOS pull-up network 與 NMOS pull-down network 組成 XOR 主體。原本的 xor.spi 在邏輯上仍符合此架構，但節點命名如 NA、NB、OUT、net_n1 較不直觀，容易造成 layout 繪製與 LVS 驗證時的對應混淆。因此修改時建議將 NA 改為 ABAR、NB 改為 BBAR，並將輸出節點統一命名為 Y，使 SPICE、schematic 與 layout 的 pin 名稱一致。如此可降低 LVS mismatch 的機率，也更容易檢查 PMOS 與 NMOS 的串並聯結構是否符合題目要求。</p>
+  </section>
+</div>
+</body>
+</html>

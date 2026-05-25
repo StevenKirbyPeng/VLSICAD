@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>XOR Layout LVS 錯誤分析與修正報告</title>
+<style>
+:root{--bg:#0b1020;--card:#121936;--card2:#172044;--txt:#ecf2ff;--muted:#b8c5e6;--red:#ff5b6e;--yel:#ffd166;--green:#40d39b;--cyan:#5ee7ff;--blue:#7aa2ff;--line:#2d3a68;}
+*{box-sizing:border-box} body{margin:0;background:linear-gradient(135deg,#08111e,#11183a 55%,#0b1020);color:var(--txt);font-family:"Noto Sans TC","Microsoft JhengHei",Arial,sans-serif;line-height:1.75} .wrap{max-width:1180px;margin:auto;padding:28px} header{padding:34px;border:1px solid var(--line);border-radius:24px;background:rgba(18,25,54,.9);box-shadow:0 20px 70px rgba(0,0,0,.25)} h1{margin:0 0 12px;font-size:34px;line-height:1.25} h2{font-size:24px;margin:34px 0 16px;border-left:6px solid var(--cyan);padding-left:14px} h3{font-size:19px;margin:22px 0 10px;color:#fff} p{margin:8px 0}.muted{color:var(--muted)} .tag{display:inline-block;padding:5px 12px;border-radius:999px;background:#26335e;color:#dce6ff;margin:4px 6px 4px 0}.danger{color:var(--red);font-weight:800}.ok{color:var(--green);font-weight:800}.warn{color:var(--yel);font-weight:800}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.card{background:rgba(18,25,54,.92);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 12px 45px rgba(0,0,0,.18)} .wide{grid-column:1/-1}.imgbox{background:#050814;border:1px solid #2b3766;border-radius:14px;padding:12px;margin:12px 0;text-align:center}.imgbox img{max-width:100%;border-radius:8px}.caption{font-size:14px;color:var(--muted);margin-top:8px;text-align:left} table{width:100%;border-collapse:collapse;margin:12px 0;background:#0d1430;border-radius:12px;overflow:hidden} th,td{border:1px solid #2b3766;padding:10px 12px;vertical-align:top} th{background:#1d2a55;color:#fff} code,pre{font-family:Consolas,Monaco,monospace} pre{background:#050814;border:1px solid #2b3766;padding:14px;border-radius:12px;overflow:auto;color:#dfe8ff} .callout{border-left:6px solid var(--yel);background:#231c0b;padding:14px 16px;border-radius:12px;margin:14px 0}.bad{border-left-color:var(--red);background:#260e18}.good{border-left-color:var(--green);background:#0c241b}.flow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.step{padding:10px 14px;background:#19234a;border:1px solid #334270;border-radius:12px}.arrow{color:var(--cyan);font-weight:900}.svgwrap{background:#050814;border:1px solid #2b3766;border-radius:14px;padding:10px;overflow:auto} details{background:#101836;border:1px solid #2b3766;border-radius:14px;margin:12px 0;padding:12px} summary{cursor:pointer;font-weight:800;color:#fff}.hl{background:rgba(255,91,110,.18);border:1px dashed var(--red);padding:2px 6px;border-radius:6px}.mini{font-size:14px}.check li{margin:6px 0}.footer{color:var(--muted);font-size:13px;text-align:center;margin:32px 0 8px}
+@media(max-width:850px){.grid{grid-template-columns:1fr}.wrap{padding:16px}h1{font-size:26px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>XOR Layout LVS 錯誤分析與修正報告</h1>
+  <p class="muted">主題：Calibre LVS 顯示 <b>Discrepancy #1 in xor</b>，錯誤集中在 M3、M4 兩顆 NMOS 的節點連接。</p>
+  <span class="tag">問題類型：LVS mismatch</span><span class="tag">疑似位置：下方 NMOS diffusion</span><span class="tag">主要原因：node short / diffusion sharing 錯誤</span>
+</header>
+
+<section class="grid">
+  <div class="card wide">
+    <h2>一、這是什麼問題？</h2>
+    <p>這不是單純的 DRC 問題，而是 <span class="danger">LVS（Layout Versus Schematic）不一致</span>。也就是 Calibre 認為你的 <b>Layout 版圖萃取出來的電路</b>，跟 <b>Schematic / SPICE netlist 的 XOR 電路</b> 不完全相同。</p>
+    <div class="callout bad">
+      <b>結論：</b>錯誤集中在 M3、M4 兩顆 NMOS。Layout 中它們的 source/drain diffusion 很可能被接成同一個節點，導致某些本來應該分開的 net 被短路。
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>二、Calibre 錯誤訊息解讀</h2>
+    <div class="imgbox">
+      <img src="assets/lvs_discrepancy.png" alt="Calibre LVS discrepancy screenshot">
+      <div class="caption">圖 1：Calibre LVS 顯示 Discrepancy #1 in xor，指出 _smn2b 與 M3、M4 相關。</div>
+    </div>
+    <pre>Discrepancy #1 in xor
+(_smn2b)
+in1 : Y
+in2 : 9
+out1: 4
+out2: 4
+
+Devices:
+M3  MN(N_18)
+M4  MN(N_18)</pre>
+  </div>
+
+  <div class="card">
+    <h2>三、錯誤訊息代表什麼？</h2>
+    <table>
+      <tr><th>欄位</th><th>意義</th></tr>
+      <tr><td><b>_smn2b</b></td><td>Calibre 萃取到的一組 NMOS 連接結構，通常代表兩顆 NMOS 的連接關係有疑問。</td></tr>
+      <tr><td><b>in1: Y</b></td><td>某一端在 schematic 中應接到 Y。</td></tr>
+      <tr><td><b>in2: 9</b></td><td>另一端在 layout 被萃取成 node 9。</td></tr>
+      <tr><td><b>out1/out2: 4</b></td><td>兩個輸出端被萃取到同一個 node 4，表示某些 diffusion 或 metal 可能被短接。</td></tr>
+      <tr><td><b>M3、M4</b></td><td>錯誤相關元件是兩顆 NMOS，不是 PMOS，也不是 inverter 的 PMOS/NMOS。</td></tr>
+    </table>
+  </div>
+
+  <div class="card wide">
+    <h2>四、最可能錯誤位置：下方 NMOS diffusion 被錯誤共用</h2>
+    <p>從你的 XOR layout 判斷，最可疑的是 <span class="hl">下方 NMOS active / ndiff 區域</span>。XOR 不是像 NAND 那樣所有串接 NMOS 都可以直接共用 diffusion。XOR 有交叉控制訊號，例如 A、A'、B、B'，如果 diffusion sharing 的順序或節點不對，就會把不該相連的節點接在一起。</p>
+    <div class="svgwrap">
+      <svg width="1050" height="360" viewBox="0 0 1050 360" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#5ee7ff"/></marker>
+        </defs>
+        <rect x="20" y="25" width="1010" height="310" rx="16" fill="#071024" stroke="#2b3766"/>
+        <text x="40" y="60" fill="#fff" font-size="22" font-weight="700">錯誤示意：M3、M4 中間 diffusion 連成同一塊</text>
+        <rect x="80" y="135" width="390" height="72" fill="#184b38" stroke="#40d39b" stroke-width="2"/>
+        <rect x="125" y="100" width="22" height="150" fill="#1b54ff" opacity=".8"/><rect x="210" y="100" width="22" height="150" fill="#1b54ff" opacity=".8"/><rect x="295" y="100" width="22" height="150" fill="#1b54ff" opacity=".8"/><rect x="380" y="100" width="22" height="150" fill="#1b54ff" opacity=".8"/>
+        <text x="116" y="275" fill="#fff" font-size="18">M1</text><text x="202" y="275" fill="#fff" font-size="18">M2</text><text x="287" y="275" fill="#ff5b6e" font-size="18" font-weight="700">M3</text><text x="372" y="275" fill="#ff5b6e" font-size="18" font-weight="700">M4</text>
+        <circle cx="337" cy="171" r="38" fill="none" stroke="#ff5b6e" stroke-width="4" stroke-dasharray="8 6"/>
+        <text x="80" y="325" fill="#ff5b6e" font-size="18">問題：continuous ndiff 可能讓 Y、node 9、node 4 被錯接或短接</text>
+        <path d="M505 170 L585 170" stroke="#5ee7ff" stroke-width="4" marker-end="url(#arr)"/>
+        <text x="620" y="60" fill="#fff" font-size="22" font-weight="700">修正示意：在不該共用處切 diffusion</text>
+        <rect x="650" y="135" width="150" height="72" fill="#184b38" stroke="#40d39b" stroke-width="2"/>
+        <rect x="850" y="135" width="150" height="72" fill="#184b38" stroke="#40d39b" stroke-width="2"/>
+        <rect x="690" y="100" width="22" height="150" fill="#1b54ff" opacity=".8"/><rect x="760" y="100" width="22" height="150" fill="#1b54ff" opacity=".8"/><rect x="890" y="100" width="22" height="150" fill="#1b54ff" opacity=".8"/><rect x="960" y="100" width="22" height="150" fill="#1b54ff" opacity=".8"/>
+        <line x1="815" y1="112" x2="835" y2="230" stroke="#ffd166" stroke-width="5"/><line x1="835" y1="112" x2="815" y2="230" stroke="#ffd166" stroke-width="5"/>
+        <text x="673" y="275" fill="#fff" font-size="18">M1/M2</text><text x="883" y="275" fill="#fff" font-size="18">M3/M4</text>
+        <text x="650" y="325" fill="#40d39b" font-size="18">解法：切開 diffusion，再用正確 Metal1/Metal2 重接到指定 net</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>五、為什麼 NAND 可以共 diffusion，但 XOR 容易出錯？</h2>
+    <p><b>NAND</b> 的 NMOS 是單純串聯，所以中間 node 本來就應該相接，diffusion sharing 通常是正確且省面積的。</p>
+    <p><b>XOR</b> 的 NMOS / PMOS 網路有交叉邏輯，控制訊號包含 X、Y、X'、Y'。如果依照外觀看起來很省面積的方式把 diffusion 連成一整條，LVS 可能會萃取成錯誤的 source/drain node。</p>
+    <div class="callout bad">XOR 不能只看「能不能排在同一條 diffusion 上」，一定要逐一確認每顆 MOS 的 source、drain、gate 接到哪一個 net。</div>
+  </div>
+
+  <div class="card">
+    <h2>六、你的錯誤最可能是哪一種？</h2>
+    <table>
+      <tr><th>可能原因</th><th>機率</th><th>說明</th></tr>
+      <tr><td>M3 / M4 diffusion short</td><td class="danger">最高</td><td>LVS 直接指出 M3、M4，且錯誤型態像 source/drain node 不一致。</td></tr>
+      <tr><td>Metal1 橫線誤接</td><td class="warn">中等</td><td>若 M1 橫向連線跨過不該接的 contact，也會造成 node short。</td></tr>
+      <tr><td>Pin label 放錯 net</td><td class="warn">中等</td><td>若 pin name 或 label 沒有放在真正連接的 metal 上，LVS 也會配錯。</td></tr>
+      <tr><td>多長出一顆 MOS</td><td>較低</td><td>若 poly 不小心跨過 active，會產生 extra transistor；但這次訊息主要指 M3/M4 node mismatch。</td></tr>
+    </table>
+  </div>
+
+  <div class="card wide">
+    <h2>七、建議修正流程</h2>
+    <div class="flow">
+      <div class="step">1. 開 Calibre LVS RVE</div><div class="arrow">→</div>
+      <div class="step">2. 點 Discrepancy #1</div><div class="arrow">→</div>
+      <div class="step">3. Highlight M3/M4</div><div class="arrow">→</div>
+      <div class="step">4. 檢查下方 ndiff</div><div class="arrow">→</div>
+      <div class="step">5. 切開錯誤 diffusion</div><div class="arrow">→</div>
+      <div class="step">6. 用 Metal 正確重接</div><div class="arrow">→</div>
+      <div class="step">7. 重跑 DRC / LVS</div>
+    </div>
+    <h3>具體操作</h3>
+    <ol class="check">
+      <li>在 Laker 中選取 M3、M4 附近的 <b>DIFF / ndiff</b>。</li>
+      <li>確認 M3 與 M4 之間是否有一整塊 diffusion 連續相接。</li>
+      <li>若 schematic 中 M3、M4 的中間 node 不應相同，請刪除中間不該存在的 active 區段。</li>
+      <li>保留必要 contact，但不要讓 contact 跨到錯誤 net。</li>
+      <li>用 Metal1 或 Metal2 按照 schematic 正確連回 node Y、node 9、node 4。</li>
+      <li>重新放 pin label：X、Y、VDD、GND、F 必須放在真正連到該 net 的金屬層上。</li>
+      <li>先跑 DRC，確認沒有 spacing / width / enclosure error。</li>
+      <li>再跑 LVS，確認出現 CORRECT 或 smile face。</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>八、M3、M4 應該如何檢查？</h2>
+    <p>請回到 schematic，把 M3、M4 的四個端點逐一列出：</p>
+    <table>
+      <tr><th>元件</th><th>Drain</th><th>Gate</th><th>Source</th><th>Body</th></tr>
+      <tr><td>M3</td><td>依 schematic</td><td>可能是 X 或 X'</td><td>依 schematic</td><td>GND</td></tr>
+      <tr><td>M4</td><td>依 schematic</td><td>可能是 Y 或 Y'</td><td>依 schematic</td><td>GND</td></tr>
+    </table>
+    <div class="callout">重點不是 MOS 左右方向，而是 <b>Layout 萃取後的 node 名稱</b> 必須和 schematic 完全一致。</div>
+  </div>
+
+  <div class="card">
+    <h2>九、修正後應該看到什麼？</h2>
+    <ul class="check">
+      <li>DRC：No Results Found 或 0 error。</li>
+      <li>LVS：Layout 與 Source comparison 顯示 clean / correct。</li>
+      <li>Calibre 不再列出 M3、M4 discrepancy。</li>
+      <li>Post-sim 波形符合 XOR 真值表。</li>
+    </ul>
+    <table>
+      <tr><th>X</th><th>Y</th><th>F = X ⊕ Y</th></tr>
+      <tr><td>0</td><td>0</td><td>0</td></tr>
+      <tr><td>0</td><td>1</td><td>1</td></tr>
+      <tr><td>1</td><td>0</td><td>1</td></tr>
+      <tr><td>1</td><td>1</td><td>0</td></tr>
+    </table>
+  </div>
+
+  <div class="card wide">
+    <h2>十、報告可用討論文字</h2>
+    <p>本次 XOR layout 在進行 Calibre LVS 驗證時出現 Discrepancy #1，錯誤訊息指出問題與 M3、M4 兩顆 NMOS 有關，並顯示 in1、in2、out1、out2 的節點對應不一致。由此判斷，問題不是元件尺寸或一般 DRC spacing 錯誤，而是 layout 中 NMOS source/drain 的連接關係與 schematic 不一致。最可能的原因是下方 NMOS diffusion sharing 設計錯誤，使 M3、M4 之間本應分離的節點被 active diffusion 或 metal 線短接。</p>
+    <p>在 NAND 或 NOR 這類較規則的 CMOS gate 中，串聯或並聯 transistor 常可利用 diffusion sharing 來節省面積；然而 XOR 電路具有 X、Y、X'、Y' 的交叉控制網路，若未逐一確認每顆 MOS 的 source/drain node，就容易把不同邏輯節點誤接成同一個 net。因此修正方式是利用 Calibre RVE highlight 錯誤元件 M3、M4，回到 layout 檢查下方 ndiff 與 contact 位置，將不應共用的 diffusion 切開，再以 Metal1 或 Metal2 依照 schematic 重新連接。修正後需重新執行 DRC 與 LVS，確認沒有 design rule violation，且 LVS 顯示 layout 與 schematic 完全一致。</p>
+  </div>
+
+  <div class="card wide">
+    <h2>十一、最後總結</h2>
+    <table>
+      <tr><th>項目</th><th>判斷</th></tr>
+      <tr><td>錯誤類型</td><td>LVS mismatch，不是單純 DRC。</td></tr>
+      <tr><td>錯誤元件</td><td>M3、M4 兩顆 NMOS。</td></tr>
+      <tr><td>最可能原因</td><td>下方 NMOS diffusion sharing 錯誤，造成 node short。</td></tr>
+      <tr><td>優先檢查</td><td>M3/M4 source、drain 是否和 schematic 對應；是否有不該連續的 ndiff。</td></tr>
+      <tr><td>修正方法</td><td>切開 diffusion，重新用 metal 按 schematic 連線，重放 pin label。</td></tr>
+      <tr><td>驗證順序</td><td>先 DRC，再 LVS，最後 PEX 與 post-sim。</td></tr>
+    </table>
+  </div>
+</section>
+<div class="footer">XOR Layout LVS Debug HTML Report</div>
+</div>
+</body>
+</html>
