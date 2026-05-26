@@ -1,0 +1,15 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>總覽｜Lab11 Laker DFF 多頁報告</title><link rel="stylesheet" href="assets/style.css"><script src="assets/script.js"></script></head><body><div class="layout"><aside class="sidebar"><h1>Lab11 Laker DFF 多頁報告</h1><div class="meta">Laker｜Half-Adder｜DFF｜Layer｜DRC/LVS/PEX｜HSPICE</div><nav class="nav"><a class=active href="index.html">總覽</a>
+<a  href="laker_manual.html">Laker 操作手冊</a>
+<a  href="dff_flow.html">DFF 製作流程</a>
+<a  href="half_adder_flow.html">Half-Adder 製作流程</a>
+<a  href="layers.html">Layer 與 DRC 規格</a>
+<a  href="hotkeys.html">Hot Key 完整表</a>
+<a  href="layout_analysis.html">DFF 版圖與 ME4 分析</a>
+<a  href="verification.html">DRC/LVS/PEX/HSPICE</a>
+<a  href="report_checklist.html">報告與繳交檢查表</a>
+<a  href="sources.html">資料來源與截圖</a></nav></aside><main class="main">
+<section class="hero"><h2>Lab11 Laker DFF 多 HTML 完整報告</h2><p>整合本 chat 內所有 Laker、Lab11、DFF、Layer、Hot Key、DRC/LVS/PEX、HSPICE、版圖分析、流程圖與附錄資料，做成可瀏覽的多頁 HTML 報告。</p></section>
+<div class="grid3"><div class="kpi"><b>2</b><span>主要電路：Half Adder、DFF</span></div><div class="kpi"><b>7</b><span>DFF 腳位：clk D reset Q QX vdd gnd</span></div><div class="kpi"><b>9</b><span>已確認常用 DRC 規格數字</span></div></div>
+<div class="card"><h2>核心結論</h2><div class="ok"><b>DFF 必須依指定 NAND3 架構製作。</b>不能改用其他架構。</div><div class="note"><b>ME4 可以用在 DFF。</b>ME4 可以經過 DIFF 上方；若要接 DIFF，需完整鏈：DIFF → CONT → ME1 → VIA1 → ME2 → VIA2 → ME3 → VIA3 → ME4。</div><div class="warn"><b>Pin 名稱與順序要和 testbench 一致。</b>DFF_tb.sp 使用 xDFF clk D reset Q QX vdd gnd DFF。</div></div>
+<div class="card"><h2>快速導覽</h2><table><thead><tr><th>頁面</th><th>內容</th><th>用途</th></tr></thead><tbody><tr><td><a href="laker_manual.html">Laker 操作手冊</a></td><td>完整整理與圖表</td><td>報告/實作/檢查</td></tr><tr><td><a href="dff_flow.html">DFF 製作流程</a></td><td>完整整理與圖表</td><td>報告/實作/檢查</td></tr><tr><td><a href="layers.html">Layer 與 DRC 規格</a></td><td>完整整理與圖表</td><td>報告/實作/檢查</td></tr><tr><td><a href="hotkeys.html">Hot Key 完整表</a></td><td>完整整理與圖表</td><td>報告/實作/檢查</td></tr><tr><td><a href="layout_analysis.html">DFF 版圖與 ME4 分析</a></td><td>完整整理與圖表</td><td>報告/實作/檢查</td></tr><tr><td><a href="verification.html">DRC/LVS/PEX/HSPICE</a></td><td>完整整理與圖表</td><td>報告/實作/檢查</td></tr><tr><td><a href="report_checklist.html">報告與繳交檢查表</a></td><td>完整整理與圖表</td><td>報告/實作/檢查</td></tr><tr><td><a href="sources.html">資料來源與截圖</a></td><td>完整整理與圖表</td><td>報告/實作/檢查</td></tr></tbody></table></div>
+<div class="footer">Generated multi-HTML report package｜Open index.html</div></main></div></body></html>

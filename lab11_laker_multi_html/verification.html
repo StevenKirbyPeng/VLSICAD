@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>驗證流程｜Lab11 Laker DFF 多頁報告</title><link rel="stylesheet" href="assets/style.css"><script src="assets/script.js"></script></head><body><div class="layout"><aside class="sidebar"><h1>Lab11 Laker DFF 多頁報告</h1><div class="meta">Laker｜Half-Adder｜DFF｜Layer｜DRC/LVS/PEX｜HSPICE</div><nav class="nav"><a  href="index.html">總覽</a>
+<a  href="laker_manual.html">Laker 操作手冊</a>
+<a  href="dff_flow.html">DFF 製作流程</a>
+<a  href="half_adder_flow.html">Half-Adder 製作流程</a>
+<a  href="layers.html">Layer 與 DRC 規格</a>
+<a  href="hotkeys.html">Hot Key 完整表</a>
+<a  href="layout_analysis.html">DFF 版圖與 ME4 分析</a>
+<a class=active href="verification.html">DRC/LVS/PEX/HSPICE</a>
+<a  href="report_checklist.html">報告與繳交檢查表</a>
+<a  href="sources.html">資料來源與截圖</a></nav></aside><main class="main">
+<section class="hero"><h2>DRC / LVS / PEX / HSPICE 驗證流程</h2><p>完成 layout 後依序完成幾何、電路一致性、寄生抽取與後模擬。</p></section>
+<div class="card"><h2>驗證總流程</h2><div class="flow"><div class="step"><b>Pre-sim</b><br>先用 SPICE 驗證 HA/DFF 功能</div><div class="step"><b>Layout</b><br>用 Laker 畫 layout，標 pin 與長寬</div><div class="step"><b>DRC</b><br>Calibre 檢查幾何規則</div><div class="step"><b>LVS</b><br>比對 layout 與 SPICE 是否一致</div><div class="step"><b>PEX</b><br>抽 layout parasitic R/C/CC</div><div class="step"><b>Post-sim</b><br>以 PEX netlist 跑 HSPICE，比較波形</div></div></div>
+<div class="card"><h2>DFF testbench</h2><pre><code>*** DFF  testbench ***
+.INC &#x27;DFF.spi&#x27;   $ modify
+.GLOBAL gnd vdd
+
+.protect 
+.lib &#x27;cic018.l&#x27; TT   $modify
+.unprotect
+
+.op
+.options accurate=1 post=1 
+
+.tran 0.1u 200u
+.temp 25
+
+xDFF  clk   D  reset  Q QX vdd  gnd  DFF  $modify
+
+v1 vdd 0v DC 1.8v
+v2 gnd 0v DC 0v
+v3 D   0v  PULSE ( 0V 1.8V 5u 0.01u 0.01u 10u 15u )
+v4 clk 0v  PULSE ( 0V 1.8V 3u 0.01u 0.01u 5u 10u )
+v5 reset  0v  PULSE ( 0V 1.8V 0.01u 0.01u 0.01u 70u 100u ) 
+.end</code></pre><table><thead><tr><th>訊號</th><th>設定</th><th>功能</th></tr></thead><tbody><tr><td>vdd</td><td>DC 1.8V</td><td>電源</td></tr><tr><td>gnd</td><td>DC 0V</td><td>接地</td></tr><tr><td>D</td><td>PULSE delay 5u、週期 15u</td><td>資料輸入</td></tr><tr><td>clk</td><td>PULSE delay 3u、週期 10u</td><td>時脈</td></tr><tr><td>reset</td><td>PULSE</td><td>reset 功能確認</td></tr><tr><td>.tran</td><td>0.1u 200u</td><td>暫態模擬</td></tr></tbody></table></div>
+<div class="card"><h2>Pre-sim / Post-sim 比較</h2><table><thead><tr><th>項目</th><th>Pre-sim</th><th>Post-sim</th></tr></thead><tbody><tr><td>電路來源</td><td>理想 SPICE netlist</td><td>PEX 後含寄生 R/C</td></tr><tr><td>延遲</td><td>較小</td><td>較大</td></tr><tr><td>邊緣</td><td>較理想</td><td>較緩</td></tr><tr><td>功能</td><td>符合邏輯</td><td>仍應符合但有 delay</td></tr><tr><td>實際性</td><td>理想化</td><td>較接近真實 layout</td></tr></tbody></table></div>
+<div class="card"><h2>WaveView 必看訊號</h2><table><thead><tr><th>電路</th><th>必看訊號</th><th>判斷重點</th></tr></thead><tbody><tr><td>Half Adder</td><td>A、B、S、Cout</td><td>S=A XOR B；Cout=A·B</td></tr><tr><td>DFF</td><td>clk、D、reset、Q、QX</td><td>reset 低態有效；Q/QX 互補；clock 後 Q 更新</td></tr></tbody></table></div>
+<div class="footer">Generated multi-HTML report package｜Open index.html</div></main></div></body></html>

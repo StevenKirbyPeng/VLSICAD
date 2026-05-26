@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>DFF 製作流程｜Lab11 Laker DFF 多頁報告</title><link rel="stylesheet" href="assets/style.css"><script src="assets/script.js"></script></head><body><div class="layout"><aside class="sidebar"><h1>Lab11 Laker DFF 多頁報告</h1><div class="meta">Laker｜Half-Adder｜DFF｜Layer｜DRC/LVS/PEX｜HSPICE</div><nav class="nav"><a  href="index.html">總覽</a>
+<a  href="laker_manual.html">Laker 操作手冊</a>
+<a class=active href="dff_flow.html">DFF 製作流程</a>
+<a  href="half_adder_flow.html">Half-Adder 製作流程</a>
+<a  href="layers.html">Layer 與 DRC 規格</a>
+<a  href="hotkeys.html">Hot Key 完整表</a>
+<a  href="layout_analysis.html">DFF 版圖與 ME4 分析</a>
+<a  href="verification.html">DRC/LVS/PEX/HSPICE</a>
+<a  href="report_checklist.html">報告與繳交檢查表</a>
+<a  href="sources.html">資料來源與截圖</a></nav></aside><main class="main">
+<section class="hero"><h2>用 Laker 製作 DFF 的完整流程</h2><p>從 DFF 架構、腳位、MOS row、Layer、routing 到 DRC/LVS/PEX/Post-sim。</p></section>
+<div class="card"><h2>指定 DFF 架構</h2><p>DFF 必須依作業圖示 NAND3 架構進行 layout，reset 為負向觸發/低態有效。</p><div class="grid"><div class="figure"><img src="assets/images/Lab11_1__p5.png" alt="Lab11：DFF 與 NAND3 架構"><div class="figcap">Lab11：DFF 與 NAND3 架構</div></div><div class="figure"><img src="assets/images/Lab11_homework__p1.png" alt="Lab11 homework：指定 DFF 架構"><div class="figcap">Lab11 homework：指定 DFF 架構</div></div></div></div>
+<div class="card"><h2>DFF 製作流程圖</h2><div class="figure"><object data="assets/svg/dff_laker_construction_flowchart.svg" type="image/svg+xml"></object><div class="figcap">Laker 製作 DFF 流程 SVG</div></div></div>
+<div class="card"><h2>DFF testbench 與腳位</h2><pre><code>*** DFF  testbench ***
+.INC &#x27;DFF.spi&#x27;   $ modify
+.GLOBAL gnd vdd
+
+.protect 
+.lib &#x27;cic018.l&#x27; TT   $modify
+.unprotect
+
+.op
+.options accurate=1 post=1 
+
+.tran 0.1u 200u
+.temp 25
+
+xDFF  clk   D  reset  Q QX vdd  gnd  DFF  $modify
+
+v1 vdd 0v DC 1.8v
+v2 gnd 0v DC 0v
+v3 D   0v  PULSE ( 0V 1.8V 5u 0.01u 0.01u 10u 15u )
+v4 clk 0v  PULSE ( 0V 1.8V 3u 0.01u 0.01u 5u 10u )
+v5 reset  0v  PULSE ( 0V 1.8V 0.01u 0.01u 0.01u 70u 100u ) 
+.end</code></pre><table><thead><tr><th>腳位</th><th>Layout Pin</th><th>功能</th><th>重點</th></tr></thead><tbody><tr><td>clk</td><td>clk / CLK</td><td>時脈</td><td>大小寫最好一致</td></tr><tr><td>D</td><td>D</td><td>資料輸入</td><td>接到指定 NAND3 網路</td></tr><tr><td>reset</td><td>reset</td><td>低態有效 reset</td><td>波形需確認</td></tr><tr><td>Q</td><td>Q</td><td>正相輸出</td><td>不可與 QX 接反</td></tr><tr><td>QX</td><td>QX</td><td>反相輸出</td><td>應與 Q 互補</td></tr><tr><td>vdd</td><td>vdd/VDD</td><td>電源</td><td>PMOS/well tap</td></tr><tr><td>gnd</td><td>gnd/GND</td><td>接地</td><td>NMOS/substrate tap</td></tr></tbody></table></div>
+<div class="card"><h2>實作步驟明細</h2><div class="flow"><div class="step"><b>準備 DFF.spi</b><br>建立 .subckt DFF clk D reset Q QX vdd gnd，先讓 presim 通過。</div><div class="step"><b>建立 DFF layout cell</b><br>建立 DFF/layout，確認 technology file。</div><div class="step"><b>規劃 VDD/GND rail</b><br>上方 VDD、下方 GND，便於接 PMOS/NMOS body。</div><div class="step"><b>配置 PMOS/NMOS row</b><br>PMOS 包 NWELL/PIMP；NMOS 包 NIMP。</div><div class="step"><b>建立 NAND2/NAND3</b><br>NAND3=3 PMOS 並聯 + 3 NMOS 串聯。</div><div class="step"><b>接點與走線</b><br>CONT 接 DIFF/PO1 到 ME1，再由 VIA 到 ME2/ME3/ME4。</div><div class="step"><b>完成 D/CLK/reset/Q/QX</b><br>高層金屬可用於長距離 routing。</div><div class="step"><b>建立 Pin Text</b><br>名稱與 .sp/.spi 完全一致。</div><div class="step"><b>驗證</b><br>DRC → LVS → PEX → Post-sim。</div></div></div>
+<div class="footer">Generated multi-HTML report package｜Open index.html</div></main></div></body></html>

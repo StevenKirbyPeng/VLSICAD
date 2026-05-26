@@ -1,0 +1,166 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1900" viewBox="0 0 1400 1900">
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#263238"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-opacity="0.22"/>
+    </filter>
+    <style>
+      .bg { fill:#ffffff; }
+      .title { font-family: Arial, "Microsoft JhengHei", sans-serif; font-size: 36px; font-weight: 800; fill:#0f172a; }
+      .sub { font-family: Arial, "Microsoft JhengHei", sans-serif; font-size: 20px; fill:#475569; }
+      .phase { font-family: Arial, "Microsoft JhengHei", sans-serif; font-size: 24px; font-weight: 800; fill:#1d4ed8; }
+      .box { fill:#f8fbff; stroke:#2563eb; stroke-width:3; rx:22; filter:url(#shadow); }
+      .box2 { fill:#f0fdf4; stroke:#16a34a; stroke-width:3; rx:22; filter:url(#shadow); }
+      .box3 { fill:#fff7ed; stroke:#ea580c; stroke-width:3; rx:22; filter:url(#shadow); }
+      .warn { fill:#fef2f2; stroke:#dc2626; stroke-width:3; rx:22; filter:url(#shadow); }
+      .decision { fill:#fffbeb; stroke:#d97706; stroke-width:3; filter:url(#shadow); }
+      .startend { fill:#ecfdf5; stroke:#047857; stroke-width:3; rx:40; filter:url(#shadow); }
+      .text { font-family: Arial, "Microsoft JhengHei", sans-serif; font-size: 23px; font-weight:700; fill:#111827; }
+      .small { font-family: Arial, "Microsoft JhengHei", sans-serif; font-size: 18px; fill:#374151; }
+      .tiny { font-family: Arial, "Microsoft JhengHei", sans-serif; font-size: 16px; fill:#4b5563; }
+      .arrow { stroke:#263238; stroke-width:3; fill:none; marker-end:url(#arrow); }
+      .line { stroke:#94a3b8; stroke-width:2; fill:none; }
+      .layerRed { fill:#ef4444; opacity:.18; stroke:#ef4444; stroke-width:2; }
+      .layerBlue { fill:#2563eb; opacity:.18; stroke:#2563eb; stroke-width:2; }
+      .layerGreen { fill:#22c55e; opacity:.20; stroke:#16a34a; stroke-width:2; }
+      .layerCyan { fill:#06b6d4; opacity:.18; stroke:#0891b2; stroke-width:2; }
+      .layerYellow { fill:#fde047; opacity:.35; stroke:#ca8a04; stroke-width:2; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1400" height="1900"/>
+  <text x="700" y="60" text-anchor="middle" class="title">DFF Layout 建構流程圖（Laker）</text>
+  <text x="700" y="95" text-anchor="middle" class="sub">依照你提供的 DFF 版圖：上方 VDD、下方 GND，中間包含 CLK、reset、D、Q、QX 等訊號走線</text>
+
+  <!-- Mini reference layout -->
+  <rect x="80" y="125" width="1240" height="180" rx="18" fill="#020617" stroke="#334155" stroke-width="2"/>
+  <text x="105" y="160" class="small" fill="#e5e7eb">版圖結構參考示意</text>
+  <rect x="120" y="185" width="1160" height="18" fill="#22c55e" opacity=".35" stroke="#22c55e"/>
+  <text x="130" y="180" class="tiny" fill="#a7f3d0">VDD rail</text>
+  <rect x="120" y="270" width="1160" height="18" fill="#22c55e" opacity=".35" stroke="#22c55e"/>
+  <text x="130" y="310" class="tiny" fill="#a7f3d0">GND rail</text>
+  <rect x="160" y="205" width="1050" height="55" class="layerRed"/>
+  <rect x="180" y="198" width="32" height="90" class="layerBlue"/>
+  <rect x="260" y="198" width="32" height="90" class="layerBlue"/>
+  <rect x="340" y="198" width="32" height="90" class="layerBlue"/>
+  <rect x="420" y="198" width="32" height="90" class="layerBlue"/>
+  <rect x="500" y="198" width="32" height="90" class="layerBlue"/>
+  <rect x="580" y="198" width="32" height="90" class="layerBlue"/>
+  <rect x="660" y="198" width="32" height="90" class="layerBlue"/>
+  <rect x="740" y="198" width="32" height="90" class="layerBlue"/>
+  <rect x="820" y="198" width="32" height="90" class="layerBlue"/>
+  <rect x="900" y="198" width="32" height="90" class="layerBlue"/>
+  <rect x="980" y="198" width="32" height="90" class="layerBlue"/>
+  <rect x="1060" y="198" width="32" height="90" class="layerBlue"/>
+  <rect x="1140" y="198" width="32" height="90" class="layerBlue"/>
+  <path d="M135 230 H1265" stroke="#fde047" stroke-width="5" opacity=".6"/>
+  <text x="500" y="325" class="small" fill="#60a5fa">CLK</text>
+  <text x="675" y="325" class="small" fill="#60a5fa">reset</text>
+  <text x="845" y="325" class="small" fill="#60a5fa">D</text>
+  <text x="1045" y="325" class="small" fill="#60a5fa">QX</text>
+  <text x="1185" y="325" class="small" fill="#60a5fa">Q</text>
+
+  <!-- Flowchart -->
+  <text x="120" y="370" class="phase">A. 前置規劃</text>
+
+  <rect x="420" y="390" width="560" height="85" class="startend"/>
+  <text x="700" y="424" text-anchor="middle" class="text">Start：確認 DFF 電路架構</text>
+  <text x="700" y="452" text-anchor="middle" class="small">確認 DFF 是否含 reset、Q / QX、CLK 反相或 transmission gate</text>
+
+  <path d="M700 475 L700 525" class="arrow"/>
+
+  <rect x="330" y="525" width="740" height="105" class="box"/>
+  <text x="700" y="562" text-anchor="middle" class="text">1、準備 schematic / SPICE netlist</text>
+  <text x="700" y="594" text-anchor="middle" class="small">先確認 pin 名稱：VDD、GND、CLK、reset、D、Q、QX</text>
+  <text x="700" y="618" text-anchor="middle" class="tiny">之後 layout pin name 必須和 netlist 完全一致，否則 LVS 容易錯</text>
+
+  <path d="M700 630 L700 680" class="arrow"/>
+
+  <rect x="330" y="680" width="740" height="105" class="box"/>
+  <text x="700" y="718" text-anchor="middle" class="text">2、建立 Library / Cell / Layout View</text>
+  <text x="700" y="750" text-anchor="middle" class="small">Library → New；Cell → New；View 選 layout</text>
+  <text x="700" y="774" text-anchor="middle" class="tiny">建議 cell 名稱：DFF 或 dff_reset</text>
+
+  <path d="M700 785 L700 835" class="arrow"/>
+
+  <text x="120" y="850" class="phase">B. 版圖骨架與元件區</text>
+
+  <rect x="330" y="870" width="740" height="110" class="box2"/>
+  <text x="700" y="908" text-anchor="middle" class="text">3、規劃 VDD / GND Power Rail</text>
+  <text x="700" y="940" text-anchor="middle" class="small">上方畫 VDD，下方畫 GND，通常使用 ME1 或較高金屬層</text>
+  <text x="700" y="964" text-anchor="middle" class="tiny">你圖中可以看到 VDD 在最上方、GND 在最下方，兩條長 rail 橫跨整個 cell</text>
+
+  <path d="M700 980 L700 1030" class="arrow"/>
+
+  <rect x="330" y="1030" width="740" height="125" class="box2"/>
+  <text x="700" y="1068" text-anchor="middle" class="text">4、配置 PMOS / NMOS Row</text>
+  <text x="700" y="1100" text-anchor="middle" class="small">PMOS 放上半部靠近 VDD；NMOS 放下半部靠近 GND</text>
+  <text x="700" y="1125" text-anchor="middle" class="tiny">PMOS 需放入 NWELL；NMOS 通常在 substrate 區域，並加 body tap</text>
+
+  <path d="M700 1155 L700 1205" class="arrow"/>
+
+  <rect x="330" y="1205" width="740" height="125" class="box2"/>
+  <text x="700" y="1243" text-anchor="middle" class="text">5、畫 DIFF / PO1 形成 MOS</text>
+  <text x="700" y="1275" text-anchor="middle" class="small">先畫 DIFF，再用 PO1 垂直跨過 DIFF 形成 gate</text>
+  <text x="700" y="1300" text-anchor="middle" class="tiny">依照 DFF 邏輯排列 CLK、reset、D 相關 transistor gate</text>
+
+  <path d="M700 1330 L700 1380" class="arrow"/>
+
+  <rect x="330" y="1380" width="740" height="125" class="box2"/>
+  <text x="700" y="1418" text-anchor="middle" class="text">6、加入 Implant 與 Well</text>
+  <text x="700" y="1450" text-anchor="middle" class="small">PMOS：PIMP + NWELL；NMOS：NIMP</text>
+  <text x="700" y="1475" text-anchor="middle" class="tiny">檢查 implant 是否完整包住 diffusion，並保留 DRC 要求間距</text>
+
+  <path d="M700 1505 L700 1555" class="arrow"/>
+
+  <text x="120" y="1570" class="phase">C. 接點、走線、Pin 與驗證</text>
+
+  <rect x="330" y="1590" width="740" height="125" class="box3"/>
+  <text x="700" y="1628" text-anchor="middle" class="text">7、放置 CONT / VIA 並接到 Metal</text>
+  <text x="700" y="1660" text-anchor="middle" class="small">在 source / drain / body tap 放 contact，接到 ME1</text>
+  <text x="700" y="1685" text-anchor="middle" class="tiny">跨層走線時加入 VIA1、VIA2……，避免金屬短路或斷路</text>
+
+  <path d="M700 1715 L700 1765" class="arrow"/>
+
+  <!-- Continue on side for bottom? Need fit. Use branching right/left -->
+  <rect x="95" y="1770" width="560" height="110" class="box3"/>
+  <text x="375" y="1807" text-anchor="middle" class="text">8、完成訊號走線</text>
+  <text x="375" y="1838" text-anchor="middle" class="small">CLK、reset、D、Q、QX 接到正確 transistor network</text>
+  <text x="375" y="1862" text-anchor="middle" class="tiny">長距離訊號可用金屬橫向走線，必要時換層避開交錯</text>
+
+  <path d="M655 1825 L735 1825" class="arrow"/>
+
+  <rect x="745" y="1770" width="560" height="110" class="box3"/>
+  <text x="1025" y="1807" text-anchor="middle" class="text">9、建立 Pin Text / Label</text>
+  <text x="1025" y="1838" text-anchor="middle" class="small">用 L 或 Create Text 標 VDD、GND、CLK、reset、D、Q、QX</text>
+  <text x="1025" y="1862" text-anchor="middle" class="tiny">Pin 名稱大小寫、驚嘆號與 netlist 完全一致</text>
+
+  <!-- Note side panels -->
+  <rect x="70" y="390" width="220" height="415" rx="20" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/>
+  <text x="180" y="428" text-anchor="middle" class="small" font-weight="700">建構順序口訣</text>
+  <text x="92" y="465" class="tiny">1. 先電路、後版圖</text>
+  <text x="92" y="495" class="tiny">2. 先 power rail</text>
+  <text x="92" y="525" class="tiny">3. 再 active / poly</text>
+  <text x="92" y="555" class="tiny">4. 再 implant / well</text>
+  <text x="92" y="585" class="tiny">5. 再 contact / metal</text>
+  <text x="92" y="615" class="tiny">6. 最後 pin label</text>
+  <text x="92" y="645" class="tiny">7. DRC → LVS → PEX</text>
+  <text x="92" y="690" class="tiny">DFF 特別注意：</text>
+  <text x="92" y="720" class="tiny">CLK / reset / D</text>
+  <text x="92" y="750" class="tiny">不能接錯到 Q/QX</text>
+
+  <rect x="1110" y="390" width="220" height="415" rx="20" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/>
+  <text x="1220" y="428" text-anchor="middle" class="small" font-weight="700">常用 Layer</text>
+  <text x="1132" y="465" class="tiny">DIFF：Source/Drain</text>
+  <text x="1132" y="495" class="tiny">PO1：Gate</text>
+  <text x="1132" y="525" class="tiny">CONT：接點</text>
+  <text x="1132" y="555" class="tiny">ME1：局部連線</text>
+  <text x="1132" y="585" class="tiny">ME2/ME3：跨線</text>
+  <text x="1132" y="615" class="tiny">NIMP：NMOS implant</text>
+  <text x="1132" y="645" class="tiny">PIMP：PMOS implant</text>
+  <text x="1132" y="675" class="tiny">NWELL：PMOS well</text>
+  <text x="1132" y="720" class="tiny">用 d / k 量尺寸</text>
+  <text x="1132" y="750" class="tiny">用 F8 清 highlight</text>
+</svg>

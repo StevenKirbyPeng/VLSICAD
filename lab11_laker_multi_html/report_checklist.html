@@ -1,0 +1,15 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>報告檢查表｜Lab11 Laker DFF 多頁報告</title><link rel="stylesheet" href="assets/style.css"><script src="assets/script.js"></script></head><body><div class="layout"><aside class="sidebar"><h1>Lab11 Laker DFF 多頁報告</h1><div class="meta">Laker｜Half-Adder｜DFF｜Layer｜DRC/LVS/PEX｜HSPICE</div><nav class="nav"><a  href="index.html">總覽</a>
+<a  href="laker_manual.html">Laker 操作手冊</a>
+<a  href="dff_flow.html">DFF 製作流程</a>
+<a  href="half_adder_flow.html">Half-Adder 製作流程</a>
+<a  href="layers.html">Layer 與 DRC 規格</a>
+<a  href="hotkeys.html">Hot Key 完整表</a>
+<a  href="layout_analysis.html">DFF 版圖與 ME4 分析</a>
+<a  href="verification.html">DRC/LVS/PEX/HSPICE</a>
+<a class=active href="report_checklist.html">報告與繳交檢查表</a>
+<a  href="sources.html">資料來源與截圖</a></nav></aside><main class="main">
+<section class="hero"><h2>報告與繳交檢查表</h2><p>整理 Lab11 配分、必交檔案與交作業前檢查表。</p></section>
+<div class="card"><h2>配分</h2><table><thead><tr><th>項目</th><th>比例</th><th>重要性</th></tr></thead><tbody><tr><td>Half-adder 前模擬</td><td>5%</td><td>基本</td></tr><tr><td>Half-adder 後模擬</td><td>15%</td><td>重要</td></tr><tr><td>Half-adder 面積</td><td>10%</td><td>面積排名</td></tr><tr><td>DFF 前模擬</td><td>10%</td><td>重要</td></tr><tr><td>DFF 後模擬</td><td>25%</td><td>最高</td></tr><tr><td>DFF 面積</td><td>20%</td><td>很高</td></tr><tr><td>報告檔</td><td>15%</td><td>完整性</td></tr></tbody></table><div class="warn">DFF 相關共 55%，優先確保 DFF post-sim 正確與面積合理。</div></div>
+<div class="card"><h2>壓縮檔內容</h2><pre><code>Lab11_學號.zip\n├── Lab11_學號.pdf\n├── HA.spi / HalfAdder.spi\n├── DFF.spi\n├── xxx.drc.summary\n├── LVS 產生的 .sp 檔\n├── xxx.lvs.report\n├── xxx.pex.netlist\n├── xxx.pex.netlist.pex\n└── xxx.pex.netlist.xxx.pxi</code></pre></div>
+<div class="card"><h2>最後檢查表</h2><table><thead><tr><th>#</th><th>檢查項目</th></tr></thead><tbody><tr><td>1</td><td>Half Adder presim 成功</td></tr><tr><td>2</td><td>Half Adder post-sim 成功</td></tr><tr><td>3</td><td>Half Adder layout 標長寬與面積</td></tr><tr><td>4</td><td>Half Adder DRC pass</td></tr><tr><td>5</td><td>Half Adder LVS correct</td></tr><tr><td>6</td><td>DFF 使用指定 NAND3 架構</td></tr><tr><td>7</td><td>DFF .subckt 腳位順序正確</td></tr><tr><td>8</td><td>DFF presim 成功</td></tr><tr><td>9</td><td>DFF reset 低態有效</td></tr><tr><td>10</td><td>DFF Q/QX 互補</td></tr><tr><td>11</td><td>DFF layout 標長寬與面積</td></tr><tr><td>12</td><td>DFF DRC pass</td></tr><tr><td>13</td><td>DFF LVS correct</td></tr><tr><td>14</td><td>DFF PEX 檔案完整</td></tr><tr><td>15</td><td>DFF post-sim 波形正確</td></tr><tr><td>16</td><td>VDD/GND rail 連續</td></tr><tr><td>17</td><td>Pin name 與 testbench 一致</td></tr><tr><td>18</td><td>ME4 若接下層，via chain 完整</td></tr><tr><td>19</td><td>報告有 pre/post 比較</td></tr><tr><td>20</td><td>檔名與壓縮檔格式正確</td></tr></tbody></table></div>
+<div class="footer">Generated multi-HTML report package｜Open index.html</div></main></div></body></html>

@@ -1,0 +1,23 @@
+*** DFF  testbench ***
+.INC 'DFF.spi'   $ modify
+.GLOBAL gnd vdd
+
+.protect 
+.lib 'cic018.l' TT   $modify
+.unprotect
+
+.op
+.options accurate=1 post=1 
+
+.tran 0.1u 200u
+.temp 25
+
+xDFF  clk   D  reset  Q QX vdd  gnd  DFF  $modify
+
+v1 vdd 0v DC 1.8v
+v2 gnd 0v DC 0v
+v3 D   0v  PULSE ( 0V 1.8V 5u 0.01u 0.01u 10u 15u )
+v4 clk 0v  PULSE ( 0V 1.8V 3u 0.01u 0.01u 5u 10u )
+v5 reset  0v  PULSE ( 0V 1.8V 0.01u 0.01u 0.01u 70u 100u ) 
+.end
+

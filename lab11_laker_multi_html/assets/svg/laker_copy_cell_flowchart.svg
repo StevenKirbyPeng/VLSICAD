@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1500" viewBox="0 0 1200 1500">
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#333"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="2" dy="3" stdDeviation="3" flood-opacity="0.22"/>
+    </filter>
+    <style>
+      .title { font-family: Arial, "Microsoft JhengHei", sans-serif; font-size: 34px; font-weight: 700; fill: #1d3557; }
+      .subtitle { font-family: Arial, "Microsoft JhengHei", sans-serif; font-size: 20px; fill: #444; }
+      .box { fill: #f8fbff; stroke: #2b6cb0; stroke-width: 3; rx: 22; filter: url(#shadow); }
+      .decision { fill: #fff8e6; stroke: #d97706; stroke-width: 3; filter: url(#shadow); }
+      .startend { fill: #e8f5e9; stroke: #2e7d32; stroke-width: 3; rx: 38; filter: url(#shadow); }
+      .warn { fill: #fff0f0; stroke: #c62828; stroke-width: 3; rx: 22; filter: url(#shadow); }
+      .text { font-family: Arial, "Microsoft JhengHei", sans-serif; font-size: 23px; font-weight: 600; fill: #111; }
+      .small { font-family: Arial, "Microsoft JhengHei", sans-serif; font-size: 18px; fill: #333; }
+      .note { font-family: Arial, "Microsoft JhengHei", sans-serif; font-size: 17px; fill: #555; }
+      .arrow { stroke: #333; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+      .label { font-family: Arial, "Microsoft JhengHei", sans-serif; font-size: 18px; font-weight: 700; fill: #c2410c; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="1500" fill="#ffffff"/>
+
+  <text x="600" y="60" text-anchor="middle" class="title">Laker 跨 Library / Cell 複製元件流程圖</text>
+  <text x="600" y="95" text-anchor="middle" class="subtitle">Copy 元件，例如 DIFF、PO1、CONT、ME1，從一個 Lib/Cell 到另一個 Lib/Cell</text>
+
+  <!-- Start -->
+  <rect x="300" y="135" width="600" height="80" class="startend"/>
+  <text x="600" y="168" text-anchor="middle" class="text">Start</text>
+  <text x="600" y="195" text-anchor="middle" class="small">確認來源 Cell 與目標 Cell 都已存在</text>
+
+  <path d="M600 215 L600 260" class="arrow"/>
+
+  <!-- Open source -->
+  <rect x="245" y="260" width="710" height="105" class="box"/>
+  <text x="600" y="296" text-anchor="middle" class="text">1、打開來源 Library / Cell</text>
+  <text x="600" y="327" text-anchor="middle" class="small">File / Library Manager → 開啟 source lib 的 source cell layout</text>
+  <text x="600" y="350" text-anchor="middle" class="note">例：Lib_A / nmos_unit / layout</text>
+
+  <path d="M600 365 L600 415" class="arrow"/>
+
+  <!-- Select diffusion -->
+  <rect x="245" y="415" width="710" height="115" class="box"/>
+  <text x="600" y="452" text-anchor="middle" class="text">2、選取要複製的元件</text>
+  <text x="600" y="484" text-anchor="middle" class="small">用滑鼠框選 DIFF / PO1 / CONT / Metal / Pin Text</text>
+  <text x="600" y="508" text-anchor="middle" class="note">若要整個 cell：可用 Ctrl + A 全選</text>
+
+  <path d="M600 530 L600 580" class="arrow"/>
+
+  <!-- Copy -->
+  <rect x="245" y="580" width="710" height="105" class="box"/>
+  <text x="600" y="618" text-anchor="middle" class="text">3、複製選取物件</text>
+  <text x="600" y="650" text-anchor="middle" class="small">按快捷鍵 c，或使用 Edit → Copy</text>
+  <text x="600" y="673" text-anchor="middle" class="note">Laker 快捷鍵：c = Copy selected object(s)</text>
+
+  <path d="M600 685 L600 735" class="arrow"/>
+
+  <!-- Open target -->
+  <rect x="245" y="735" width="710" height="110" class="box"/>
+  <text x="600" y="773" text-anchor="middle" class="text">4、切換或打開目標 Library / Cell</text>
+  <text x="600" y="805" text-anchor="middle" class="small">開啟 target lib 的 target cell layout</text>
+  <text x="600" y="828" text-anchor="middle" class="note">例：Lib_B / nand / layout</text>
+
+  <path d="M600 845 L600 895" class="arrow"/>
+
+  <!-- Paste -->
+  <rect x="245" y="895" width="710" height="115" class="box"/>
+  <text x="600" y="932" text-anchor="middle" class="text">5、貼上並放置元件</text>
+  <text x="600" y="964" text-anchor="middle" class="small">Edit → Paste，或依畫面提示在 layout 上點選放置位置</text>
+  <text x="600" y="988" text-anchor="middle" class="note">貼上後可用 m 移動、a 對齊、d 量距離</text>
+
+  <path d="M600 1010 L600 1060" class="arrow"/>
+
+  <!-- Decision -->
+  <polygon points="600,1060 845,1155 600,1250 355,1155" class="decision"/>
+  <text x="600" y="1138" text-anchor="middle" class="text">6、Pin / Layer / 尺寸</text>
+  <text x="600" y="1168" text-anchor="middle" class="text">是否正確？</text>
+
+  <!-- No branch -->
+  <path d="M355 1155 L165 1155 L165 895 L245 895" class="arrow"/>
+  <text x="190" y="1135" class="label">No：返回修正</text>
+
+  <!-- Yes branch -->
+  <path d="M600 1250 L600 1300" class="arrow"/>
+  <text x="625" y="1280" class="label">Yes</text>
+
+  <!-- Save and verify -->
+  <rect x="245" y="1300" width="710" height="120" class="warn"/>
+  <text x="600" y="1338" text-anchor="middle" class="text">7、Save 並重新驗證</text>
+  <text x="600" y="1370" text-anchor="middle" class="small">File → Save</text>
+  <text x="600" y="1395" text-anchor="middle" class="small">重新跑 DRC → LVS → 必要時 PEX</text>
+
+  <path d="M600 1420 L600 1460" class="arrow"/>
+
+  <!-- End -->
+  <rect x="300" y="1460" width="600" height="70" class="startend"/>
+  <text x="600" y="1503" text-anchor="middle" class="text">完成：元件已複製到另一個 Lib/Cell</text>
+
+  <!-- Side notes -->
+  <rect x="35" y="260" width="175" height="350" rx="18" fill="#f3f4f6" stroke="#9ca3af" stroke-width="2"/>
+  <text x="122" y="295" text-anchor="middle" class="small" font-weight="700">注意</text>
+  <text x="55" y="330" class="note">• DIFF 是 diffusion</text>
+  <text x="55" y="360" class="note">• PO1 是 gate</text>
+  <text x="55" y="390" class="note">• CONT 接 Metal1</text>
+  <text x="55" y="420" class="note">• pin name 要一致</text>
+  <text x="55" y="450" class="note">• vdd! / gnd! 不要打錯</text>
+  <text x="55" y="480" class="note">• 貼上後要重跑 DRC</text>
+  <text x="55" y="510" class="note">• LVS 要檢查</text>
+
+  <rect x="990" y="735" width="175" height="285" rx="18" fill="#eff6ff" stroke="#60a5fa" stroke-width="2"/>
+  <text x="1077" y="770" text-anchor="middle" class="small" font-weight="700">常用快捷鍵</text>
+  <text x="1010" y="805" class="note">c：Copy</text>
+  <text x="1010" y="835" class="note">m：Move</text>
+  <text x="1010" y="865" class="note">a：Align</text>
+  <text x="1010" y="895" class="note">d：Measure</text>
+  <text x="1010" y="925" class="note">r：Rectangle</text>
+  <text x="1010" y="955" class="note">i：Instance</text>
+  <text x="1010" y="985" class="note">l：Create Text</text>
+</svg>

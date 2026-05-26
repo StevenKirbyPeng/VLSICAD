@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Half-Adder 製作流程｜Lab11 Laker DFF 多頁報告</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/script.js"></script>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+<h1>Lab11 Laker DFF 多頁報告</h1>
+<div class="meta">Laker｜Half-Adder｜DFF｜Layer｜DRC/LVS/PEX｜HSPICE</div>
+<nav class="nav"><a  href="index.html">總覽</a>
+<a  href="laker_manual.html">Laker 操作手冊</a>
+<a  href="dff_flow.html">DFF 製作流程</a>
+<a class=active href="half_adder_flow.html">Half-Adder 製作流程</a>
+<a  href="layers.html">Layer 與 DRC 規格</a>
+<a  href="hotkeys.html">Hot Key 完整表</a>
+<a  href="layout_analysis.html">DFF 版圖與 ME4 分析</a>
+<a  href="verification.html">DRC/LVS/PEX/HSPICE</a>
+<a  href="report_checklist.html">報告與繳交檢查表</a>
+<a  href="sources.html">資料來源與截圖</a></nav>
+</aside>
+<main class="main">
+
+<section class="hero">
+<h2>Half-Adder 製作流程與規格說明</h2>
+<p>新增本頁專門整理 Half-Adder 的電路功能、Laker layout 製作流程、使用 layer、DRC/LVS/PEX/HSPICE 驗證與報告截圖要求。</p>
+</section>
+
+<div class="card">
+<h2>一、Half-Adder 功能與腳位</h2>
+<p>Half-Adder 可執行兩個 1-bit 二進位數相加。輸入為 A、B；輸出為 S 與 Cout。</p>
+<table><thead><tr><th>訊號</th><th>類型</th><th>功能</th><th>邏輯關係</th></tr></thead><tbody><tr><td>A</td><td>Input</td><td>加數輸入 A</td><td>送入 XOR 與 AND</td></tr><tr><td>B</td><td>Input</td><td>加數輸入 B</td><td>送入 XOR 與 AND</td></tr><tr><td>S</td><td>Output</td><td>Sum 輸出</td><td>S = A ⊕ B</td></tr><tr><td>Cout</td><td>Output</td><td>Carry 輸出</td><td>Cout = A · B</td></tr><tr><td>vdd</td><td>Power</td><td>1.8V 電源</td><td>接 PMOS source / well tap</td></tr><tr><td>gnd</td><td>Power</td><td>0V 接地</td><td>接 NMOS source / substrate tap</td></tr></tbody></table>
+<div class="figure"><img src="assets/images/Lab11_1__p4.png" alt="Lab11 投影片：Half-Adder，S=A⊕B、Cout=A·B"><div class="figcap">Lab11 投影片：Half-Adder，S=A⊕B、Cout=A·B</div></div>
+</div>
+
+<div class="card">
+<h2>二、Half-Adder Laker 製作流程 SVG</h2>
+<div class="figure"><object data="assets/svg/half_adder_laker_flowchart.svg" type="image/svg+xml"></object><div class="figcap">Half-Adder 在 Laker 中的製作流程</div></div>
+</div>
+
+<div class="card">
+<h2>三、建議電路實作方式</h2>
+<table>
+<thead><tr><th>區塊</th><th>功能</th><th>可用結構</th><th>Layout 注意事項</th></tr></thead>
+<tbody>
+<tr><td>XOR</td><td>產生 S</td><td>依作業允許的 XOR transistor 結構，或由 NAND/INV 組合</td><td>XOR 最容易接錯，A/B 與反相信號要明確標示</td></tr>
+<tr><td>AND</td><td>產生 Cout</td><td>NAND2 + INV</td><td>NAND 輸出再接 inverter，才是 AND</td></tr>
+<tr><td>INV</td><td>產生反相信號</td><td>1 PMOS + 1 NMOS</td><td>PMOS 在 NWELL，NMOS 在下方 active</td></tr>
+<tr><td>Power rail</td><td>供電</td><td>VDD 上方、GND 下方</td><td>建議 rail 連續，減少繞線</td></tr>
+</tbody>
+</table>
+<div class="note">若老師或 TA 指定 XOR 的實作架構，必須依指定架構。若沒有指定，使用 NAND/INV 組合較容易做 LVS 與除錯，但面積可能較大。</div>
+</div>
+
+<div class="card">
+<h2>四、Half-Adder 使用 Layer 與規格</h2>
+<table>
+<thead><tr><th>Layer</th><th>用途</th><th>規格 / 限制</th><th>Half-Adder 注意事項</th></tr></thead>
+<tbody>
+<tr><td>DIFF</td><td>PMOS/NMOS Source、Drain</td><td>DIFF-DIFF ≥ 0.3 µm</td><td>XOR/AND 內的 active 區要避免太近</td></tr>
+<tr><td>PO1</td><td>MOS Gate</td><td>PO1 超出 DIFF ≥ 0.2 µm</td><td>A、B、Abar、Bbar gate 要接對</td></tr>
+<tr><td>PIMP</td><td>PMOS implant</td><td>PIMP-DIFF ≥ 0.1 µm；PIMP-PIMP ≥ 0.45 µm</td><td>PMOS active 必須完整包覆</td></tr>
+<tr><td>NIMP</td><td>NMOS implant</td><td>NIMP-DIFF ≥ 0.1 µm；NIMP-NIMP ≥ 0.45 µm</td><td>NMOS active 必須完整包覆</td></tr>
+<tr><td>NWELL</td><td>PMOS well</td><td>NWELL-NWELL ≥ 1.6 µm</td><td>盡量把 PMOS 放在同一個 well 內以省面積</td></tr>
+<tr><td>CONT</td><td>DIFF/PO1 接 ME1</td><td>圖例約 0.23 × 0.23 µm；完整看 rule.drc</td><td>少 CONT 會造成 LVS open</td></tr>
+<tr><td>ME1</td><td>局部連線</td><td>ME1-ME1 ≥ 0.24 µm</td><td>source/drain 局部互連、接 VDD/GND</td></tr>
+<tr><td>ME2</td><td>跨線 routing</td><td>ME2-ME2 ≥ 0.27 µm</td><td>A/B 同時送 XOR 與 AND 時可用 ME2 避免交錯</td></tr>
+<tr><td>ME3/ME4</td><td>長距離或跨區 routing</td><td>完整規格看 rule.drc</td><td>Half-Adder 通常 ME3 已足夠，ME4 可選用</td></tr>
+<tr><td>VIA1/VIA2/VIA3</td><td>金屬層跨接</td><td>完整尺寸與 enclosure 看 rule.drc</td><td>跨層後要確認真的接到同一 net</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="card">
+<h2>五、Truth Table 與 WaveView 驗證</h2>
+<table>
+<thead><tr><th>A</th><th>B</th><th>S = A⊕B</th><th>Cout = A·B</th><th>WaveView 判斷</th></tr></thead>
+<tbody>
+<tr><td>0</td><td>0</td><td>0</td><td>0</td><td>S、Cout 都低</td></tr>
+<tr><td>0</td><td>1</td><td>1</td><td>0</td><td>S 高，Cout 低</td></tr>
+<tr><td>1</td><td>0</td><td>1</td><td>0</td><td>S 高，Cout 低</td></tr>
+<tr><td>1</td><td>1</td><td>0</td><td>1</td><td>S 低，Cout 高</td></tr>
+</tbody>
+</table>
+<div class="ok">WaveView 截圖至少放 A、B、S、Cout。Post-sim 可接受有 propagation delay，但邏輯狀態必須符合真值表。</div>
+</div>
+
+<div class="card">
+<h2>六、Half-Adder layout 檢查清單</h2>
+<table>
+<thead><tr><th>#</th><th>檢查項目</th><th>目的</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>A、B pin 與 SPICE 一致</td><td>避免 port mismatch</td></tr>
+<tr><td>2</td><td>S、Cout 沒接反</td><td>避免波形錯誤</td></tr>
+<tr><td>3</td><td>XOR 與 AND 都接到同一組 A/B</td><td>避免功能不一致</td></tr>
+<tr><td>4</td><td>PMOS 在 NWELL，body 接 VDD</td><td>避免 well/body 問題</td></tr>
+<tr><td>5</td><td>NMOS body/substrate 接 GND</td><td>避免 floating body</td></tr>
+<tr><td>6</td><td>DIFF、PO1、PIMP、NIMP 符合 spacing/extension</td><td>DRC pass</td></tr>
+<tr><td>7</td><td>CONT 與 VIA chain 完整</td><td>LVS 不 open</td></tr>
+<tr><td>8</td><td>DRC pass、LVS correct、PEX 成功</td><td>完成後模擬</td></tr>
+<tr><td>9</td><td>Layout 截圖標長寬並計算面積</td><td>符合報告要求</td></tr>
+<tr><td>10</td><td>Pre-sim / Post-sim 比較</td><td>說明寄生效應影響</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="footer">Generated multi-HTML report package｜Open index.html</div>
+</main>
+</div>
+</body>
+</html>
