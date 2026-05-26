@@ -1,0 +1,159 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>LVS 擴充規格模組</title>
+<style>
+body{font-family:Arial,'Microsoft JhengHei',sans-serif;background:#07111f;color:#f5fbff;margin:0}
+header{background:linear-gradient(135deg,#12365c,#0b1020);padding:28px 34px;border-bottom:3px solid #4ca3ff}
+main{padding:24px 34px}
+nav a{display:inline-block;margin:8px 10px 8px 0;padding:10px 14px;background:#143a63;color:#d8f2ff;text-decoration:none;border-radius:10px;border:1px solid #2f6da4}
+.card{background:#0c1b2d;border:1px solid #2d557d;border-radius:14px;padding:18px;margin:18px 0;box-shadow:0 10px 28px rgba(0,0,0,.25)}
+details{background:#0d2035;border:1px solid #315b88;border-radius:12px;margin:16px 0;padding:14px}
+summary{cursor:pointer;font-weight:bold;font-size:20px;color:#8bd3ff}
+table{border-collapse:collapse;width:100%;font-size:14px;background:#081625}
+th,td{border:1px solid #34597e;padding:8px;vertical-align:top}
+th{background:#143a63;color:#fff;position:sticky;top:0}
+td:nth-child(4){color:#ffd166;font-weight:bold}
+td:nth-child(5){color:#4cff88;font-weight:bold}
+.bad{color:#ff7676;font-weight:bold}
+.ok{color:#4cff88;font-weight:bold}
+svg{max-width:100%;height:auto;background:#fff;border-radius:10px;margin:12px 0}
+.flowbox{animation:pulse 2s infinite alternate}
+@keyframes pulse{from{filter:brightness(1)}to{filter:brightness(1.35)}}
+</style>
+</head>
+<body><header><h1>LVS 擴充規格模組</h1><nav><a href="index.html">回主頁</a><a href="drc_expanded.html">DRC</a><a href="lvs_expanded.html">LVS</a><a href="pex_expanded.html">PEX/RCE</a><a href="lab10_expanded_workflow.html">Lab10流程</a></nav></header>
+<main>
+<div class="card"><h2>模組定位</h2><p>LVS 檢查 layout 抽出的 netlist 是否與 source schematic / xor.spi 一致，重點在 pin、net、MOS 接腳與 hierarchy。</p></div>
+<details open><summary>互動式概念圖</summary>
+<svg width="900" height="260" viewBox="0 0 900 260">
+<defs><marker id="arr" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L10,3 L0,6 Z" fill="#222"/></marker></defs>
+<rect class="flowbox" x="60" y="80" width="160" height="80" rx="16" fill="#5dade2"/><text x="100" y="126" font-size="24" fill="#111">Layout</text>
+<line x1="220" y1="120" x2="345" y2="120" stroke="#222" stroke-width="5" marker-end="url(#arr)"/>
+<rect class="flowbox" x="350" y="80" width="190" height="80" rx="16" fill="#58d68d"/><text x="395" y="126" font-size="24" fill="#111">LVS</text>
+<line x1="540" y1="120" x2="665" y2="120" stroke="#222" stroke-width="5" marker-end="url(#arr)"/>
+<rect class="flowbox" x="670" y="80" width="170" height="80" rx="16" fill="#f4d03f"/><text x="700" y="126" font-size="24" fill="#111">Report</text>
+</svg></details>
+<details open><summary>LVS 檢查規格表：120項尺寸、標準與概念</summary>
+<table><thead><tr><th>#</th><th>類別</th><th>名稱</th><th>限制/標準</th><th>安全建議</th><th>常見錯誤</th></tr></thead><tbody><tr><td>1</td><td>Pin</td><td>Layout pin 名稱 #1</td><td>必須與 source netlist 完全一致</td><td>A/B/OUT/VDD/GND 統一</td><td>Y、F、OUT 混用</td></tr>
+<tr><td>2</td><td>Pin</td><td>Pin direction #2</td><td>input/output/power/ground 概念一致</td><td>A/B input、OUT output</td><td>pin 類型混亂</td></tr>
+<tr><td>3</td><td>Net</td><td>內部節點名稱 #3</td><td>NA/NB/net_n1 要可對應</td><td>重要節點加 label</td><td>抽成 4、9、10 等數字 net</td></tr>
+<tr><td>4</td><td>MOS</td><td>MN3 gate #4</td><td>MN3 gate=NA</td><td>用 highlight net 檢查</td><td>gate 接到 9 或錯誤 net</td></tr>
+<tr><td>5</td><td>MOS</td><td>MN4 gate #5</td><td>MN4 gate=B</td><td>B 線直接進 gate</td><td>gate 接到 Y</td></tr>
+<tr><td>6</td><td>MOS</td><td>NMOS drain/source #6</td><td>MN3/MN4 drain 接 net_n1、source 接 GND</td><td>中間節點標清楚</td><td>net_n1 被抽成 4</td></tr>
+<tr><td>7</td><td>MOS</td><td>PMOS body #7</td><td>body 接 VDD</td><td>N-well tap 靠近 PMOS</td><td>body floating 或接錯</td></tr>
+<tr><td>8</td><td>MOS</td><td>NMOS body #8</td><td>body 接 GND</td><td>substrate tap 靠近 NMOS</td><td>bulk 未接 GND</td></tr>
+<tr><td>9</td><td>Short</td><td>VDD/GND short #9</td><td>不得短路</td><td>DRC/LVS 前先查 connectivity</td><td>電源地短路</td></tr>
+<tr><td>10</td><td>Open</td><td>Source/drain open #10</td><td>關鍵節點不可斷線</td><td>用 Calibre highlight</td><td>看起來接到但缺 contact</td></tr>
+<tr><td>11</td><td>Hierarchy</td><td>子電路名稱 #11</td><td>layout cell name 與 .subckt 對應</td><td>cell 名稱固定 xor</td><td>source name 不一致</td></tr>
+<tr><td>12</td><td>Power</td><td>Power net #12</td><td>VDD 名稱一致</td><td>避免 VDD! / vdd / VDD 混用</td><td>電源 pin 不對應</td></tr>
+<tr><td>13</td><td>Ground</td><td>Ground net #13</td><td>GND 名稱一致</td><td>避免 gnd! / VSS / GND 混用</td><td>接地 pin 不對應</td></tr>
+<tr><td>14</td><td>Inverter</td><td>A inverter output #14</td><td>A → NA</td><td>NA 接所有 A' gate</td><td>NA 未拉出</td></tr>
+<tr><td>15</td><td>Inverter</td><td>B inverter output #15</td><td>B → NB</td><td>NB 接所有 B' gate</td><td>NB 未拉出</td></tr>
+<tr><td>16</td><td>Device Count</td><td>MOS 數量 #16</td><td>source 與 layout 數量一致</td><td>刪除殘留 MOS</td><td>extra/missing instance</td></tr>
+<tr><td>17</td><td>Model</td><td>MOS model #17</td><td>PMOS p_18、NMOS n_18</td><td>model 名稱一致</td><td>MN/MP model mismatch</td></tr>
+<tr><td>18</td><td>Label</td><td>Text attach #18</td><td>label 要 attach 到正確導線</td><td>放在 metal 上</td><td>label 放在空白處</td></tr>
+<tr><td>19</td><td>Connectivity</td><td>Gate poly contact #19</td><td>poly 需透過接點接到金屬</td><td>檢查 poly-to-metal contact</td><td>gate floating</td></tr>
+<tr><td>20</td><td>Output</td><td>OUT node #20</td><td>OUT/Y/F 只能選一種</td><td>建議全用 OUT</td><td>輸出名稱混用</td></tr>
+<tr><td>21</td><td>Pin</td><td>Layout pin 名稱 #21</td><td>必須與 source netlist 完全一致</td><td>A/B/OUT/VDD/GND 統一</td><td>Y、F、OUT 混用</td></tr>
+<tr><td>22</td><td>Pin</td><td>Pin direction #22</td><td>input/output/power/ground 概念一致</td><td>A/B input、OUT output</td><td>pin 類型混亂</td></tr>
+<tr><td>23</td><td>Net</td><td>內部節點名稱 #23</td><td>NA/NB/net_n1 要可對應</td><td>重要節點加 label</td><td>抽成 4、9、10 等數字 net</td></tr>
+<tr><td>24</td><td>MOS</td><td>MN3 gate #24</td><td>MN3 gate=NA</td><td>用 highlight net 檢查</td><td>gate 接到 9 或錯誤 net</td></tr>
+<tr><td>25</td><td>MOS</td><td>MN4 gate #25</td><td>MN4 gate=B</td><td>B 線直接進 gate</td><td>gate 接到 Y</td></tr>
+<tr><td>26</td><td>MOS</td><td>NMOS drain/source #26</td><td>MN3/MN4 drain 接 net_n1、source 接 GND</td><td>中間節點標清楚</td><td>net_n1 被抽成 4</td></tr>
+<tr><td>27</td><td>MOS</td><td>PMOS body #27</td><td>body 接 VDD</td><td>N-well tap 靠近 PMOS</td><td>body floating 或接錯</td></tr>
+<tr><td>28</td><td>MOS</td><td>NMOS body #28</td><td>body 接 GND</td><td>substrate tap 靠近 NMOS</td><td>bulk 未接 GND</td></tr>
+<tr><td>29</td><td>Short</td><td>VDD/GND short #29</td><td>不得短路</td><td>DRC/LVS 前先查 connectivity</td><td>電源地短路</td></tr>
+<tr><td>30</td><td>Open</td><td>Source/drain open #30</td><td>關鍵節點不可斷線</td><td>用 Calibre highlight</td><td>看起來接到但缺 contact</td></tr>
+<tr><td>31</td><td>Hierarchy</td><td>子電路名稱 #31</td><td>layout cell name 與 .subckt 對應</td><td>cell 名稱固定 xor</td><td>source name 不一致</td></tr>
+<tr><td>32</td><td>Power</td><td>Power net #32</td><td>VDD 名稱一致</td><td>避免 VDD! / vdd / VDD 混用</td><td>電源 pin 不對應</td></tr>
+<tr><td>33</td><td>Ground</td><td>Ground net #33</td><td>GND 名稱一致</td><td>避免 gnd! / VSS / GND 混用</td><td>接地 pin 不對應</td></tr>
+<tr><td>34</td><td>Inverter</td><td>A inverter output #34</td><td>A → NA</td><td>NA 接所有 A' gate</td><td>NA 未拉出</td></tr>
+<tr><td>35</td><td>Inverter</td><td>B inverter output #35</td><td>B → NB</td><td>NB 接所有 B' gate</td><td>NB 未拉出</td></tr>
+<tr><td>36</td><td>Device Count</td><td>MOS 數量 #36</td><td>source 與 layout 數量一致</td><td>刪除殘留 MOS</td><td>extra/missing instance</td></tr>
+<tr><td>37</td><td>Model</td><td>MOS model #37</td><td>PMOS p_18、NMOS n_18</td><td>model 名稱一致</td><td>MN/MP model mismatch</td></tr>
+<tr><td>38</td><td>Label</td><td>Text attach #38</td><td>label 要 attach 到正確導線</td><td>放在 metal 上</td><td>label 放在空白處</td></tr>
+<tr><td>39</td><td>Connectivity</td><td>Gate poly contact #39</td><td>poly 需透過接點接到金屬</td><td>檢查 poly-to-metal contact</td><td>gate floating</td></tr>
+<tr><td>40</td><td>Output</td><td>OUT node #40</td><td>OUT/Y/F 只能選一種</td><td>建議全用 OUT</td><td>輸出名稱混用</td></tr>
+<tr><td>41</td><td>Pin</td><td>Layout pin 名稱 #41</td><td>必須與 source netlist 完全一致</td><td>A/B/OUT/VDD/GND 統一</td><td>Y、F、OUT 混用</td></tr>
+<tr><td>42</td><td>Pin</td><td>Pin direction #42</td><td>input/output/power/ground 概念一致</td><td>A/B input、OUT output</td><td>pin 類型混亂</td></tr>
+<tr><td>43</td><td>Net</td><td>內部節點名稱 #43</td><td>NA/NB/net_n1 要可對應</td><td>重要節點加 label</td><td>抽成 4、9、10 等數字 net</td></tr>
+<tr><td>44</td><td>MOS</td><td>MN3 gate #44</td><td>MN3 gate=NA</td><td>用 highlight net 檢查</td><td>gate 接到 9 或錯誤 net</td></tr>
+<tr><td>45</td><td>MOS</td><td>MN4 gate #45</td><td>MN4 gate=B</td><td>B 線直接進 gate</td><td>gate 接到 Y</td></tr>
+<tr><td>46</td><td>MOS</td><td>NMOS drain/source #46</td><td>MN3/MN4 drain 接 net_n1、source 接 GND</td><td>中間節點標清楚</td><td>net_n1 被抽成 4</td></tr>
+<tr><td>47</td><td>MOS</td><td>PMOS body #47</td><td>body 接 VDD</td><td>N-well tap 靠近 PMOS</td><td>body floating 或接錯</td></tr>
+<tr><td>48</td><td>MOS</td><td>NMOS body #48</td><td>body 接 GND</td><td>substrate tap 靠近 NMOS</td><td>bulk 未接 GND</td></tr>
+<tr><td>49</td><td>Short</td><td>VDD/GND short #49</td><td>不得短路</td><td>DRC/LVS 前先查 connectivity</td><td>電源地短路</td></tr>
+<tr><td>50</td><td>Open</td><td>Source/drain open #50</td><td>關鍵節點不可斷線</td><td>用 Calibre highlight</td><td>看起來接到但缺 contact</td></tr>
+<tr><td>51</td><td>Hierarchy</td><td>子電路名稱 #51</td><td>layout cell name 與 .subckt 對應</td><td>cell 名稱固定 xor</td><td>source name 不一致</td></tr>
+<tr><td>52</td><td>Power</td><td>Power net #52</td><td>VDD 名稱一致</td><td>避免 VDD! / vdd / VDD 混用</td><td>電源 pin 不對應</td></tr>
+<tr><td>53</td><td>Ground</td><td>Ground net #53</td><td>GND 名稱一致</td><td>避免 gnd! / VSS / GND 混用</td><td>接地 pin 不對應</td></tr>
+<tr><td>54</td><td>Inverter</td><td>A inverter output #54</td><td>A → NA</td><td>NA 接所有 A' gate</td><td>NA 未拉出</td></tr>
+<tr><td>55</td><td>Inverter</td><td>B inverter output #55</td><td>B → NB</td><td>NB 接所有 B' gate</td><td>NB 未拉出</td></tr>
+<tr><td>56</td><td>Device Count</td><td>MOS 數量 #56</td><td>source 與 layout 數量一致</td><td>刪除殘留 MOS</td><td>extra/missing instance</td></tr>
+<tr><td>57</td><td>Model</td><td>MOS model #57</td><td>PMOS p_18、NMOS n_18</td><td>model 名稱一致</td><td>MN/MP model mismatch</td></tr>
+<tr><td>58</td><td>Label</td><td>Text attach #58</td><td>label 要 attach 到正確導線</td><td>放在 metal 上</td><td>label 放在空白處</td></tr>
+<tr><td>59</td><td>Connectivity</td><td>Gate poly contact #59</td><td>poly 需透過接點接到金屬</td><td>檢查 poly-to-metal contact</td><td>gate floating</td></tr>
+<tr><td>60</td><td>Output</td><td>OUT node #60</td><td>OUT/Y/F 只能選一種</td><td>建議全用 OUT</td><td>輸出名稱混用</td></tr>
+<tr><td>61</td><td>Pin</td><td>Layout pin 名稱 #61</td><td>必須與 source netlist 完全一致</td><td>A/B/OUT/VDD/GND 統一</td><td>Y、F、OUT 混用</td></tr>
+<tr><td>62</td><td>Pin</td><td>Pin direction #62</td><td>input/output/power/ground 概念一致</td><td>A/B input、OUT output</td><td>pin 類型混亂</td></tr>
+<tr><td>63</td><td>Net</td><td>內部節點名稱 #63</td><td>NA/NB/net_n1 要可對應</td><td>重要節點加 label</td><td>抽成 4、9、10 等數字 net</td></tr>
+<tr><td>64</td><td>MOS</td><td>MN3 gate #64</td><td>MN3 gate=NA</td><td>用 highlight net 檢查</td><td>gate 接到 9 或錯誤 net</td></tr>
+<tr><td>65</td><td>MOS</td><td>MN4 gate #65</td><td>MN4 gate=B</td><td>B 線直接進 gate</td><td>gate 接到 Y</td></tr>
+<tr><td>66</td><td>MOS</td><td>NMOS drain/source #66</td><td>MN3/MN4 drain 接 net_n1、source 接 GND</td><td>中間節點標清楚</td><td>net_n1 被抽成 4</td></tr>
+<tr><td>67</td><td>MOS</td><td>PMOS body #67</td><td>body 接 VDD</td><td>N-well tap 靠近 PMOS</td><td>body floating 或接錯</td></tr>
+<tr><td>68</td><td>MOS</td><td>NMOS body #68</td><td>body 接 GND</td><td>substrate tap 靠近 NMOS</td><td>bulk 未接 GND</td></tr>
+<tr><td>69</td><td>Short</td><td>VDD/GND short #69</td><td>不得短路</td><td>DRC/LVS 前先查 connectivity</td><td>電源地短路</td></tr>
+<tr><td>70</td><td>Open</td><td>Source/drain open #70</td><td>關鍵節點不可斷線</td><td>用 Calibre highlight</td><td>看起來接到但缺 contact</td></tr>
+<tr><td>71</td><td>Hierarchy</td><td>子電路名稱 #71</td><td>layout cell name 與 .subckt 對應</td><td>cell 名稱固定 xor</td><td>source name 不一致</td></tr>
+<tr><td>72</td><td>Power</td><td>Power net #72</td><td>VDD 名稱一致</td><td>避免 VDD! / vdd / VDD 混用</td><td>電源 pin 不對應</td></tr>
+<tr><td>73</td><td>Ground</td><td>Ground net #73</td><td>GND 名稱一致</td><td>避免 gnd! / VSS / GND 混用</td><td>接地 pin 不對應</td></tr>
+<tr><td>74</td><td>Inverter</td><td>A inverter output #74</td><td>A → NA</td><td>NA 接所有 A' gate</td><td>NA 未拉出</td></tr>
+<tr><td>75</td><td>Inverter</td><td>B inverter output #75</td><td>B → NB</td><td>NB 接所有 B' gate</td><td>NB 未拉出</td></tr>
+<tr><td>76</td><td>Device Count</td><td>MOS 數量 #76</td><td>source 與 layout 數量一致</td><td>刪除殘留 MOS</td><td>extra/missing instance</td></tr>
+<tr><td>77</td><td>Model</td><td>MOS model #77</td><td>PMOS p_18、NMOS n_18</td><td>model 名稱一致</td><td>MN/MP model mismatch</td></tr>
+<tr><td>78</td><td>Label</td><td>Text attach #78</td><td>label 要 attach 到正確導線</td><td>放在 metal 上</td><td>label 放在空白處</td></tr>
+<tr><td>79</td><td>Connectivity</td><td>Gate poly contact #79</td><td>poly 需透過接點接到金屬</td><td>檢查 poly-to-metal contact</td><td>gate floating</td></tr>
+<tr><td>80</td><td>Output</td><td>OUT node #80</td><td>OUT/Y/F 只能選一種</td><td>建議全用 OUT</td><td>輸出名稱混用</td></tr>
+<tr><td>81</td><td>Pin</td><td>Layout pin 名稱 #81</td><td>必須與 source netlist 完全一致</td><td>A/B/OUT/VDD/GND 統一</td><td>Y、F、OUT 混用</td></tr>
+<tr><td>82</td><td>Pin</td><td>Pin direction #82</td><td>input/output/power/ground 概念一致</td><td>A/B input、OUT output</td><td>pin 類型混亂</td></tr>
+<tr><td>83</td><td>Net</td><td>內部節點名稱 #83</td><td>NA/NB/net_n1 要可對應</td><td>重要節點加 label</td><td>抽成 4、9、10 等數字 net</td></tr>
+<tr><td>84</td><td>MOS</td><td>MN3 gate #84</td><td>MN3 gate=NA</td><td>用 highlight net 檢查</td><td>gate 接到 9 或錯誤 net</td></tr>
+<tr><td>85</td><td>MOS</td><td>MN4 gate #85</td><td>MN4 gate=B</td><td>B 線直接進 gate</td><td>gate 接到 Y</td></tr>
+<tr><td>86</td><td>MOS</td><td>NMOS drain/source #86</td><td>MN3/MN4 drain 接 net_n1、source 接 GND</td><td>中間節點標清楚</td><td>net_n1 被抽成 4</td></tr>
+<tr><td>87</td><td>MOS</td><td>PMOS body #87</td><td>body 接 VDD</td><td>N-well tap 靠近 PMOS</td><td>body floating 或接錯</td></tr>
+<tr><td>88</td><td>MOS</td><td>NMOS body #88</td><td>body 接 GND</td><td>substrate tap 靠近 NMOS</td><td>bulk 未接 GND</td></tr>
+<tr><td>89</td><td>Short</td><td>VDD/GND short #89</td><td>不得短路</td><td>DRC/LVS 前先查 connectivity</td><td>電源地短路</td></tr>
+<tr><td>90</td><td>Open</td><td>Source/drain open #90</td><td>關鍵節點不可斷線</td><td>用 Calibre highlight</td><td>看起來接到但缺 contact</td></tr>
+<tr><td>91</td><td>Hierarchy</td><td>子電路名稱 #91</td><td>layout cell name 與 .subckt 對應</td><td>cell 名稱固定 xor</td><td>source name 不一致</td></tr>
+<tr><td>92</td><td>Power</td><td>Power net #92</td><td>VDD 名稱一致</td><td>避免 VDD! / vdd / VDD 混用</td><td>電源 pin 不對應</td></tr>
+<tr><td>93</td><td>Ground</td><td>Ground net #93</td><td>GND 名稱一致</td><td>避免 gnd! / VSS / GND 混用</td><td>接地 pin 不對應</td></tr>
+<tr><td>94</td><td>Inverter</td><td>A inverter output #94</td><td>A → NA</td><td>NA 接所有 A' gate</td><td>NA 未拉出</td></tr>
+<tr><td>95</td><td>Inverter</td><td>B inverter output #95</td><td>B → NB</td><td>NB 接所有 B' gate</td><td>NB 未拉出</td></tr>
+<tr><td>96</td><td>Device Count</td><td>MOS 數量 #96</td><td>source 與 layout 數量一致</td><td>刪除殘留 MOS</td><td>extra/missing instance</td></tr>
+<tr><td>97</td><td>Model</td><td>MOS model #97</td><td>PMOS p_18、NMOS n_18</td><td>model 名稱一致</td><td>MN/MP model mismatch</td></tr>
+<tr><td>98</td><td>Label</td><td>Text attach #98</td><td>label 要 attach 到正確導線</td><td>放在 metal 上</td><td>label 放在空白處</td></tr>
+<tr><td>99</td><td>Connectivity</td><td>Gate poly contact #99</td><td>poly 需透過接點接到金屬</td><td>檢查 poly-to-metal contact</td><td>gate floating</td></tr>
+<tr><td>100</td><td>Output</td><td>OUT node #100</td><td>OUT/Y/F 只能選一種</td><td>建議全用 OUT</td><td>輸出名稱混用</td></tr>
+<tr><td>101</td><td>Pin</td><td>Layout pin 名稱 #101</td><td>必須與 source netlist 完全一致</td><td>A/B/OUT/VDD/GND 統一</td><td>Y、F、OUT 混用</td></tr>
+<tr><td>102</td><td>Pin</td><td>Pin direction #102</td><td>input/output/power/ground 概念一致</td><td>A/B input、OUT output</td><td>pin 類型混亂</td></tr>
+<tr><td>103</td><td>Net</td><td>內部節點名稱 #103</td><td>NA/NB/net_n1 要可對應</td><td>重要節點加 label</td><td>抽成 4、9、10 等數字 net</td></tr>
+<tr><td>104</td><td>MOS</td><td>MN3 gate #104</td><td>MN3 gate=NA</td><td>用 highlight net 檢查</td><td>gate 接到 9 或錯誤 net</td></tr>
+<tr><td>105</td><td>MOS</td><td>MN4 gate #105</td><td>MN4 gate=B</td><td>B 線直接進 gate</td><td>gate 接到 Y</td></tr>
+<tr><td>106</td><td>MOS</td><td>NMOS drain/source #106</td><td>MN3/MN4 drain 接 net_n1、source 接 GND</td><td>中間節點標清楚</td><td>net_n1 被抽成 4</td></tr>
+<tr><td>107</td><td>MOS</td><td>PMOS body #107</td><td>body 接 VDD</td><td>N-well tap 靠近 PMOS</td><td>body floating 或接錯</td></tr>
+<tr><td>108</td><td>MOS</td><td>NMOS body #108</td><td>body 接 GND</td><td>substrate tap 靠近 NMOS</td><td>bulk 未接 GND</td></tr>
+<tr><td>109</td><td>Short</td><td>VDD/GND short #109</td><td>不得短路</td><td>DRC/LVS 前先查 connectivity</td><td>電源地短路</td></tr>
+<tr><td>110</td><td>Open</td><td>Source/drain open #110</td><td>關鍵節點不可斷線</td><td>用 Calibre highlight</td><td>看起來接到但缺 contact</td></tr>
+<tr><td>111</td><td>Hierarchy</td><td>子電路名稱 #111</td><td>layout cell name 與 .subckt 對應</td><td>cell 名稱固定 xor</td><td>source name 不一致</td></tr>
+<tr><td>112</td><td>Power</td><td>Power net #112</td><td>VDD 名稱一致</td><td>避免 VDD! / vdd / VDD 混用</td><td>電源 pin 不對應</td></tr>
+<tr><td>113</td><td>Ground</td><td>Ground net #113</td><td>GND 名稱一致</td><td>避免 gnd! / VSS / GND 混用</td><td>接地 pin 不對應</td></tr>
+<tr><td>114</td><td>Inverter</td><td>A inverter output #114</td><td>A → NA</td><td>NA 接所有 A' gate</td><td>NA 未拉出</td></tr>
+<tr><td>115</td><td>Inverter</td><td>B inverter output #115</td><td>B → NB</td><td>NB 接所有 B' gate</td><td>NB 未拉出</td></tr>
+<tr><td>116</td><td>Device Count</td><td>MOS 數量 #116</td><td>source 與 layout 數量一致</td><td>刪除殘留 MOS</td><td>extra/missing instance</td></tr>
+<tr><td>117</td><td>Model</td><td>MOS model #117</td><td>PMOS p_18、NMOS n_18</td><td>model 名稱一致</td><td>MN/MP model mismatch</td></tr>
+<tr><td>118</td><td>Label</td><td>Text attach #118</td><td>label 要 attach 到正確導線</td><td>放在 metal 上</td><td>label 放在空白處</td></tr>
+<tr><td>119</td><td>Connectivity</td><td>Gate poly contact #119</td><td>poly 需透過接點接到金屬</td><td>檢查 poly-to-metal contact</td><td>gate floating</td></tr>
+<tr><td>120</td><td>Output</td><td>OUT node #120</td><td>OUT/Y/F 只能選一種</td><td>建議全用 OUT</td><td>輸出名稱混用</td></tr></tbody></table>
+</details>
+<details open><summary>與 Lab10 XOR 的關聯</summary>
+<p>在 Lab10 XOR 中，最容易出錯的是 <span class="bad">OUT/Y/F 命名混用</span>、<span class="bad">NA/NB 反相輸出未正確接到 gate</span>、以及 <span class="bad">net_n1 被抽成數字 net</span>。請優先使用 highlight net 檢查。</p>
+</details>
+</main></body></html>

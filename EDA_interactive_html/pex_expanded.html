@@ -1,0 +1,159 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>PEX / RCE 擴充規格模組</title>
+<style>
+body{font-family:Arial,'Microsoft JhengHei',sans-serif;background:#07111f;color:#f5fbff;margin:0}
+header{background:linear-gradient(135deg,#12365c,#0b1020);padding:28px 34px;border-bottom:3px solid #4ca3ff}
+main{padding:24px 34px}
+nav a{display:inline-block;margin:8px 10px 8px 0;padding:10px 14px;background:#143a63;color:#d8f2ff;text-decoration:none;border-radius:10px;border:1px solid #2f6da4}
+.card{background:#0c1b2d;border:1px solid #2d557d;border-radius:14px;padding:18px;margin:18px 0;box-shadow:0 10px 28px rgba(0,0,0,.25)}
+details{background:#0d2035;border:1px solid #315b88;border-radius:12px;margin:16px 0;padding:14px}
+summary{cursor:pointer;font-weight:bold;font-size:20px;color:#8bd3ff}
+table{border-collapse:collapse;width:100%;font-size:14px;background:#081625}
+th,td{border:1px solid #34597e;padding:8px;vertical-align:top}
+th{background:#143a63;color:#fff;position:sticky;top:0}
+td:nth-child(4){color:#ffd166;font-weight:bold}
+td:nth-child(5){color:#4cff88;font-weight:bold}
+.bad{color:#ff7676;font-weight:bold}
+.ok{color:#4cff88;font-weight:bold}
+svg{max-width:100%;height:auto;background:#fff;border-radius:10px;margin:12px 0}
+.flowbox{animation:pulse 2s infinite alternate}
+@keyframes pulse{from{filter:brightness(1)}to{filter:brightness(1.35)}}
+</style>
+</head>
+<body><header><h1>PEX / RCE 擴充規格模組</h1><nav><a href="index.html">回主頁</a><a href="drc_expanded.html">DRC</a><a href="lvs_expanded.html">LVS</a><a href="pex_expanded.html">PEX/RCE</a><a href="lab10_expanded_workflow.html">Lab10流程</a></nav></header>
+<main>
+<div class="card"><h2>模組定位</h2><p>PEX/RCE 萃取寄生 R/C，用於 post-sim。重點在 metal、via、diffusion、poly、coupling capacitance 與 delay 比較。</p></div>
+<details open><summary>互動式概念圖</summary>
+<svg width="900" height="260" viewBox="0 0 900 260">
+<defs><marker id="arr" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L10,3 L0,6 Z" fill="#222"/></marker></defs>
+<rect class="flowbox" x="60" y="80" width="160" height="80" rx="16" fill="#5dade2"/><text x="100" y="126" font-size="24" fill="#111">Layout</text>
+<line x1="220" y1="120" x2="345" y2="120" stroke="#222" stroke-width="5" marker-end="url(#arr)"/>
+<rect class="flowbox" x="350" y="80" width="190" height="80" rx="16" fill="#58d68d"/><text x="395" y="126" font-size="24" fill="#111">PEX</text>
+<line x1="540" y1="120" x2="665" y2="120" stroke="#222" stroke-width="5" marker-end="url(#arr)"/>
+<rect class="flowbox" x="670" y="80" width="170" height="80" rx="16" fill="#f4d03f"/><text x="700" y="126" font-size="24" fill="#111">Report</text>
+</svg></details>
+<details open><summary>PEX 檢查規格表：120項尺寸、標準與概念</summary>
+<table><thead><tr><th>#</th><th>類別</th><th>名稱</th><th>限制/標準</th><th>安全建議</th><th>常見錯誤</th></tr></thead><tbody><tr><td>1</td><td>Resistance</td><td>Metal resistance #1</td><td>由 metal 長度/寬度決定</td><td>關鍵輸出線加寬縮短</td><td>OUT delay 變大</td></tr>
+<tr><td>2</td><td>Capacitance</td><td>Diffusion capacitance #2</td><td>source/drain 面積越大 C 越大</td><td>共享 diffusion 減少面積</td><td>rise/fall 變慢</td></tr>
+<tr><td>3</td><td>Coupling</td><td>Metal coupling C #3</td><td>相鄰線太長會耦合</td><td>敏感線拉開</td><td>glitch/noise</td></tr>
+<tr><td>4</td><td>ViaRC</td><td>Via resistance #4</td><td>via 越少 R 越大</td><td>大電流路徑用 via array</td><td>IR drop / delay</td></tr>
+<tr><td>5</td><td>PolyRC</td><td>Poly resistance #5</td><td>poly 不適合長距離走線</td><td>gate 用 poly，訊號用 metal</td><td>gate delay 變大</td></tr>
+<tr><td>6</td><td>PostSim</td><td>Pre/Post delay #6</td><td>post-sim 通常比 pre-sim 慢</td><td>比較 50% crossing</td><td>未加入正確 pex</td></tr>
+<tr><td>7</td><td>Extraction</td><td>PEX netlist #7</td><td>產生 .pex.netlist/.pex/.pxi</td><td>確認檔案完整</td><td>缺檔造成 post-sim fail</td></tr>
+<tr><td>8</td><td>Substrate</td><td>Substrate capacitance #8</td><td>metal 對 substrate 有 C</td><td>減少長線與大面積</td><td>負載增加</td></tr>
+<tr><td>9</td><td>Naming</td><td>PEX node mapping #9</td><td>節點需可追蹤</td><td>保留重要 net name</td><td>全是數字 net 難分析</td></tr>
+<tr><td>10</td><td>Model</td><td>RC corner #10</td><td>Rule_08KA/20KA 參數差異</td><td>確認使用課程指定 rc</td><td>RC corner 用錯</td></tr>
+<tr><td>11</td><td>ME1</td><td>ME1 RC #11</td><td>低層金屬 RC 較明顯</td><td>短線局部互連</td><td>local routing 太長</td></tr>
+<tr><td>12</td><td>ME2</td><td>ME2 RC #12</td><td>跨區走線使用較高金屬</td><td>訊號線避免繞太遠</td><td>線路過長</td></tr>
+<tr><td>13</td><td>Contact</td><td>Contact RC #13</td><td>contact 數量影響 R</td><td>關鍵節點多 contact</td><td>單 contact 電阻大</td></tr>
+<tr><td>14</td><td>OutputLoad</td><td>OUT 負載 #14</td><td>OUT 節點 RC 影響最大</td><td>減少 diffusion/metal 面積</td><td>OUT 邊緣變鈍</td></tr>
+<tr><td>15</td><td>Glitch</td><td>瞬態尖峰 #15</td><td>coupling 與切換不同步造成</td><td>調整 routing 與 stimulus</td><td>post-sim 出現 spike</td></tr>
+<tr><td>16</td><td>Delay</td><td>Propagation delay #16</td><td>由 R*C 決定</td><td>縮短 critical path</td><td>delay 過大</td></tr>
+<tr><td>17</td><td>Comparison</td><td>Pre/Post 比較 #17</td><td>邏輯相同、時序不同</td><td>表格列出 delay</td><td>只截圖沒說明</td></tr>
+<tr><td>18</td><td>Power</td><td>Power RC #18</td><td>VDD/GND 線有阻抗</td><td>加寬 power rail</td><td>電源壓降</td></tr>
+<tr><td>19</td><td>Verification</td><td>PEX 前提 #19</td><td>DRC/LVS clean 才可信</td><td>先修 LVS</td><td>LVS fail 仍 post-sim</td></tr>
+<tr><td>20</td><td>Report</td><td>Post-sim 報告 #20</td><td>附 job concluded + waveform</td><td>標出 delay 差異</td><td>缺少比較文字</td></tr>
+<tr><td>21</td><td>Resistance</td><td>Metal resistance #21</td><td>由 metal 長度/寬度決定</td><td>關鍵輸出線加寬縮短</td><td>OUT delay 變大</td></tr>
+<tr><td>22</td><td>Capacitance</td><td>Diffusion capacitance #22</td><td>source/drain 面積越大 C 越大</td><td>共享 diffusion 減少面積</td><td>rise/fall 變慢</td></tr>
+<tr><td>23</td><td>Coupling</td><td>Metal coupling C #23</td><td>相鄰線太長會耦合</td><td>敏感線拉開</td><td>glitch/noise</td></tr>
+<tr><td>24</td><td>ViaRC</td><td>Via resistance #24</td><td>via 越少 R 越大</td><td>大電流路徑用 via array</td><td>IR drop / delay</td></tr>
+<tr><td>25</td><td>PolyRC</td><td>Poly resistance #25</td><td>poly 不適合長距離走線</td><td>gate 用 poly，訊號用 metal</td><td>gate delay 變大</td></tr>
+<tr><td>26</td><td>PostSim</td><td>Pre/Post delay #26</td><td>post-sim 通常比 pre-sim 慢</td><td>比較 50% crossing</td><td>未加入正確 pex</td></tr>
+<tr><td>27</td><td>Extraction</td><td>PEX netlist #27</td><td>產生 .pex.netlist/.pex/.pxi</td><td>確認檔案完整</td><td>缺檔造成 post-sim fail</td></tr>
+<tr><td>28</td><td>Substrate</td><td>Substrate capacitance #28</td><td>metal 對 substrate 有 C</td><td>減少長線與大面積</td><td>負載增加</td></tr>
+<tr><td>29</td><td>Naming</td><td>PEX node mapping #29</td><td>節點需可追蹤</td><td>保留重要 net name</td><td>全是數字 net 難分析</td></tr>
+<tr><td>30</td><td>Model</td><td>RC corner #30</td><td>Rule_08KA/20KA 參數差異</td><td>確認使用課程指定 rc</td><td>RC corner 用錯</td></tr>
+<tr><td>31</td><td>ME1</td><td>ME1 RC #31</td><td>低層金屬 RC 較明顯</td><td>短線局部互連</td><td>local routing 太長</td></tr>
+<tr><td>32</td><td>ME2</td><td>ME2 RC #32</td><td>跨區走線使用較高金屬</td><td>訊號線避免繞太遠</td><td>線路過長</td></tr>
+<tr><td>33</td><td>Contact</td><td>Contact RC #33</td><td>contact 數量影響 R</td><td>關鍵節點多 contact</td><td>單 contact 電阻大</td></tr>
+<tr><td>34</td><td>OutputLoad</td><td>OUT 負載 #34</td><td>OUT 節點 RC 影響最大</td><td>減少 diffusion/metal 面積</td><td>OUT 邊緣變鈍</td></tr>
+<tr><td>35</td><td>Glitch</td><td>瞬態尖峰 #35</td><td>coupling 與切換不同步造成</td><td>調整 routing 與 stimulus</td><td>post-sim 出現 spike</td></tr>
+<tr><td>36</td><td>Delay</td><td>Propagation delay #36</td><td>由 R*C 決定</td><td>縮短 critical path</td><td>delay 過大</td></tr>
+<tr><td>37</td><td>Comparison</td><td>Pre/Post 比較 #37</td><td>邏輯相同、時序不同</td><td>表格列出 delay</td><td>只截圖沒說明</td></tr>
+<tr><td>38</td><td>Power</td><td>Power RC #38</td><td>VDD/GND 線有阻抗</td><td>加寬 power rail</td><td>電源壓降</td></tr>
+<tr><td>39</td><td>Verification</td><td>PEX 前提 #39</td><td>DRC/LVS clean 才可信</td><td>先修 LVS</td><td>LVS fail 仍 post-sim</td></tr>
+<tr><td>40</td><td>Report</td><td>Post-sim 報告 #40</td><td>附 job concluded + waveform</td><td>標出 delay 差異</td><td>缺少比較文字</td></tr>
+<tr><td>41</td><td>Resistance</td><td>Metal resistance #41</td><td>由 metal 長度/寬度決定</td><td>關鍵輸出線加寬縮短</td><td>OUT delay 變大</td></tr>
+<tr><td>42</td><td>Capacitance</td><td>Diffusion capacitance #42</td><td>source/drain 面積越大 C 越大</td><td>共享 diffusion 減少面積</td><td>rise/fall 變慢</td></tr>
+<tr><td>43</td><td>Coupling</td><td>Metal coupling C #43</td><td>相鄰線太長會耦合</td><td>敏感線拉開</td><td>glitch/noise</td></tr>
+<tr><td>44</td><td>ViaRC</td><td>Via resistance #44</td><td>via 越少 R 越大</td><td>大電流路徑用 via array</td><td>IR drop / delay</td></tr>
+<tr><td>45</td><td>PolyRC</td><td>Poly resistance #45</td><td>poly 不適合長距離走線</td><td>gate 用 poly，訊號用 metal</td><td>gate delay 變大</td></tr>
+<tr><td>46</td><td>PostSim</td><td>Pre/Post delay #46</td><td>post-sim 通常比 pre-sim 慢</td><td>比較 50% crossing</td><td>未加入正確 pex</td></tr>
+<tr><td>47</td><td>Extraction</td><td>PEX netlist #47</td><td>產生 .pex.netlist/.pex/.pxi</td><td>確認檔案完整</td><td>缺檔造成 post-sim fail</td></tr>
+<tr><td>48</td><td>Substrate</td><td>Substrate capacitance #48</td><td>metal 對 substrate 有 C</td><td>減少長線與大面積</td><td>負載增加</td></tr>
+<tr><td>49</td><td>Naming</td><td>PEX node mapping #49</td><td>節點需可追蹤</td><td>保留重要 net name</td><td>全是數字 net 難分析</td></tr>
+<tr><td>50</td><td>Model</td><td>RC corner #50</td><td>Rule_08KA/20KA 參數差異</td><td>確認使用課程指定 rc</td><td>RC corner 用錯</td></tr>
+<tr><td>51</td><td>ME1</td><td>ME1 RC #51</td><td>低層金屬 RC 較明顯</td><td>短線局部互連</td><td>local routing 太長</td></tr>
+<tr><td>52</td><td>ME2</td><td>ME2 RC #52</td><td>跨區走線使用較高金屬</td><td>訊號線避免繞太遠</td><td>線路過長</td></tr>
+<tr><td>53</td><td>Contact</td><td>Contact RC #53</td><td>contact 數量影響 R</td><td>關鍵節點多 contact</td><td>單 contact 電阻大</td></tr>
+<tr><td>54</td><td>OutputLoad</td><td>OUT 負載 #54</td><td>OUT 節點 RC 影響最大</td><td>減少 diffusion/metal 面積</td><td>OUT 邊緣變鈍</td></tr>
+<tr><td>55</td><td>Glitch</td><td>瞬態尖峰 #55</td><td>coupling 與切換不同步造成</td><td>調整 routing 與 stimulus</td><td>post-sim 出現 spike</td></tr>
+<tr><td>56</td><td>Delay</td><td>Propagation delay #56</td><td>由 R*C 決定</td><td>縮短 critical path</td><td>delay 過大</td></tr>
+<tr><td>57</td><td>Comparison</td><td>Pre/Post 比較 #57</td><td>邏輯相同、時序不同</td><td>表格列出 delay</td><td>只截圖沒說明</td></tr>
+<tr><td>58</td><td>Power</td><td>Power RC #58</td><td>VDD/GND 線有阻抗</td><td>加寬 power rail</td><td>電源壓降</td></tr>
+<tr><td>59</td><td>Verification</td><td>PEX 前提 #59</td><td>DRC/LVS clean 才可信</td><td>先修 LVS</td><td>LVS fail 仍 post-sim</td></tr>
+<tr><td>60</td><td>Report</td><td>Post-sim 報告 #60</td><td>附 job concluded + waveform</td><td>標出 delay 差異</td><td>缺少比較文字</td></tr>
+<tr><td>61</td><td>Resistance</td><td>Metal resistance #61</td><td>由 metal 長度/寬度決定</td><td>關鍵輸出線加寬縮短</td><td>OUT delay 變大</td></tr>
+<tr><td>62</td><td>Capacitance</td><td>Diffusion capacitance #62</td><td>source/drain 面積越大 C 越大</td><td>共享 diffusion 減少面積</td><td>rise/fall 變慢</td></tr>
+<tr><td>63</td><td>Coupling</td><td>Metal coupling C #63</td><td>相鄰線太長會耦合</td><td>敏感線拉開</td><td>glitch/noise</td></tr>
+<tr><td>64</td><td>ViaRC</td><td>Via resistance #64</td><td>via 越少 R 越大</td><td>大電流路徑用 via array</td><td>IR drop / delay</td></tr>
+<tr><td>65</td><td>PolyRC</td><td>Poly resistance #65</td><td>poly 不適合長距離走線</td><td>gate 用 poly，訊號用 metal</td><td>gate delay 變大</td></tr>
+<tr><td>66</td><td>PostSim</td><td>Pre/Post delay #66</td><td>post-sim 通常比 pre-sim 慢</td><td>比較 50% crossing</td><td>未加入正確 pex</td></tr>
+<tr><td>67</td><td>Extraction</td><td>PEX netlist #67</td><td>產生 .pex.netlist/.pex/.pxi</td><td>確認檔案完整</td><td>缺檔造成 post-sim fail</td></tr>
+<tr><td>68</td><td>Substrate</td><td>Substrate capacitance #68</td><td>metal 對 substrate 有 C</td><td>減少長線與大面積</td><td>負載增加</td></tr>
+<tr><td>69</td><td>Naming</td><td>PEX node mapping #69</td><td>節點需可追蹤</td><td>保留重要 net name</td><td>全是數字 net 難分析</td></tr>
+<tr><td>70</td><td>Model</td><td>RC corner #70</td><td>Rule_08KA/20KA 參數差異</td><td>確認使用課程指定 rc</td><td>RC corner 用錯</td></tr>
+<tr><td>71</td><td>ME1</td><td>ME1 RC #71</td><td>低層金屬 RC 較明顯</td><td>短線局部互連</td><td>local routing 太長</td></tr>
+<tr><td>72</td><td>ME2</td><td>ME2 RC #72</td><td>跨區走線使用較高金屬</td><td>訊號線避免繞太遠</td><td>線路過長</td></tr>
+<tr><td>73</td><td>Contact</td><td>Contact RC #73</td><td>contact 數量影響 R</td><td>關鍵節點多 contact</td><td>單 contact 電阻大</td></tr>
+<tr><td>74</td><td>OutputLoad</td><td>OUT 負載 #74</td><td>OUT 節點 RC 影響最大</td><td>減少 diffusion/metal 面積</td><td>OUT 邊緣變鈍</td></tr>
+<tr><td>75</td><td>Glitch</td><td>瞬態尖峰 #75</td><td>coupling 與切換不同步造成</td><td>調整 routing 與 stimulus</td><td>post-sim 出現 spike</td></tr>
+<tr><td>76</td><td>Delay</td><td>Propagation delay #76</td><td>由 R*C 決定</td><td>縮短 critical path</td><td>delay 過大</td></tr>
+<tr><td>77</td><td>Comparison</td><td>Pre/Post 比較 #77</td><td>邏輯相同、時序不同</td><td>表格列出 delay</td><td>只截圖沒說明</td></tr>
+<tr><td>78</td><td>Power</td><td>Power RC #78</td><td>VDD/GND 線有阻抗</td><td>加寬 power rail</td><td>電源壓降</td></tr>
+<tr><td>79</td><td>Verification</td><td>PEX 前提 #79</td><td>DRC/LVS clean 才可信</td><td>先修 LVS</td><td>LVS fail 仍 post-sim</td></tr>
+<tr><td>80</td><td>Report</td><td>Post-sim 報告 #80</td><td>附 job concluded + waveform</td><td>標出 delay 差異</td><td>缺少比較文字</td></tr>
+<tr><td>81</td><td>Resistance</td><td>Metal resistance #81</td><td>由 metal 長度/寬度決定</td><td>關鍵輸出線加寬縮短</td><td>OUT delay 變大</td></tr>
+<tr><td>82</td><td>Capacitance</td><td>Diffusion capacitance #82</td><td>source/drain 面積越大 C 越大</td><td>共享 diffusion 減少面積</td><td>rise/fall 變慢</td></tr>
+<tr><td>83</td><td>Coupling</td><td>Metal coupling C #83</td><td>相鄰線太長會耦合</td><td>敏感線拉開</td><td>glitch/noise</td></tr>
+<tr><td>84</td><td>ViaRC</td><td>Via resistance #84</td><td>via 越少 R 越大</td><td>大電流路徑用 via array</td><td>IR drop / delay</td></tr>
+<tr><td>85</td><td>PolyRC</td><td>Poly resistance #85</td><td>poly 不適合長距離走線</td><td>gate 用 poly，訊號用 metal</td><td>gate delay 變大</td></tr>
+<tr><td>86</td><td>PostSim</td><td>Pre/Post delay #86</td><td>post-sim 通常比 pre-sim 慢</td><td>比較 50% crossing</td><td>未加入正確 pex</td></tr>
+<tr><td>87</td><td>Extraction</td><td>PEX netlist #87</td><td>產生 .pex.netlist/.pex/.pxi</td><td>確認檔案完整</td><td>缺檔造成 post-sim fail</td></tr>
+<tr><td>88</td><td>Substrate</td><td>Substrate capacitance #88</td><td>metal 對 substrate 有 C</td><td>減少長線與大面積</td><td>負載增加</td></tr>
+<tr><td>89</td><td>Naming</td><td>PEX node mapping #89</td><td>節點需可追蹤</td><td>保留重要 net name</td><td>全是數字 net 難分析</td></tr>
+<tr><td>90</td><td>Model</td><td>RC corner #90</td><td>Rule_08KA/20KA 參數差異</td><td>確認使用課程指定 rc</td><td>RC corner 用錯</td></tr>
+<tr><td>91</td><td>ME1</td><td>ME1 RC #91</td><td>低層金屬 RC 較明顯</td><td>短線局部互連</td><td>local routing 太長</td></tr>
+<tr><td>92</td><td>ME2</td><td>ME2 RC #92</td><td>跨區走線使用較高金屬</td><td>訊號線避免繞太遠</td><td>線路過長</td></tr>
+<tr><td>93</td><td>Contact</td><td>Contact RC #93</td><td>contact 數量影響 R</td><td>關鍵節點多 contact</td><td>單 contact 電阻大</td></tr>
+<tr><td>94</td><td>OutputLoad</td><td>OUT 負載 #94</td><td>OUT 節點 RC 影響最大</td><td>減少 diffusion/metal 面積</td><td>OUT 邊緣變鈍</td></tr>
+<tr><td>95</td><td>Glitch</td><td>瞬態尖峰 #95</td><td>coupling 與切換不同步造成</td><td>調整 routing 與 stimulus</td><td>post-sim 出現 spike</td></tr>
+<tr><td>96</td><td>Delay</td><td>Propagation delay #96</td><td>由 R*C 決定</td><td>縮短 critical path</td><td>delay 過大</td></tr>
+<tr><td>97</td><td>Comparison</td><td>Pre/Post 比較 #97</td><td>邏輯相同、時序不同</td><td>表格列出 delay</td><td>只截圖沒說明</td></tr>
+<tr><td>98</td><td>Power</td><td>Power RC #98</td><td>VDD/GND 線有阻抗</td><td>加寬 power rail</td><td>電源壓降</td></tr>
+<tr><td>99</td><td>Verification</td><td>PEX 前提 #99</td><td>DRC/LVS clean 才可信</td><td>先修 LVS</td><td>LVS fail 仍 post-sim</td></tr>
+<tr><td>100</td><td>Report</td><td>Post-sim 報告 #100</td><td>附 job concluded + waveform</td><td>標出 delay 差異</td><td>缺少比較文字</td></tr>
+<tr><td>101</td><td>Resistance</td><td>Metal resistance #101</td><td>由 metal 長度/寬度決定</td><td>關鍵輸出線加寬縮短</td><td>OUT delay 變大</td></tr>
+<tr><td>102</td><td>Capacitance</td><td>Diffusion capacitance #102</td><td>source/drain 面積越大 C 越大</td><td>共享 diffusion 減少面積</td><td>rise/fall 變慢</td></tr>
+<tr><td>103</td><td>Coupling</td><td>Metal coupling C #103</td><td>相鄰線太長會耦合</td><td>敏感線拉開</td><td>glitch/noise</td></tr>
+<tr><td>104</td><td>ViaRC</td><td>Via resistance #104</td><td>via 越少 R 越大</td><td>大電流路徑用 via array</td><td>IR drop / delay</td></tr>
+<tr><td>105</td><td>PolyRC</td><td>Poly resistance #105</td><td>poly 不適合長距離走線</td><td>gate 用 poly，訊號用 metal</td><td>gate delay 變大</td></tr>
+<tr><td>106</td><td>PostSim</td><td>Pre/Post delay #106</td><td>post-sim 通常比 pre-sim 慢</td><td>比較 50% crossing</td><td>未加入正確 pex</td></tr>
+<tr><td>107</td><td>Extraction</td><td>PEX netlist #107</td><td>產生 .pex.netlist/.pex/.pxi</td><td>確認檔案完整</td><td>缺檔造成 post-sim fail</td></tr>
+<tr><td>108</td><td>Substrate</td><td>Substrate capacitance #108</td><td>metal 對 substrate 有 C</td><td>減少長線與大面積</td><td>負載增加</td></tr>
+<tr><td>109</td><td>Naming</td><td>PEX node mapping #109</td><td>節點需可追蹤</td><td>保留重要 net name</td><td>全是數字 net 難分析</td></tr>
+<tr><td>110</td><td>Model</td><td>RC corner #110</td><td>Rule_08KA/20KA 參數差異</td><td>確認使用課程指定 rc</td><td>RC corner 用錯</td></tr>
+<tr><td>111</td><td>ME1</td><td>ME1 RC #111</td><td>低層金屬 RC 較明顯</td><td>短線局部互連</td><td>local routing 太長</td></tr>
+<tr><td>112</td><td>ME2</td><td>ME2 RC #112</td><td>跨區走線使用較高金屬</td><td>訊號線避免繞太遠</td><td>線路過長</td></tr>
+<tr><td>113</td><td>Contact</td><td>Contact RC #113</td><td>contact 數量影響 R</td><td>關鍵節點多 contact</td><td>單 contact 電阻大</td></tr>
+<tr><td>114</td><td>OutputLoad</td><td>OUT 負載 #114</td><td>OUT 節點 RC 影響最大</td><td>減少 diffusion/metal 面積</td><td>OUT 邊緣變鈍</td></tr>
+<tr><td>115</td><td>Glitch</td><td>瞬態尖峰 #115</td><td>coupling 與切換不同步造成</td><td>調整 routing 與 stimulus</td><td>post-sim 出現 spike</td></tr>
+<tr><td>116</td><td>Delay</td><td>Propagation delay #116</td><td>由 R*C 決定</td><td>縮短 critical path</td><td>delay 過大</td></tr>
+<tr><td>117</td><td>Comparison</td><td>Pre/Post 比較 #117</td><td>邏輯相同、時序不同</td><td>表格列出 delay</td><td>只截圖沒說明</td></tr>
+<tr><td>118</td><td>Power</td><td>Power RC #118</td><td>VDD/GND 線有阻抗</td><td>加寬 power rail</td><td>電源壓降</td></tr>
+<tr><td>119</td><td>Verification</td><td>PEX 前提 #119</td><td>DRC/LVS clean 才可信</td><td>先修 LVS</td><td>LVS fail 仍 post-sim</td></tr>
+<tr><td>120</td><td>Report</td><td>Post-sim 報告 #120</td><td>附 job concluded + waveform</td><td>標出 delay 差異</td><td>缺少比較文字</td></tr></tbody></table>
+</details>
+<details open><summary>與 Lab10 XOR 的關聯</summary>
+<p>在 Lab10 XOR 中，最容易出錯的是 <span class="bad">OUT/Y/F 命名混用</span>、<span class="bad">NA/NB 反相輸出未正確接到 gate</span>、以及 <span class="bad">net_n1 被抽成數字 net</span>。請優先使用 highlight net 檢查。</p>
+</details>
+</main></body></html>

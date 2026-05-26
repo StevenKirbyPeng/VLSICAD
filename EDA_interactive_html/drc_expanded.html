@@ -1,0 +1,159 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>DRC 擴充規格模組</title>
+<style>
+body{font-family:Arial,'Microsoft JhengHei',sans-serif;background:#07111f;color:#f5fbff;margin:0}
+header{background:linear-gradient(135deg,#12365c,#0b1020);padding:28px 34px;border-bottom:3px solid #4ca3ff}
+main{padding:24px 34px}
+nav a{display:inline-block;margin:8px 10px 8px 0;padding:10px 14px;background:#143a63;color:#d8f2ff;text-decoration:none;border-radius:10px;border:1px solid #2f6da4}
+.card{background:#0c1b2d;border:1px solid #2d557d;border-radius:14px;padding:18px;margin:18px 0;box-shadow:0 10px 28px rgba(0,0,0,.25)}
+details{background:#0d2035;border:1px solid #315b88;border-radius:12px;margin:16px 0;padding:14px}
+summary{cursor:pointer;font-weight:bold;font-size:20px;color:#8bd3ff}
+table{border-collapse:collapse;width:100%;font-size:14px;background:#081625}
+th,td{border:1px solid #34597e;padding:8px;vertical-align:top}
+th{background:#143a63;color:#fff;position:sticky;top:0}
+td:nth-child(4){color:#ffd166;font-weight:bold}
+td:nth-child(5){color:#4cff88;font-weight:bold}
+.bad{color:#ff7676;font-weight:bold}
+.ok{color:#4cff88;font-weight:bold}
+svg{max-width:100%;height:auto;background:#fff;border-radius:10px;margin:12px 0}
+.flowbox{animation:pulse 2s infinite alternate}
+@keyframes pulse{from{filter:brightness(1)}to{filter:brightness(1.35)}}
+</style>
+</head>
+<body><header><h1>DRC 擴充規格模組</h1><nav><a href="index.html">回主頁</a><a href="drc_expanded.html">DRC</a><a href="lvs_expanded.html">LVS</a><a href="pex_expanded.html">PEX/RCE</a><a href="lab10_expanded_workflow.html">Lab10流程</a></nav></header>
+<main>
+<div class="card"><h2>模組定位</h2><p>DRC 檢查 layout 幾何尺寸是否符合製程規則，例如 width、spacing、enclosure、overlap、well/implant 等。</p></div>
+<details open><summary>互動式概念圖</summary>
+<svg width="900" height="260" viewBox="0 0 900 260">
+<defs><marker id="arr" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L10,3 L0,6 Z" fill="#222"/></marker></defs>
+<rect class="flowbox" x="60" y="80" width="160" height="80" rx="16" fill="#5dade2"/><text x="100" y="126" font-size="24" fill="#111">Layout</text>
+<line x1="220" y1="120" x2="345" y2="120" stroke="#222" stroke-width="5" marker-end="url(#arr)"/>
+<rect class="flowbox" x="350" y="80" width="190" height="80" rx="16" fill="#58d68d"/><text x="395" y="126" font-size="24" fill="#111">DRC</text>
+<line x1="540" y1="120" x2="665" y2="120" stroke="#222" stroke-width="5" marker-end="url(#arr)"/>
+<rect class="flowbox" x="670" y="80" width="170" height="80" rx="16" fill="#f4d03f"/><text x="700" y="126" font-size="24" fill="#111">Report</text>
+</svg></details>
+<details open><summary>DRC 檢查規格表：120項尺寸、標準與概念</summary>
+<table><thead><tr><th>#</th><th>類別</th><th>名稱</th><th>限制/標準</th><th>安全建議</th><th>常見錯誤</th></tr></thead><tbody><tr><td>1</td><td>Contact</td><td>CONT 尺寸 #1</td><td>固定 0.23 × 0.23 μm</td><td>用 Contact Tool，不可拉伸</td><td>CONT 被 stretch 成長方形</td></tr>
+<tr><td>2</td><td>Contact</td><td>CONT 到 DIFF 邊界 #2</td><td>≥ 0.12 μm</td><td>0.13~0.15 μm</td><td>Contact 太靠 DIFF 邊</td></tr>
+<tr><td>3</td><td>Contact</td><td>PO1 到 CONT #3</td><td>≥ 0.14 μm</td><td>0.15~0.18 μm</td><td>Gate 太靠 source/drain contact</td></tr>
+<tr><td>4</td><td>Contact</td><td>CONT 與 CONT #4</td><td>約 ≥ 0.25 μm</td><td>≥ 0.25 μm</td><td>Contact array 太密</td></tr>
+<tr><td>5</td><td>Diffusion</td><td>DIFF 最小寬度 #5</td><td>≥ 0.23 μm</td><td>≥ 0.25 μm</td><td>Active 太窄</td></tr>
+<tr><td>6</td><td>Diffusion</td><td>DIFF 與 DIFF 間距 #6</td><td>≥ 0.30 μm</td><td>0.32~0.35 μm</td><td>不同 active 太近</td></tr>
+<tr><td>7</td><td>Poly</td><td>PO1 超出 DIFF #7</td><td>≥ 0.20 μm</td><td>0.22~0.25 μm</td><td>Poly extension 不足</td></tr>
+<tr><td>8</td><td>Poly</td><td>PO1 最小寬度 #8</td><td>約 0.18 μm</td><td>依 MOS L 設計</td><td>Gate 長度錯誤</td></tr>
+<tr><td>9</td><td>Implant</td><td>PIMP/NIMP 到 DIFF #9</td><td>≥ 0.10 μm</td><td>0.10~0.12 μm</td><td>implant 沒包住 DIFF</td></tr>
+<tr><td>10</td><td>Implant</td><td>PIMP 與 NIMP #10</td><td>≥ 0 μm</td><td>可相鄰但避免混亂重疊</td><td>implant 分界不清</td></tr>
+<tr><td>11</td><td>Implant</td><td>PIMP 與 PIMP #11</td><td>≥ 0.45 μm</td><td>≥ 0.45 μm</td><td>同層 implant 太近</td></tr>
+<tr><td>12</td><td>Implant</td><td>NIMP 與 NIMP #12</td><td>≥ 0.45 μm</td><td>≥ 0.45 μm</td><td>同層 implant 太近</td></tr>
+<tr><td>13</td><td>Well</td><td>NWELL 與 NWELL #13</td><td>≥ 1.60 μm</td><td>PMOS 盡量共用同一 NWELL</td><td>分散太多塊 NWELL</td></tr>
+<tr><td>14</td><td>Metal</td><td>ME1 最小寬度 #14</td><td>≥ 0.23 μm</td><td>≥ 0.25 μm</td><td>Metal1 太細</td></tr>
+<tr><td>15</td><td>Metal</td><td>ME1 與 ME1 間距 #15</td><td>≥ 0.24 μm</td><td>≥ 0.26 μm</td><td>Metal1 太近</td></tr>
+<tr><td>16</td><td>Metal</td><td>ME2 最小寬度 #16</td><td>依 rule.drc</td><td>加寬電源線</td><td>Metal2 太細</td></tr>
+<tr><td>17</td><td>Via</td><td>VIA1 尺寸 #17</td><td>固定尺寸</td><td>用 Via Tool</td><td>via 被拉伸</td></tr>
+<tr><td>18</td><td>Via</td><td>VIA1 到 VIA1 #18</td><td>依 rule.drc</td><td>使用合法 array</td><td>via array 太密</td></tr>
+<tr><td>19</td><td>Text</td><td>Pin text layer #19</td><td>必須放在正確 pin/text layer</td><td>ME1_TEXT 或指定 pin layer</td><td>label 放錯層</td></tr>
+<tr><td>20</td><td>GuardRing</td><td>Tap 間距 #20</td><td>依 rule.drc</td><td>well/substrate tap 靠近 MOS</td><td>body floating 風險</td></tr>
+<tr><td>21</td><td>Contact</td><td>CONT 尺寸 #21</td><td>固定 0.23 × 0.23 μm</td><td>用 Contact Tool，不可拉伸</td><td>CONT 被 stretch 成長方形</td></tr>
+<tr><td>22</td><td>Contact</td><td>CONT 到 DIFF 邊界 #22</td><td>≥ 0.12 μm</td><td>0.13~0.15 μm</td><td>Contact 太靠 DIFF 邊</td></tr>
+<tr><td>23</td><td>Contact</td><td>PO1 到 CONT #23</td><td>≥ 0.14 μm</td><td>0.15~0.18 μm</td><td>Gate 太靠 source/drain contact</td></tr>
+<tr><td>24</td><td>Contact</td><td>CONT 與 CONT #24</td><td>約 ≥ 0.25 μm</td><td>≥ 0.25 μm</td><td>Contact array 太密</td></tr>
+<tr><td>25</td><td>Diffusion</td><td>DIFF 最小寬度 #25</td><td>≥ 0.23 μm</td><td>≥ 0.25 μm</td><td>Active 太窄</td></tr>
+<tr><td>26</td><td>Diffusion</td><td>DIFF 與 DIFF 間距 #26</td><td>≥ 0.30 μm</td><td>0.32~0.35 μm</td><td>不同 active 太近</td></tr>
+<tr><td>27</td><td>Poly</td><td>PO1 超出 DIFF #27</td><td>≥ 0.20 μm</td><td>0.22~0.25 μm</td><td>Poly extension 不足</td></tr>
+<tr><td>28</td><td>Poly</td><td>PO1 最小寬度 #28</td><td>約 0.18 μm</td><td>依 MOS L 設計</td><td>Gate 長度錯誤</td></tr>
+<tr><td>29</td><td>Implant</td><td>PIMP/NIMP 到 DIFF #29</td><td>≥ 0.10 μm</td><td>0.10~0.12 μm</td><td>implant 沒包住 DIFF</td></tr>
+<tr><td>30</td><td>Implant</td><td>PIMP 與 NIMP #30</td><td>≥ 0 μm</td><td>可相鄰但避免混亂重疊</td><td>implant 分界不清</td></tr>
+<tr><td>31</td><td>Implant</td><td>PIMP 與 PIMP #31</td><td>≥ 0.45 μm</td><td>≥ 0.45 μm</td><td>同層 implant 太近</td></tr>
+<tr><td>32</td><td>Implant</td><td>NIMP 與 NIMP #32</td><td>≥ 0.45 μm</td><td>≥ 0.45 μm</td><td>同層 implant 太近</td></tr>
+<tr><td>33</td><td>Well</td><td>NWELL 與 NWELL #33</td><td>≥ 1.60 μm</td><td>PMOS 盡量共用同一 NWELL</td><td>分散太多塊 NWELL</td></tr>
+<tr><td>34</td><td>Metal</td><td>ME1 最小寬度 #34</td><td>≥ 0.23 μm</td><td>≥ 0.25 μm</td><td>Metal1 太細</td></tr>
+<tr><td>35</td><td>Metal</td><td>ME1 與 ME1 間距 #35</td><td>≥ 0.24 μm</td><td>≥ 0.26 μm</td><td>Metal1 太近</td></tr>
+<tr><td>36</td><td>Metal</td><td>ME2 最小寬度 #36</td><td>依 rule.drc</td><td>加寬電源線</td><td>Metal2 太細</td></tr>
+<tr><td>37</td><td>Via</td><td>VIA1 尺寸 #37</td><td>固定尺寸</td><td>用 Via Tool</td><td>via 被拉伸</td></tr>
+<tr><td>38</td><td>Via</td><td>VIA1 到 VIA1 #38</td><td>依 rule.drc</td><td>使用合法 array</td><td>via array 太密</td></tr>
+<tr><td>39</td><td>Text</td><td>Pin text layer #39</td><td>必須放在正確 pin/text layer</td><td>ME1_TEXT 或指定 pin layer</td><td>label 放錯層</td></tr>
+<tr><td>40</td><td>GuardRing</td><td>Tap 間距 #40</td><td>依 rule.drc</td><td>well/substrate tap 靠近 MOS</td><td>body floating 風險</td></tr>
+<tr><td>41</td><td>Contact</td><td>CONT 尺寸 #41</td><td>固定 0.23 × 0.23 μm</td><td>用 Contact Tool，不可拉伸</td><td>CONT 被 stretch 成長方形</td></tr>
+<tr><td>42</td><td>Contact</td><td>CONT 到 DIFF 邊界 #42</td><td>≥ 0.12 μm</td><td>0.13~0.15 μm</td><td>Contact 太靠 DIFF 邊</td></tr>
+<tr><td>43</td><td>Contact</td><td>PO1 到 CONT #43</td><td>≥ 0.14 μm</td><td>0.15~0.18 μm</td><td>Gate 太靠 source/drain contact</td></tr>
+<tr><td>44</td><td>Contact</td><td>CONT 與 CONT #44</td><td>約 ≥ 0.25 μm</td><td>≥ 0.25 μm</td><td>Contact array 太密</td></tr>
+<tr><td>45</td><td>Diffusion</td><td>DIFF 最小寬度 #45</td><td>≥ 0.23 μm</td><td>≥ 0.25 μm</td><td>Active 太窄</td></tr>
+<tr><td>46</td><td>Diffusion</td><td>DIFF 與 DIFF 間距 #46</td><td>≥ 0.30 μm</td><td>0.32~0.35 μm</td><td>不同 active 太近</td></tr>
+<tr><td>47</td><td>Poly</td><td>PO1 超出 DIFF #47</td><td>≥ 0.20 μm</td><td>0.22~0.25 μm</td><td>Poly extension 不足</td></tr>
+<tr><td>48</td><td>Poly</td><td>PO1 最小寬度 #48</td><td>約 0.18 μm</td><td>依 MOS L 設計</td><td>Gate 長度錯誤</td></tr>
+<tr><td>49</td><td>Implant</td><td>PIMP/NIMP 到 DIFF #49</td><td>≥ 0.10 μm</td><td>0.10~0.12 μm</td><td>implant 沒包住 DIFF</td></tr>
+<tr><td>50</td><td>Implant</td><td>PIMP 與 NIMP #50</td><td>≥ 0 μm</td><td>可相鄰但避免混亂重疊</td><td>implant 分界不清</td></tr>
+<tr><td>51</td><td>Implant</td><td>PIMP 與 PIMP #51</td><td>≥ 0.45 μm</td><td>≥ 0.45 μm</td><td>同層 implant 太近</td></tr>
+<tr><td>52</td><td>Implant</td><td>NIMP 與 NIMP #52</td><td>≥ 0.45 μm</td><td>≥ 0.45 μm</td><td>同層 implant 太近</td></tr>
+<tr><td>53</td><td>Well</td><td>NWELL 與 NWELL #53</td><td>≥ 1.60 μm</td><td>PMOS 盡量共用同一 NWELL</td><td>分散太多塊 NWELL</td></tr>
+<tr><td>54</td><td>Metal</td><td>ME1 最小寬度 #54</td><td>≥ 0.23 μm</td><td>≥ 0.25 μm</td><td>Metal1 太細</td></tr>
+<tr><td>55</td><td>Metal</td><td>ME1 與 ME1 間距 #55</td><td>≥ 0.24 μm</td><td>≥ 0.26 μm</td><td>Metal1 太近</td></tr>
+<tr><td>56</td><td>Metal</td><td>ME2 最小寬度 #56</td><td>依 rule.drc</td><td>加寬電源線</td><td>Metal2 太細</td></tr>
+<tr><td>57</td><td>Via</td><td>VIA1 尺寸 #57</td><td>固定尺寸</td><td>用 Via Tool</td><td>via 被拉伸</td></tr>
+<tr><td>58</td><td>Via</td><td>VIA1 到 VIA1 #58</td><td>依 rule.drc</td><td>使用合法 array</td><td>via array 太密</td></tr>
+<tr><td>59</td><td>Text</td><td>Pin text layer #59</td><td>必須放在正確 pin/text layer</td><td>ME1_TEXT 或指定 pin layer</td><td>label 放錯層</td></tr>
+<tr><td>60</td><td>GuardRing</td><td>Tap 間距 #60</td><td>依 rule.drc</td><td>well/substrate tap 靠近 MOS</td><td>body floating 風險</td></tr>
+<tr><td>61</td><td>Contact</td><td>CONT 尺寸 #61</td><td>固定 0.23 × 0.23 μm</td><td>用 Contact Tool，不可拉伸</td><td>CONT 被 stretch 成長方形</td></tr>
+<tr><td>62</td><td>Contact</td><td>CONT 到 DIFF 邊界 #62</td><td>≥ 0.12 μm</td><td>0.13~0.15 μm</td><td>Contact 太靠 DIFF 邊</td></tr>
+<tr><td>63</td><td>Contact</td><td>PO1 到 CONT #63</td><td>≥ 0.14 μm</td><td>0.15~0.18 μm</td><td>Gate 太靠 source/drain contact</td></tr>
+<tr><td>64</td><td>Contact</td><td>CONT 與 CONT #64</td><td>約 ≥ 0.25 μm</td><td>≥ 0.25 μm</td><td>Contact array 太密</td></tr>
+<tr><td>65</td><td>Diffusion</td><td>DIFF 最小寬度 #65</td><td>≥ 0.23 μm</td><td>≥ 0.25 μm</td><td>Active 太窄</td></tr>
+<tr><td>66</td><td>Diffusion</td><td>DIFF 與 DIFF 間距 #66</td><td>≥ 0.30 μm</td><td>0.32~0.35 μm</td><td>不同 active 太近</td></tr>
+<tr><td>67</td><td>Poly</td><td>PO1 超出 DIFF #67</td><td>≥ 0.20 μm</td><td>0.22~0.25 μm</td><td>Poly extension 不足</td></tr>
+<tr><td>68</td><td>Poly</td><td>PO1 最小寬度 #68</td><td>約 0.18 μm</td><td>依 MOS L 設計</td><td>Gate 長度錯誤</td></tr>
+<tr><td>69</td><td>Implant</td><td>PIMP/NIMP 到 DIFF #69</td><td>≥ 0.10 μm</td><td>0.10~0.12 μm</td><td>implant 沒包住 DIFF</td></tr>
+<tr><td>70</td><td>Implant</td><td>PIMP 與 NIMP #70</td><td>≥ 0 μm</td><td>可相鄰但避免混亂重疊</td><td>implant 分界不清</td></tr>
+<tr><td>71</td><td>Implant</td><td>PIMP 與 PIMP #71</td><td>≥ 0.45 μm</td><td>≥ 0.45 μm</td><td>同層 implant 太近</td></tr>
+<tr><td>72</td><td>Implant</td><td>NIMP 與 NIMP #72</td><td>≥ 0.45 μm</td><td>≥ 0.45 μm</td><td>同層 implant 太近</td></tr>
+<tr><td>73</td><td>Well</td><td>NWELL 與 NWELL #73</td><td>≥ 1.60 μm</td><td>PMOS 盡量共用同一 NWELL</td><td>分散太多塊 NWELL</td></tr>
+<tr><td>74</td><td>Metal</td><td>ME1 最小寬度 #74</td><td>≥ 0.23 μm</td><td>≥ 0.25 μm</td><td>Metal1 太細</td></tr>
+<tr><td>75</td><td>Metal</td><td>ME1 與 ME1 間距 #75</td><td>≥ 0.24 μm</td><td>≥ 0.26 μm</td><td>Metal1 太近</td></tr>
+<tr><td>76</td><td>Metal</td><td>ME2 最小寬度 #76</td><td>依 rule.drc</td><td>加寬電源線</td><td>Metal2 太細</td></tr>
+<tr><td>77</td><td>Via</td><td>VIA1 尺寸 #77</td><td>固定尺寸</td><td>用 Via Tool</td><td>via 被拉伸</td></tr>
+<tr><td>78</td><td>Via</td><td>VIA1 到 VIA1 #78</td><td>依 rule.drc</td><td>使用合法 array</td><td>via array 太密</td></tr>
+<tr><td>79</td><td>Text</td><td>Pin text layer #79</td><td>必須放在正確 pin/text layer</td><td>ME1_TEXT 或指定 pin layer</td><td>label 放錯層</td></tr>
+<tr><td>80</td><td>GuardRing</td><td>Tap 間距 #80</td><td>依 rule.drc</td><td>well/substrate tap 靠近 MOS</td><td>body floating 風險</td></tr>
+<tr><td>81</td><td>Contact</td><td>CONT 尺寸 #81</td><td>固定 0.23 × 0.23 μm</td><td>用 Contact Tool，不可拉伸</td><td>CONT 被 stretch 成長方形</td></tr>
+<tr><td>82</td><td>Contact</td><td>CONT 到 DIFF 邊界 #82</td><td>≥ 0.12 μm</td><td>0.13~0.15 μm</td><td>Contact 太靠 DIFF 邊</td></tr>
+<tr><td>83</td><td>Contact</td><td>PO1 到 CONT #83</td><td>≥ 0.14 μm</td><td>0.15~0.18 μm</td><td>Gate 太靠 source/drain contact</td></tr>
+<tr><td>84</td><td>Contact</td><td>CONT 與 CONT #84</td><td>約 ≥ 0.25 μm</td><td>≥ 0.25 μm</td><td>Contact array 太密</td></tr>
+<tr><td>85</td><td>Diffusion</td><td>DIFF 最小寬度 #85</td><td>≥ 0.23 μm</td><td>≥ 0.25 μm</td><td>Active 太窄</td></tr>
+<tr><td>86</td><td>Diffusion</td><td>DIFF 與 DIFF 間距 #86</td><td>≥ 0.30 μm</td><td>0.32~0.35 μm</td><td>不同 active 太近</td></tr>
+<tr><td>87</td><td>Poly</td><td>PO1 超出 DIFF #87</td><td>≥ 0.20 μm</td><td>0.22~0.25 μm</td><td>Poly extension 不足</td></tr>
+<tr><td>88</td><td>Poly</td><td>PO1 最小寬度 #88</td><td>約 0.18 μm</td><td>依 MOS L 設計</td><td>Gate 長度錯誤</td></tr>
+<tr><td>89</td><td>Implant</td><td>PIMP/NIMP 到 DIFF #89</td><td>≥ 0.10 μm</td><td>0.10~0.12 μm</td><td>implant 沒包住 DIFF</td></tr>
+<tr><td>90</td><td>Implant</td><td>PIMP 與 NIMP #90</td><td>≥ 0 μm</td><td>可相鄰但避免混亂重疊</td><td>implant 分界不清</td></tr>
+<tr><td>91</td><td>Implant</td><td>PIMP 與 PIMP #91</td><td>≥ 0.45 μm</td><td>≥ 0.45 μm</td><td>同層 implant 太近</td></tr>
+<tr><td>92</td><td>Implant</td><td>NIMP 與 NIMP #92</td><td>≥ 0.45 μm</td><td>≥ 0.45 μm</td><td>同層 implant 太近</td></tr>
+<tr><td>93</td><td>Well</td><td>NWELL 與 NWELL #93</td><td>≥ 1.60 μm</td><td>PMOS 盡量共用同一 NWELL</td><td>分散太多塊 NWELL</td></tr>
+<tr><td>94</td><td>Metal</td><td>ME1 最小寬度 #94</td><td>≥ 0.23 μm</td><td>≥ 0.25 μm</td><td>Metal1 太細</td></tr>
+<tr><td>95</td><td>Metal</td><td>ME1 與 ME1 間距 #95</td><td>≥ 0.24 μm</td><td>≥ 0.26 μm</td><td>Metal1 太近</td></tr>
+<tr><td>96</td><td>Metal</td><td>ME2 最小寬度 #96</td><td>依 rule.drc</td><td>加寬電源線</td><td>Metal2 太細</td></tr>
+<tr><td>97</td><td>Via</td><td>VIA1 尺寸 #97</td><td>固定尺寸</td><td>用 Via Tool</td><td>via 被拉伸</td></tr>
+<tr><td>98</td><td>Via</td><td>VIA1 到 VIA1 #98</td><td>依 rule.drc</td><td>使用合法 array</td><td>via array 太密</td></tr>
+<tr><td>99</td><td>Text</td><td>Pin text layer #99</td><td>必須放在正確 pin/text layer</td><td>ME1_TEXT 或指定 pin layer</td><td>label 放錯層</td></tr>
+<tr><td>100</td><td>GuardRing</td><td>Tap 間距 #100</td><td>依 rule.drc</td><td>well/substrate tap 靠近 MOS</td><td>body floating 風險</td></tr>
+<tr><td>101</td><td>Contact</td><td>CONT 尺寸 #101</td><td>固定 0.23 × 0.23 μm</td><td>用 Contact Tool，不可拉伸</td><td>CONT 被 stretch 成長方形</td></tr>
+<tr><td>102</td><td>Contact</td><td>CONT 到 DIFF 邊界 #102</td><td>≥ 0.12 μm</td><td>0.13~0.15 μm</td><td>Contact 太靠 DIFF 邊</td></tr>
+<tr><td>103</td><td>Contact</td><td>PO1 到 CONT #103</td><td>≥ 0.14 μm</td><td>0.15~0.18 μm</td><td>Gate 太靠 source/drain contact</td></tr>
+<tr><td>104</td><td>Contact</td><td>CONT 與 CONT #104</td><td>約 ≥ 0.25 μm</td><td>≥ 0.25 μm</td><td>Contact array 太密</td></tr>
+<tr><td>105</td><td>Diffusion</td><td>DIFF 最小寬度 #105</td><td>≥ 0.23 μm</td><td>≥ 0.25 μm</td><td>Active 太窄</td></tr>
+<tr><td>106</td><td>Diffusion</td><td>DIFF 與 DIFF 間距 #106</td><td>≥ 0.30 μm</td><td>0.32~0.35 μm</td><td>不同 active 太近</td></tr>
+<tr><td>107</td><td>Poly</td><td>PO1 超出 DIFF #107</td><td>≥ 0.20 μm</td><td>0.22~0.25 μm</td><td>Poly extension 不足</td></tr>
+<tr><td>108</td><td>Poly</td><td>PO1 最小寬度 #108</td><td>約 0.18 μm</td><td>依 MOS L 設計</td><td>Gate 長度錯誤</td></tr>
+<tr><td>109</td><td>Implant</td><td>PIMP/NIMP 到 DIFF #109</td><td>≥ 0.10 μm</td><td>0.10~0.12 μm</td><td>implant 沒包住 DIFF</td></tr>
+<tr><td>110</td><td>Implant</td><td>PIMP 與 NIMP #110</td><td>≥ 0 μm</td><td>可相鄰但避免混亂重疊</td><td>implant 分界不清</td></tr>
+<tr><td>111</td><td>Implant</td><td>PIMP 與 PIMP #111</td><td>≥ 0.45 μm</td><td>≥ 0.45 μm</td><td>同層 implant 太近</td></tr>
+<tr><td>112</td><td>Implant</td><td>NIMP 與 NIMP #112</td><td>≥ 0.45 μm</td><td>≥ 0.45 μm</td><td>同層 implant 太近</td></tr>
+<tr><td>113</td><td>Well</td><td>NWELL 與 NWELL #113</td><td>≥ 1.60 μm</td><td>PMOS 盡量共用同一 NWELL</td><td>分散太多塊 NWELL</td></tr>
+<tr><td>114</td><td>Metal</td><td>ME1 最小寬度 #114</td><td>≥ 0.23 μm</td><td>≥ 0.25 μm</td><td>Metal1 太細</td></tr>
+<tr><td>115</td><td>Metal</td><td>ME1 與 ME1 間距 #115</td><td>≥ 0.24 μm</td><td>≥ 0.26 μm</td><td>Metal1 太近</td></tr>
+<tr><td>116</td><td>Metal</td><td>ME2 最小寬度 #116</td><td>依 rule.drc</td><td>加寬電源線</td><td>Metal2 太細</td></tr>
+<tr><td>117</td><td>Via</td><td>VIA1 尺寸 #117</td><td>固定尺寸</td><td>用 Via Tool</td><td>via 被拉伸</td></tr>
+<tr><td>118</td><td>Via</td><td>VIA1 到 VIA1 #118</td><td>依 rule.drc</td><td>使用合法 array</td><td>via array 太密</td></tr>
+<tr><td>119</td><td>Text</td><td>Pin text layer #119</td><td>必須放在正確 pin/text layer</td><td>ME1_TEXT 或指定 pin layer</td><td>label 放錯層</td></tr>
+<tr><td>120</td><td>GuardRing</td><td>Tap 間距 #120</td><td>依 rule.drc</td><td>well/substrate tap 靠近 MOS</td><td>body floating 風險</td></tr></tbody></table>
+</details>
+<details open><summary>與 Lab10 XOR 的關聯</summary>
+<p>在 Lab10 XOR 中，最容易出錯的是 <span class="bad">OUT/Y/F 命名混用</span>、<span class="bad">NA/NB 反相輸出未正確接到 gate</span>、以及 <span class="bad">net_n1 被抽成數字 net</span>。請優先使用 highlight net 檢查。</p>
+</details>
+</main></body></html>

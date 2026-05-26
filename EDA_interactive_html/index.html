@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lab10 EDA 多HTML互動式網站｜連結修正版</title>
+
+<style>
+:root{--bg:#07111f;--card:#0c1b2d;--line:#2d557d;--accent:#5de4c7;--accent2:#8bd3ff;--text:#f5fbff}
+*{box-sizing:border-box}
+body{font-family:Arial,'Microsoft JhengHei',sans-serif;background:var(--bg);color:var(--text);margin:0;line-height:1.65}
+header{background:linear-gradient(135deg,#12365c,#0b1020);padding:34px;border-bottom:3px solid var(--accent)}
+main{padding:24px 34px;max-width:1280px;margin:auto}
+.topnav{display:flex;flex-wrap:wrap;gap:10px;margin-top:15px}
+a.btn,.btn{display:inline-block;padding:11px 15px;background:#143a63;color:#d8f2ff;text-decoration:none;border-radius:10px;border:1px solid #2f6da4;font-weight:700}
+a.btn:hover{background:#1f609e;transform:translateY(-1px)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:18px 0;box-shadow:0 10px 28px rgba(0,0,0,.25)}
+.card h3{margin-top:0;color:var(--accent2)}
+.small{opacity:.85;font-size:14px}
+footer{padding:22px 34px;text-align:center;color:#9db8d8;border-top:1px solid #24496f}
+.status{color:#4cff88;font-weight:bold}
+</style>
+
+</head>
+<body>
+<header>
+<h1>Lab10 EDA 多HTML互動式網站｜連結修正版</h1>
+<p>已把主頁連結重新整理，所有 HTML 頁面都集中在這裡，避免原本部分入口找不到。</p>
+<nav class="topnav">
+<a class="btn" href="module_drc.html">DRC 模組</a>
+<a class="btn" href="module_lvs.html">LVS 模組</a>
+<a class="btn" href="module_pex.html">PEX 模組</a>
+<a class="btn" href="drc_expanded.html">DRC 120項</a>
+<a class="btn" href="lvs_expanded.html">LVS 120項</a>
+<a class="btn" href="pex_expanded.html">PEX 120項</a>
+<a class="btn" href="lab10_expanded_workflow.html">Lab10 擴充流程</a>
+</nav>
+</header>
+<main>
+<div class="card">
+<h2>修正結果</h2>
+<p><span class="status">已修正主頁所有入口連結</span>，並新增完整頁面清單。開啟 ZIP 後，請直接點 <b>index.html</b> 進入。</p>
+</div>
+<div class="card"><h2>主頁與總覽</h2><div class="grid"><div class="card">
+<h3>Lab10 XOR 互動式多頁說明</h3>
+<p class="small">檔案：index.html</p>
+<a class="btn" href="index.html">開啟頁面</a>
+</div></div></div><div class="card"><h2>三大模組原始教學頁</h2><div class="grid"><div class="card">
+<h3>DRC：Design Rule Check</h3>
+<p class="small">檔案：module_drc.html</p>
+<a class="btn" href="module_drc.html">開啟頁面</a>
+</div><div class="card">
+<h3>LVS：Layout Versus Schematic</h3>
+<p class="small">檔案：module_lvs.html</p>
+<a class="btn" href="module_lvs.html">開啟頁面</a>
+</div><div class="card">
+<h3>PEX / Post-sim：寄生萃取與後模擬</h3>
+<p class="small">檔案：module_pex.html</p>
+<a class="btn" href="module_pex.html">開啟頁面</a>
+</div></div></div><div class="card"><h2>三個範例頁</h2><div class="grid"><div class="card">
+<h3>範例一：DRC 錯誤與修正</h3>
+<p class="small">檔案：example_drc.html</p>
+<a class="btn" href="example_drc.html">開啟頁面</a>
+</div><div class="card">
+<h3>範例二：LVS 錯誤與修正</h3>
+<p class="small">檔案：example_lvs.html</p>
+<a class="btn" href="example_lvs.html">開啟頁面</a>
+</div><div class="card">
+<h3>範例三：PEX/Post-sim 規格範例</h3>
+<p class="small">檔案：example_pex.html</p>
+<a class="btn" href="example_pex.html">開啟頁面</a>
+</div></div></div><div class="card"><h2>XOR/Lab10 問題分析與流程</h2><div class="grid"><div class="card">
+<h3>Lab10 XOR 目前錯誤總分析</h3>
+<p class="small">檔案：example_xor_lvs.html</p>
+<a class="btn" href="example_xor_lvs.html">開啟頁面</a>
+</div><div class="card">
+<h3>Lab10 XOR 作業製作流程與報告範本</h3>
+<p class="small">檔案：lab10_flow_report.html</p>
+<a class="btn" href="lab10_flow_report.html">開啟頁面</a>
+</div><div class="card">
+<h3>Lab10 XOR 完整流程與目前問題分析</h3>
+<p class="small">檔案：lab10_expanded_workflow.html</p>
+<a class="btn" href="lab10_expanded_workflow.html">開啟頁面</a>
+</div></div></div><div class="card"><h2>擴充版 120 項規格表</h2><div class="grid"><div class="card">
+<h3>DRC 擴充規格模組</h3>
+<p class="small">檔案：drc_expanded.html</p>
+<a class="btn" href="drc_expanded.html">開啟頁面</a>
+</div><div class="card">
+<h3>LVS 擴充規格模組</h3>
+<p class="small">檔案：lvs_expanded.html</p>
+<a class="btn" href="lvs_expanded.html">開啟頁面</a>
+</div><div class="card">
+<h3>PEX / RCE 擴充規格模組</h3>
+<p class="small">檔案：pex_expanded.html</p>
+<a class="btn" href="pex_expanded.html">開啟頁面</a>
+</div></div></div>
+</main>
+<footer>Lab10 XOR EDA Interactive HTML｜Fixed Links</footer>
+</body>
+</html>

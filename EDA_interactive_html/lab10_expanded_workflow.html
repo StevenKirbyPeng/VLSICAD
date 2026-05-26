@@ -1,0 +1,55 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Lab10 擴充流程與問題分析</title>
+<style>
+body{font-family:Arial,'Microsoft JhengHei',sans-serif;background:#07111f;color:#f5fbff;margin:0}
+header{background:linear-gradient(135deg,#12365c,#0b1020);padding:28px 34px;border-bottom:3px solid #4ca3ff}
+main{padding:24px 34px}
+nav a{display:inline-block;margin:8px 10px 8px 0;padding:10px 14px;background:#143a63;color:#d8f2ff;text-decoration:none;border-radius:10px;border:1px solid #2f6da4}
+.card{background:#0c1b2d;border:1px solid #2d557d;border-radius:14px;padding:18px;margin:18px 0;box-shadow:0 10px 28px rgba(0,0,0,.25)}
+details{background:#0d2035;border:1px solid #315b88;border-radius:12px;margin:16px 0;padding:14px}
+summary{cursor:pointer;font-weight:bold;font-size:20px;color:#8bd3ff}
+table{border-collapse:collapse;width:100%;font-size:14px;background:#081625}
+th,td{border:1px solid #34597e;padding:8px;vertical-align:top}
+th{background:#143a63;color:#fff;position:sticky;top:0}
+td:nth-child(4){color:#ffd166;font-weight:bold}
+td:nth-child(5){color:#4cff88;font-weight:bold}
+.bad{color:#ff7676;font-weight:bold}
+.ok{color:#4cff88;font-weight:bold}
+svg{max-width:100%;height:auto;background:#fff;border-radius:10px;margin:12px 0}
+.flowbox{animation:pulse 2s infinite alternate}
+@keyframes pulse{from{filter:brightness(1)}to{filter:brightness(1.35)}}
+</style>
+</head>
+<body><header><h1>Lab10 XOR 完整流程與目前問題分析</h1><nav><a href="index.html">回主頁</a><a href="drc_expanded.html">DRC</a><a href="lvs_expanded.html">LVS</a><a href="pex_expanded.html">PEX/RCE</a></nav></header>
+<main>
+<details open><summary>Lab10 完整檢查流程</summary>
+<svg width="980" height="230" viewBox="0 0 980 230">
+<defs><marker id="arr" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L10,3 L0,6 Z" fill="#222"/></marker></defs>
+<rect x="30" y="80" width="130" height="70" rx="12" fill="#9b59b6"/><text x="55" y="122" font-size="20">Pre-sim</text>
+<line x1="160" y1="115" x2="220" y2="115" stroke="#222" stroke-width="4" marker-end="url(#arr)"/>
+<rect x="220" y="80" width="130" height="70" rx="12" fill="#5dade2"/><text x="252" y="122" font-size="20">Layout</text>
+<line x1="350" y1="115" x2="410" y2="115" stroke="#222" stroke-width="4" marker-end="url(#arr)"/>
+<rect x="410" y="80" width="130" height="70" rx="12" fill="#58d68d"/><text x="455" y="122" font-size="20">DRC</text>
+<line x1="540" y1="115" x2="600" y2="115" stroke="#222" stroke-width="4" marker-end="url(#arr)"/>
+<rect x="600" y="80" width="130" height="70" rx="12" fill="#f4d03f"/><text x="645" y="122" font-size="20">LVS</text>
+<line x1="730" y1="115" x2="790" y2="115" stroke="#222" stroke-width="4" marker-end="url(#arr)"/>
+<rect x="790" y="80" width="150" height="70" rx="12" fill="#e67e22"/><text x="820" y="122" font-size="20">PEX/Post</text>
+</svg></details>
+
+<details open><summary>目前你這個 XOR 案例的主要錯誤</summary>
+<table><tr><th>錯誤</th><th>LVS 顯示</th><th>真正意思</th><th>修正方式</th></tr>
+<tr><td>MN3 gate 錯</td><td>source 要 g:NA，但 layout 抽成 9</td><td>NA 沒接到 MN3 poly gate</td><td>A inverter output 標成 NA，並拉到 A' gate</td></tr>
+<tr><td>MN4 gate 錯</td><td>source 要 g:B，但 layout 抽成 Y</td><td>MN4 gate 接到輸出或錯誤節點</td><td>MN4 poly gate 改接輸入 B</td></tr>
+<tr><td>net_n1 不一致</td><td>source 要 d:net_n1，但 layout 抽成 4</td><td>中間節點未命名或沒有接成同一網路</td><td>MN3/MN4 drain 共同節點標成 net_n1</td></tr>
+<tr><td>輸出名稱混用</td><td>Y / F / OUT 同時出現</td><td>source 與 layout pin 對不上</td><td>統一成 OUT 或 Y，一套用到底</td></tr>
+</table></details>
+
+<details open><summary>建議修正順序</summary>
+<ol>
+<li>先統一 pin：A、B、OUT、VDD、GND。</li>
+<li>確認 A inverter output = NA；B inverter output = NB。</li>
+<li>確認 MN3 gate=NA、MN4 gate=B。</li>
+<li>確認 MN3/MN4 drain 共同接 net_n1。</li>
+<li>重新跑 LVS，直到 Correct / smile face。</li>
+<li>LVS 通過後再做 PEX 與 post-sim。</li>
+</ol></details>
+</main></body></html>
