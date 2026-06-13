@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>INV Layout DRC 錯誤修正順序教學</title>
+<style>
+:root{--bg:#f6f8fb;--card:#fff;--ink:#182235;--muted:#64748b;--blue:#3b82f6;--yellow:#f7c948;--orange:#fb923c;--red:#ef4444;--green:#22c55e;--purple:#8b5cf6;--border:#dbe3ef;}
+*{box-sizing:border-box} body{margin:0;background:linear-gradient(120deg,#f6f8fb,#eef4ff);font-family:"Noto Sans TC","Microsoft JhengHei",Arial,sans-serif;color:var(--ink);line-height:1.7}
+header{padding:34px 22px;background:#101827;color:white;position:relative;overflow:hidden} header:before{content:"";position:absolute;inset:-30%;background:radial-gradient(circle at 30% 20%,rgba(59,130,246,.35),transparent 35%),radial-gradient(circle at 80% 50%,rgba(251,146,60,.24),transparent 30%);animation:pulse 5s ease-in-out infinite alternate} header>*{position:relative;z-index:1} h1{font-size:30px;margin:0 0 10px} h2{font-size:23px;margin:34px 0 12px}.wrap{max-width:1180px;margin:auto;padding:22px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:0 8px 22px rgba(15,23,42,.08)}
+.badge{display:inline-block;border-radius:999px;padding:3px 10px;font-size:13px;font-weight:700}.b-red{background:#fee2e2;color:#991b1b}.b-green{background:#dcfce7;color:#166534}.b-blue{background:#dbeafe;color:#1e40af}.b-orange{background:#ffedd5;color:#9a3412}.muted{color:var(--muted)}
+table{border-collapse:collapse;width:100%;background:white;border-radius:14px;overflow:hidden}th,td{border:1px solid var(--border);padding:10px 12px;text-align:left;vertical-align:top}th{background:#eaf1ff}.step{display:flex;gap:14px;align-items:flex-start}.num{flex:0 0 42px;height:42px;border-radius:50%;background:#2563eb;color:#fff;display:grid;place-items:center;font-weight:800}.step h3{margin:0 0 4px}.step-card{border-left:6px solid #2563eb}.warn{border-left-color:#ef4444}.ok{border-left-color:#22c55e}.accordion{margin:12px 0}.accordion summary{cursor:pointer;font-weight:800;padding:14px 18px;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 4px 14px rgba(15,23,42,.06)}.accordion[open] summary{border-radius:14px 14px 0 0;background:#eff6ff}.panel{background:white;border:1px solid var(--border);border-top:0;border-radius:0 0 14px 14px;padding:16px 18px}.code{font-family:Consolas,monospace;background:#0b1220;color:#d1e7ff;border-radius:12px;padding:12px;white-space:pre-wrap;overflow:auto}.svgbox{background:#fbfdff;border:1px dashed #cbd5e1;border-radius:16px;padding:10px;margin:12px 0}.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:14px}.dot{width:15px;height:15px;border-radius:4px;display:inline-block;vertical-align:-2px;margin-right:5px}.m0od{background:#60a5fa}.cmd{background:#fbbf24}.via{background:#111827}.m1{background:#f97316}.od{background:#22c55e}.np{background:#a78bfa}.pp{background:#f472b6}
+@keyframes pulse{from{transform:scale(1)}to{transform:scale(1.05)}} @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}} @keyframes slide{0%{transform:translateX(0)}100%{transform:translateX(30px)}} .blink{animation:blink 1s infinite}.slide{animation:slide 1.2s ease-in-out infinite alternate}.small{font-size:14px}.print{position:fixed;right:18px;bottom:18px;background:#2563eb;color:#fff;border:0;border-radius:999px;padding:12px 18px;font-weight:800;box-shadow:0 8px 22px rgba(37,99,235,.35);cursor:pointer}@media print{.print{display:none} body{background:white}.card{box-shadow:none}}
+</style>
+</head>
+<body>
+<header>
+<h1>INV Layout DRC 錯誤修正順序教學</h1>
+<p>依照目前 <b>inv.LAYOUT_ERRORS.txt</b> 的 DRC 結果整理。此頁先聚焦真正需要手動修改的幾何錯誤；DN、DM、LUP 類先放到「暫時排除」區。</p>
+<div class="legend"><span><i class="dot m0od"></i>M0_OD</span><span><i class="dot cmd"></i>CMD</span><span><i class="dot via"></i>VIA0</span><span><i class="dot m1"></i>M1</span><span><i class="dot od"></i>OD/MD</span><span><i class="dot np"></i>NP</span><span><i class="dot pp"></i>PP</span></div>
+</header>
+<main class="wrap">
+<section class="card">
+<h2>一、總修正策略</h2>
+<p>你的錯誤核心是 <b>VIA0 → M0_OD → CMD → OD/MD</b> 的幾何關係沒有對齊。建議順序是：</p>
+<table>
+<tr><th>順序</th><th>錯誤</th><th>為什麼先修</th><th>修正重點</th></tr>
+<tr><td>1</td><td>VIA0.W.1.T</td><td>VIA 尺寸錯會連帶造成 enclosure / covered 錯。</td><td>刪除錯 VIA0，重放標準 0.032 × 0.032 µm VIA0。</td></tr>
+<tr><td>2</td><td>VIA0.R.9</td><td>確認 VIA0 上下層關係正確，否則後面包覆修了也沒用。</td><td>VIA0 必須完全在 M0_OD∩M1 或 M0_PO∩M1 內。</td></tr>
+<tr><td>3</td><td>VIA0.EN.2</td><td>VIA 位置正確後，再調包覆距離。</td><td>M0_OD 對 VIA0 兩個相對邊包覆 ≥ 0.015 µm。</td></tr>
+<tr><td>4</td><td>CMD.R.4.T</td><td>CMD 壓到 OD/MD 會讓 CMD 延伸怎麼調都錯。</td><td>把 CMD 從 OD/MD 禁止重疊區移開。</td></tr>
+<tr><td>5</td><td>CMD.EX.3.1</td><td>解決 M0_OD 對 CMD 上下方向延伸不足。</td><td>M0_OD 在 CMD 上下方向 extension ≥ 0.113 µm。</td></tr>
+<tr><td>6</td><td>CMD.EX.1</td><td>最後微調 CMD 水平方向延伸。</td><td>CMD 對 M0_OD 水平 extension = 0.025 ~ 0.10 µm。</td></tr>
+<tr><td>7</td><td>NP.R.3.T / PP.R.3.T</td><td>implant overlap 通常和 contact 幾何較獨立，可最後修。</td><td>NP 與 PP 不可重疊，在 y≈-8.379 附近分開。</td></tr>
+</table>
+</section>
+
+<section>
+<h2>二、依序修改步驟</h2>
+
+<details class="accordion" open><summary>Step 1：先修 VIA0.W.1.T — VIA0 尺寸錯</summary><div class="panel">
+<div class="grid"><div><p><span class="badge b-red">目前錯誤</span> DRC 要求 VIA0 寬高必須是 <b>0.032 × 0.032 µm</b>，但目前有一顆約為 0.034 × 0.033 µm。</p><p><b>解法：</b>不要手動畫 VIA0。刪除錯誤 VIA0，用 PDK / Contact Generator 重新放標準 VIA0。</p><p><b>檢查座標：</b>錯誤在 (3.8960,-8.3180) ~ (3.9300,-8.2850) 附近。</p></div><div class="svgbox">
+<svg viewBox="0 0 520 240" width="100%" height="240">
+<rect x="20" y="20" width="220" height="190" rx="14" fill="#fee2e2" stroke="#ef4444"/>
+<rect x="280" y="20" width="220" height="190" rx="14" fill="#dcfce7" stroke="#22c55e"/>
+<text x="75" y="50" font-size="18" font-weight="700" fill="#991b1b">錯誤：手畫 VIA</text>
+<rect x="100" y="90" width="76" height="62" fill="#111827"/><text x="85" y="178" font-size="14">0.034 × 0.033</text>
+<text x="342" y="50" font-size="18" font-weight="700" fill="#166534">正確：標準 VIA</text>
+<rect x="365" y="92" width="64" height="64" fill="#111827"/><text x="350" y="178" font-size="14">0.032 × 0.032</text>
+<text x="236" y="124" font-size="30">→</text>
+</svg></div></div>
+</div></details>
+
+<details class="accordion"><summary>Step 2：修 VIA0.R.9 — VIA0 沒有被合法上下層完整覆蓋</summary><div class="panel">
+<p><span class="badge b-red">目前錯誤</span> VIA0 必須完全被下列其中一種組合覆蓋：<b>{M0_PO AND M1}</b> 或 <b>{{M0_OD NOT CMD} AND M1}</b>。你的 VIA0 有部分沒有落在合法重疊區內。</p>
+<p><b>解法：</b>開啟 M0_OD、M0_PO、VIA0、M1 四層，確認 VIA0 小黑方塊完全在 M0_OD 與 M1 的共同區域中，不要碰到 CMD 區域。</p>
+<div class="svgbox">
+<svg viewBox="0 0 680 300" width="100%" height="300">
+<rect x="25" y="25" width="285" height="230" rx="14" fill="#fff7ed" stroke="#fb923c"/>
+<text x="70" y="55" font-size="18" font-weight="700" fill="#9a3412">錯誤：VIA0 露出重疊區</text>
+<rect x="70" y="95" width="180" height="55" fill="#60a5fa" opacity=".85"/><text x="95" y="90" font-size="14">M0_OD</text>
+<rect x="115" y="125" width="180" height="55" fill="#f97316" opacity=".75"/><text x="245" y="195" font-size="14">M1</text>
+<rect x="250" y="142" width="38" height="38" fill="#111827" class="blink"/><text x="75" y="220" font-size="14" fill="#991b1b">VIA0 部分超出 M0_OD∩M1</text>
+<rect x="370" y="25" width="285" height="230" rx="14" fill="#ecfdf5" stroke="#22c55e"/>
+<text x="420" y="55" font-size="18" font-weight="700" fill="#166534">正確：完全在重疊區</text>
+<rect x="420" y="95" width="180" height="55" fill="#60a5fa" opacity=".85"/><text x="445" y="90" font-size="14">M0_OD</text>
+<rect x="420" y="125" width="180" height="55" fill="#f97316" opacity=".75"/><text x="570" y="195" font-size="14">M1</text>
+<rect x="492" y="133" width="38" height="38" fill="#111827"/><circle cx="511" cy="152" r="30" fill="none" stroke="#22c55e" stroke-width="4"/>
+</svg>
+</div></div></details>
+
+<details class="accordion"><summary>Step 3：修 VIA0.EN.2 — M0_OD 對 VIA0 包覆不足</summary><div class="panel">
+<p><span class="badge b-red">目前錯誤</span> VIA0 被 {M0_OD NOT CMD} 包覆不足。規則要求兩個相對邊包覆 <b>≥ 0.015 µm</b>，另外兩邊至少 ≥ 0.004 µm。</p>
+<p><b>解法：</b>把 VIA0 移到 M0_OD 中央，或加寬 / 加長 M0_OD。注意不要讓 VIA0 落進 CMD 區。</p>
+<div class="svgbox">
+<svg viewBox="0 0 760 320" width="100%" height="320">
+<rect x="40" y="40" width="290" height="220" rx="14" fill="#fee2e2" stroke="#ef4444"/>
+<text x="100" y="70" font-size="18" font-weight="700" fill="#991b1b">錯誤：包覆不足</text>
+<rect x="95" y="130" width="180" height="55" fill="#60a5fa" stroke="#1d4ed8" stroke-width="2"/>
+<rect x="238" y="142" width="38" height="38" fill="#111827" class="blink"/>
+<line x1="276" y1="125" x2="276" y2="188" stroke="#ef4444" stroke-width="3"/><text x="105" y="220" font-size="14">右側 enclosure 太小</text>
+<rect x="430" y="40" width="290" height="220" rx="14" fill="#dcfce7" stroke="#22c55e"/>
+<text x="490" y="70" font-size="18" font-weight="700" fill="#166534">正確：兩側 ≥ 0.015</text>
+<rect x="485" y="130" width="180" height="55" fill="#60a5fa" stroke="#1d4ed8" stroke-width="2"/>
+<rect x="556" y="142" width="38" height="38" fill="#111827"/>
+<line x1="485" y1="110" x2="556" y2="110" stroke="#22c55e" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="594" y1="110" x2="665" y2="110" stroke="#22c55e" stroke-width="2" marker-end="url(#arr)"/>
+<text x="530" y="215" font-size="14">把 VIA0 放中央</text>
+<defs><marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#22c55e"/></marker></defs>
+</svg>
+</div></div></details>
+
+<details class="accordion"><summary>Step 4：修 CMD.R.4.T — CMD 不可壓到 OD/MD</summary><div class="panel">
+<p><span class="badge b-red">目前錯誤</span> <b>ALL_MD_AND_OD overlap ALL_CMD is not allowed</b>。代表 CMD 疊到 OD/MD 區域，錯誤共有 8 個，集中在 x=3.850~3.980 附近。</p>
+<p><b>解法：</b>開啟 OD/MD 與 CMD。把 CMD 從 OD/MD 區移開，或縮短 CMD，使它不與 OD/MD 重疊。</p>
+<div class="svgbox">
+<svg viewBox="0 0 760 330" width="100%" height="330">
+<rect x="40" y="45" width="300" height="230" rx="14" fill="#fee2e2" stroke="#ef4444"/>
+<text x="100" y="75" font-size="18" font-weight="700" fill="#991b1b">錯誤：CMD 壓到 OD</text>
+<rect x="105" y="145" width="180" height="70" fill="#22c55e" opacity=".8"/><text x="110" y="135" font-size="14">OD / MD</text>
+<rect x="160" y="118" width="65" height="140" fill="#fbbf24" opacity=".85"/><text x="170" y="110" font-size="14">CMD</text>
+<rect x="160" y="145" width="65" height="70" fill="none" stroke="#ef4444" stroke-width="5" class="blink"/>
+<rect x="420" y="45" width="300" height="230" rx="14" fill="#dcfce7" stroke="#22c55e"/>
+<text x="485" y="75" font-size="18" font-weight="700" fill="#166534">正確：避開 OD</text>
+<rect x="485" y="145" width="180" height="70" fill="#22c55e" opacity=".8"/><text x="490" y="135" font-size="14">OD / MD</text>
+<rect x="530" y="82" width="80" height="55" fill="#fbbf24" opacity=".85"/><text x="548" y="75" font-size="14">CMD</text>
+<text x="490" y="245" font-size="14">CMD 不與 OD/MD overlap</text>
+</svg></div></div></details>
+
+<details class="accordion"><summary>Step 5：修 CMD.EX.3.1 — M0_OD 對 CMD 垂直延伸不足</summary><div class="panel">
+<p><span class="badge b-red">目前錯誤</span> M0_OD extension on CMD in vertical direction <b>≥ 0.113 µm</b>。你有 6 個位置，M0_OD 在 CMD 上下方向沒有延伸夠。</p>
+<p><b>解法：</b>在不壓到 OD/MD 的前提下，拉長 M0_OD，讓它比 CMD 上下各超出足夠距離。優先用 PDK 合法形狀，不要任意拉奇怪尺寸。</p>
+<div class="svgbox">
+<svg viewBox="0 0 760 360" width="100%" height="360">
+<rect x="40" y="45" width="300" height="255" rx="14" fill="#fee2e2" stroke="#ef4444"/>
+<text x="85" y="75" font-size="18" font-weight="700" fill="#991b1b">錯誤：M0_OD 上下不夠長</text>
+<rect x="165" y="135" width="55" height="110" fill="#60a5fa"/><text x="150" y="125" font-size="14">M0_OD</text>
+<rect x="115" y="165" width="155" height="50" fill="#fbbf24" opacity=".8"/><text x="125" y="160" font-size="14">CMD</text>
+<line x1="230" y1="135" x2="230" y2="165" stroke="#ef4444" stroke-width="3"/><line x1="230" y1="215" x2="230" y2="245" stroke="#ef4444" stroke-width="3"/>
+<text x="95" y="280" font-size="14">上下 extension 不足</text>
+<rect x="420" y="45" width="300" height="255" rx="14" fill="#dcfce7" stroke="#22c55e"/>
+<text x="480" y="75" font-size="18" font-weight="700" fill="#166534">正確：上下 ≥ 0.113</text>
+<rect x="545" y="90" width="55" height="210" fill="#60a5fa"/>
+<rect x="495" y="165" width="155" height="50" fill="#fbbf24" opacity=".8"/>
+<text x="610" y="145" font-size="14" fill="#166534">上方延伸</text><text x="610" y="272" font-size="14" fill="#166534">下方延伸</text>
+</svg></div></div></details>
+
+<details class="accordion"><summary>Step 6：修 CMD.EX.1 — CMD 對 M0_OD 水平延伸不在 0.025~0.10 µm</summary><div class="panel">
+<p><span class="badge b-red">目前錯誤</span> CMD 對 CrtM0_OD 的水平方向 extension 必須在 <b>0.025 ~ 0.10 µm</b>。你的錯誤座標集中在右側 x≈4.261~4.262，代表某一邊 CMD 水平延伸太短或太長。</p>
+<p><b>解法：</b>用尺規量 CMD 左右超出 M0_OD 的距離，調到 0.025~0.10 µm 之間。建議抓中間值，例如約 0.05 µm，較安全。</p>
+<div class="svgbox">
+<svg viewBox="0 0 760 330" width="100%" height="330">
+<rect x="40" y="45" width="300" height="230" rx="14" fill="#fee2e2" stroke="#ef4444"/>
+<text x="88" y="75" font-size="18" font-weight="700" fill="#991b1b">錯誤：水平延伸不合法</text>
+<rect x="170" y="110" width="55" height="150" fill="#60a5fa"/>
+<rect x="110" y="155" width="180" height="55" fill="#fbbf24" opacity=".85"/>
+<line x1="225" y1="145" x2="290" y2="145" stroke="#ef4444" stroke-width="3"/><text x="230" y="135" font-size="14">太長/太短</text>
+<rect x="420" y="45" width="300" height="230" rx="14" fill="#dcfce7" stroke="#22c55e"/>
+<text x="460" y="75" font-size="18" font-weight="700" fill="#166534">正確：0.025~0.10 µm</text>
+<rect x="550" y="110" width="55" height="150" fill="#60a5fa"/>
+<rect x="500" y="155" width="155" height="55" fill="#fbbf24" opacity=".85"/>
+<line x1="500" y1="140" x2="550" y2="140" stroke="#22c55e" stroke-width="3"/><line x1="605" y1="140" x2="655" y2="140" stroke="#22c55e" stroke-width="3"/>
+<text x="515" y="130" font-size="14">合法</text><text x="615" y="130" font-size="14">合法</text>
+</svg></div></div></details>
+
+<details class="accordion"><summary>Step 7：修 NP.R.3.T / PP.R.3.T — NP 與 PP implant 重疊</summary><div class="panel">
+<p><span class="badge b-red">目前錯誤</span> NP overlap PP / PP overlap NP is not allowed。錯誤在 y≈-8.379 附近，是一條很薄的重疊線。</p>
+<p><b>解法：</b>開啟 NP、PP。把 NP 與 PP 邊界分開，不要剛好壓到同一條座標線。通常把其中一個 implant 邊界上移或下移一點，留下 spacing 即可。</p>
+<div class="svgbox">
+<svg viewBox="0 0 760 310" width="100%" height="310">
+<rect x="40" y="40" width="300" height="220" rx="14" fill="#fee2e2" stroke="#ef4444"/>
+<text x="90" y="70" font-size="18" font-weight="700" fill="#991b1b">錯誤：NP / PP 重疊</text>
+<rect x="105" y="100" width="180" height="80" fill="#a78bfa" opacity=".8"/><text x="115" y="95" font-size="14">NP</text>
+<rect x="105" y="175" width="180" height="80" fill="#f472b6" opacity=".75"/><text x="115" y="270" font-size="14">PP</text>
+<rect x="105" y="175" width="180" height="5" fill="#ef4444" class="blink"/>
+<rect x="420" y="40" width="300" height="220" rx="14" fill="#dcfce7" stroke="#22c55e"/>
+<text x="475" y="70" font-size="18" font-weight="700" fill="#166534">正確：邊界分開</text>
+<rect x="485" y="95" width="180" height="75" fill="#a78bfa" opacity=".8"/><text x="495" y="90" font-size="14">NP</text>
+<rect x="485" y="190" width="180" height="75" fill="#f472b6" opacity=".75"/><text x="495" y="280" font-size="14">PP</text>
+<line x1="485" y1="180" x2="665" y2="180" stroke="#22c55e" stroke-dasharray="5 5"/><text x="525" y="185" font-size="14" fill="#166534">保留間距</text>
+</svg></div></div></details>
+</section>
+
+<section class="card">
+<h2>三、暫時排除但仍需知道的錯誤</h2>
+<table><tr><th>類別</th><th>錯誤</th><th>處理策略</th></tr>
+<tr><td>Density</td><td>AP.DN.1.T、OD.DN.1.T、PO.DN.1.T、PO.DN.2.T</td><td>這是密度 / dummy fill 問題。基本 INV cell 先不修，等主要幾何 DRC 過後再補 dummy 或確認是否關閉 full-chip density check。</td></tr>
+<tr><td>Dummy Metal / Layer map</td><td>DM1.R.1 ~ DM11.R.1</td><td>多半是 GDS layer map 或 dummy metal layer 設定問題，不是你 transistor 幾何本身造成。</td></tr>
+<tr><td>Latch-up / Guard ring</td><td>LUP.1</td><td>與 guard ring、IONET、VDD_TEXT/VSS_TEXT/PAD_TEXT 有關。先修幾何錯，最後確認 pin text 與 well/substrate tap。</td></tr></table>
+</section>
+
+<section class="card">
+<h2>四、實際操作檢查清單</h2>
+<ol>
+<li>在版圖中只開：<b>M0_OD、CMD、VIA0、M1、OD/MD、NP、PP</b>。</li>
+<li>先使用 DRC Browser 的 <b>Zoom To Error</b>，不要用肉眼找。</li>
+<li>刪掉錯誤 VIA0，重新用標準 VIA0 cell。</li>
+<li>確認 VIA0 在 M0_OD 與 M1 重疊區中央。</li>
+<li>把 CMD 從 OD/MD 上移開。</li>
+<li>量測 M0_OD 對 CMD 上下 extension 是否 ≥ 0.113 µm。</li>
+<li>量測 CMD 對 M0_OD 左右 extension 是否 0.025~0.10 µm。</li>
+<li>最後分開 NP / PP implant 邊界。</li>
+<li>重新跑 DRC，只看非 DN、DM、LUP 類是否消失。</li>
+</ol>
+</section>
+
+<section class="card">
+<h2>五、原始 DRC 摘要</h2>
+<p class="muted">以下保留你提供的錯誤檔重點，方便對照。</p>
+<pre class="code">CMD.EX.1：4 violations
+CMD.EX.3.1：6 violations
+CMD.R.4.T：8 violations
+NP.R.3.T：1 violation
+PP.R.3.T：1 violation
+VIA0.EN.2：4 violations
+VIA0.R.9：4 violations
+VIA0.W.1.T：1 violation
+
+暫時排除：AP/OD/PO DN、DM1~DM11、LUP.1</pre>
+</section>
+</main>
+<button class="print" onclick="window.print()">列印 / 存 PDF</button>
+<script>
+document.querySelectorAll('details').forEach(d=>{d.addEventListener('toggle',()=>{if(d.open){d.scrollIntoView({behavior:'smooth',block:'nearest'});}})});
+</script>
+</body></html>
